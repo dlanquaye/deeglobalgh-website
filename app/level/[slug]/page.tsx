@@ -12,7 +12,8 @@ export default async function LevelPage({
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const filtered = products.filter((p) => p.levelSlug === slug);
+  const filtered = products.filter((p) => p.levelSlugs.includes(slug));
+;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -21,6 +22,15 @@ export default async function LevelPage({
       <p className="mt-2 text-gray-700">
   Showing products for <span className="font-semibold">{pretty}</span>.
 </p>
+<div className="mt-4">
+  <Link
+    href={`/shop?level=${slug}`}
+    className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-extrabold text-white hover:opacity-90"
+  >
+    View all in Shop
+  </Link>
+</div>
+
 
 <p className="mt-2 text-sm text-gray-600">
   Found <span className="font-semibold">{filtered.length}</span> product

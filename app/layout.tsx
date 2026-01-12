@@ -161,6 +161,10 @@ export default function RootLayout({
               © {year} DeeGlobalGH. All rights reserved.
             </div>
           </div>
+          <Link href="/admin/products" className="text-blue-900 hover:underline">
+  Admin • Products
+</Link>
+
         </footer>
       </body>
     </html>

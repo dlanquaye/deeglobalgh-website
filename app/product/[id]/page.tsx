@@ -54,6 +54,11 @@ export default async function ProductPage({
 
         <div className="rounded-2xl border bg-white p-6">
           <h1 className="text-2xl font-bold">{product.name}</h1>
+
+<div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-900">
+  Product Code: {product.id}
+</div>
+
           <div className="mt-2 text-xl font-bold">GH₵ {product.price}</div>
 
           <p className="mt-4 text-gray-700">
@@ -63,7 +68,8 @@ export default async function ProductPage({
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <a
          href={`https://wa.me/233246011773?text=${encodeURIComponent(
-  `Hello DeeGlobalGH, I want to order:\n\n• Product: ${product.name}\n• Price: GH₵ ${product.price}\n• Product ID: ${product.id}\n• Link: http://localhost:3000/product/${product.id}\n\nSOURCE: DG-WEBSITE`
+  `Hello DeeGlobalGH, I want to order:\n\n• Product: ${product.name}\n• Product Code: ${product.id}\n• Price: GH₵ ${product.price}\n• Link: http://localhost:3000/product/${product.id}\n\nSOURCE: DG-WEBSITE`
+
 )}`}
 
 
@@ -92,9 +98,16 @@ export default async function ProductPage({
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products
-            .filter((x) => x.id !== product.id)
-            .slice(0, 3)
-            .map((rp) => (
+  .filter((x) => x.id !== product.id)
+  .sort((a, b) => {
+    const aScore = a.categorySlug === product.categorySlug ? 1 : 0;
+    const bScore = b.categorySlug === product.categorySlug ? 1 : 0;
+    return bScore - aScore;
+  })
+  .slice(0, 3)
+  .map((rp) => (
+
+
               <Link
                 key={rp.id}
                 href={`/product/${rp.id}`}

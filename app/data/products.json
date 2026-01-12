@@ -1,0 +1,26 @@
+[
+  {
+    "id": "DG0001",
+    "name": "Wise Ant Chemistry – SHS 1–3 Combined Edition",
+    "price": 200,
+    "image": "/products/wise-ant-chemistry-shs-1-3-combined-edition.webp",
+    "categorySlug": "shs-combined-edition-textbooks",
+    "levelSlugs": ["shs-1", "shs-2", "shs-3"]
+  },
+  {
+    "id": "DG0002",
+    "name": "Wise Ant Biology – SHS 1–3 Combined Edition",
+    "price": 200,
+    "image": "/products/wise-ant-biology-shs-1-3-combined-edition.webp",
+    "categorySlug": "shs-combined-edition-textbooks",
+    "levelSlugs": ["shs-1", "shs-2", "shs-3"]
+  },
+  {
+    "id": "DG0003",
+    "name": "Wise Ant Additional Mathematics – SHS Year 1",
+    "price": 200,
+    "image": "/products/wise-ant-additional-mathematics-shs-year-1.webp",
+    "categorySlug": "textbooks",
+    "levelSlugs": ["shs-1"]
+  }
+]
