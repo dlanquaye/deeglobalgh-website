@@ -24,8 +24,14 @@ export default function ShopPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-bold">Shop All Products</h1>
       <p className="mt-2 text-gray-700">
-        Browse our products and order for delivery.
-      </p>
+  Browse our products and order for delivery.
+</p>
+
+<p className="mt-2 text-sm text-gray-600">
+  Showing <span className="font-semibold">{filteredProducts.length}</span>{" "}
+  product{filteredProducts.length === 1 ? "" : "s"}.
+</p>
+
 
       {/* Search */}
       <div className="mt-6">

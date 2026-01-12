@@ -19,8 +19,14 @@ export default async function LevelPage({
       <h1 className="text-2xl font-bold">{pretty}</h1>
 
       <p className="mt-2 text-gray-700">
-        Showing products for <span className="font-semibold">{pretty}</span>.
-      </p>
+  Showing products for <span className="font-semibold">{pretty}</span>.
+</p>
+
+<p className="mt-2 text-sm text-gray-600">
+  Found <span className="font-semibold">{filtered.length}</span> product
+  {filtered.length === 1 ? "" : "s"} in this level.
+</p>
+
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.length > 0 ? (

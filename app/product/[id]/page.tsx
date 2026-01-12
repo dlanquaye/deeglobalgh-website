@@ -28,9 +28,18 @@ export default async function ProductPage({
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/shop" className="text-sm underline">
-        ← Back to Shop
-      </Link>
+      <div className="flex items-center gap-3 text-sm">
+  <Link href="/" className="underline">
+    Home
+  </Link>
+  <span className="text-gray-400">/</span>
+  <Link href="/shop" className="underline">
+    Shop
+  </Link>
+  <span className="text-gray-400">/</span>
+  <span className="text-gray-600">Product</span>
+</div>
+
 
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border bg-white p-4">
@@ -74,6 +83,42 @@ export default async function ProductPage({
           </div>
         </div>
       </div>
+            {/* Related Products */}
+      <section className="mt-10">
+        <h2 className="text-xl font-bold text-blue-900">Related Products</h2>
+        <p className="mt-2 text-sm text-gray-700">
+          You may also like these items.
+        </p>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products
+            .filter((x) => x.id !== product.id)
+            .slice(0, 3)
+            .map((rp) => (
+              <Link
+                key={rp.id}
+                href={`/product/${rp.id}`}
+                className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
+              >
+                <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
+                  <img
+                    src={rp.image}
+                    alt={rp.name}
+                    className="h-48 w-auto object-contain"
+                  />
+                </div>
+
+                <div className="mt-3 font-semibold">{rp.name}</div>
+                <div className="mt-1 font-bold text-lg">GH₵ {rp.price}</div>
+
+                <div className="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-center font-extrabold text-blue-950">
+                  View Product
+                </div>
+              </Link>
+            ))}
+        </div>
+      </section>
+
     </main>
   );
 }

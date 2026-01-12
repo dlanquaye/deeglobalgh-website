@@ -101,20 +101,20 @@ export default function Home() {
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/shop"
-              className="inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 font-semibold text-white"
-            >
-              Shop All Products
-            </Link>
+  href="/shop"
+  className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 font-extrabold text-white hover:opacity-90"
+>
+  Shop All Products
+</Link>
+<a
+  href="https://wa.me/233246011773"
+  target="_blank"
+  rel="noreferrer"
+  className="inline-flex items-center justify-center rounded-xl bg-yellow-500 px-5 py-3 font-extrabold text-blue-950 hover:opacity-90"
+>
+  WhatsApp Support
+</a>
 
-            <a
-              href="https://wa.me/233246011773"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-semibold"
-            >
-              WhatsApp Support
-            </a>
           </div>
         </div>
       </section>
