@@ -1,4 +1,20 @@
+"use client";
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 export default function Home() {
+    const router = useRouter();
+  const [search, setSearch] = useState("");
+
   const categories = [
     { name: "Textbooks", desc: "Pre-School to SHS" },
     { name: "JHS Combined Edition Textbooks", desc: "JHS 1–3 combined books" },
@@ -37,11 +53,34 @@ export default function Home() {
 
           {/* Big Search */}
           <div className="flex-1">
-            <input
-              className="w-full rounded-xl border px-4 py-3 text-base outline-none focus:ring-2 focus:ring-black"
-              placeholder="Search books, stationery, dorm items, underwear..."
-            />
-          </div>
+  <div className="flex items-center gap-2 rounded-xl border bg-white px-2 py-2">
+    <input
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const q = search.trim();
+          if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
+          else router.push("/shop");
+        }
+      }}
+      className="w-full bg-transparent px-2 py-2 text-base outline-none"
+      placeholder="Search books, stationery, dorm items, underwear..."
+    />
+
+    <button
+      onClick={() => {
+        const q = search.trim();
+        if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
+        else router.push("/shop");
+      }}
+      className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+    >
+      Search
+    </button>
+  </div>
+</div>
+
 
           {/* Cart */}
           <button className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50">
@@ -61,12 +100,21 @@ export default function Home() {
           </p>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <button className="rounded-xl bg-black px-5 py-3 font-semibold text-white">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 font-semibold text-white"
+            >
               Shop All Products
-            </button>
-            <button className="rounded-xl border px-5 py-3 font-semibold">
+            </Link>
+
+            <a
+              href="https://wa.me/233246011773"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-semibold"
+            >
               WhatsApp Support
-            </button>
+            </a>
           </div>
         </div>
       </section>
@@ -74,16 +122,22 @@ export default function Home() {
       {/* Categories */}
       <section className="mx-auto max-w-6xl px-4 pb-10">
         <h2 className="text-xl font-bold">Shop by Category</h2>
+
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((c) => (
-            <div
-              key={c.name}
-              className="rounded-2xl border p-5 hover:bg-gray-50 cursor-pointer"
-            >
-              <div className="text-lg font-semibold">{c.name}</div>
-              <div className="mt-1 text-sm text-gray-600">{c.desc}</div>
-            </div>
-          ))}
+          {categories.map((c) => {
+            const slug = slugify(c.name);
+
+            return (
+              <Link
+                key={c.name}
+                href={`/category/${slug}`}
+                className="rounded-2xl border p-5 hover:bg-gray-50 cursor-pointer"
+              >
+                <div className="text-lg font-semibold">{c.name}</div>
+                <div className="mt-1 text-sm text-gray-600">{c.desc}</div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -95,14 +149,19 @@ export default function Home() {
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {levels.map((level) => (
-            <button
-              key={level}
-              className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
-            >
-              {level}
-            </button>
-          ))}
+          {levels.map((level) => {
+            const slug = slugify(level);
+
+            return (
+              <Link
+                key={level}
+                href={`/level/${slug}`}
+                className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+              >
+                {level}
+              </Link>
+            );
+          })}
         </div>
       </section>
 
