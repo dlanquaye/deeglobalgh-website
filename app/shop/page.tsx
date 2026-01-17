@@ -51,35 +51,37 @@ export default function ShopPage() {
 
   // Read search query (?q=...) from URL
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
 
-  const q = params.get("q") || "";
-  const cat = params.get("category") || "";
-  const lvl = params.get("level") || "";
+    const q = params.get("q") || "";
+    const cat = params.get("category") || "";
+    const lvl = params.get("level") || "";
 
-  setQuery(q);
-  setCategory(cat);
-  setLevel(lvl);
-}, []);
-;
+    setQuery(q);
+    setCategory(cat);
+    setLevel(lvl);
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    return products.filter((p) => {
-      // 1) Search match
-      const name = p.name.toLowerCase();
-      const cat = p.categorySlug.toLowerCase();
-      const levels = p.levelSlugs.join(" ").toLowerCase();
+    return products.filter((p: any) => {
+      // SAFE fields (so the page never crashes)
+      const name = String(p?.name || "").toLowerCase();
+      const cat = String(p?.categorySlug || "").toLowerCase();
 
+      const levelsArray = Array.isArray(p?.levelSlugs) ? p.levelSlugs : [];
+      const levels = levelsArray.join(" ").toLowerCase();
+
+      // 1) Search match
       const matchesSearch =
         !q || name.includes(q) || cat.includes(q) || levels.includes(q);
 
       // 2) Category match
-      const matchesCategory = !category || p.categorySlug === category;
+      const matchesCategory = !category || p?.categorySlug === category;
 
       // 3) Level match
-      const matchesLevel = !level || p.levelSlugs.includes(level);
+      const matchesLevel = !level || levelsArray.includes(level);
 
       return matchesSearch && matchesCategory && matchesLevel;
     });
@@ -152,36 +154,44 @@ export default function ShopPage() {
       {/* Product Grid */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredProducts.length > 0 ? (
-          filteredProducts.map((p) => (
-            <Link
-              key={p.id}
-              href={`/product/${p.id}`}
-              className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
-            >
-              <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                <img
-                  src={p.image}
-                  alt={p.name}
-                  className="h-48 w-auto object-contain"
-                />
-              </div>
+          filteredProducts.map((p: any) => {
+            const imageSrc = p?.image?.src || "/products/placeholder.webp";
+            const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
+            const imageTitle = p?.image?.title || p?.name || "Product image";
 
-              <div className="mt-3 font-semibold">{p.name}</div>
-              <div className="mt-1 font-bold text-lg text-blue-900">
-                GH₵ {p.price}
-              </div>
-
-              <button
-                className="mt-3 w-full rounded-xl bg-blue-900 px-4 py-3 font-extrabold text-white hover:opacity-90"
-                onClick={(e) => {
-                  e.preventDefault(); // prevents opening product page
-                  alert("Cart feature coming soon!");
-                }}
+            return (
+              <Link
+                key={p?.id}
+                href={`/product/${p?.slug}`}
+                className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
               >
-                Add to cart
-              </button>
-            </Link>
-          ))
+                <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
+                  <img
+                    src={imageSrc}
+                    alt={imageAlt}
+                    title={imageTitle}
+                    className="h-48 w-auto object-contain"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="mt-3 font-semibold">{p?.name}</div>
+                <div className="mt-1 font-bold text-lg text-blue-900">
+                  GH₵ {p?.price}
+                </div>
+
+                <button
+                  className="mt-3 w-full rounded-xl bg-blue-900 px-4 py-3 font-extrabold text-white hover:opacity-90"
+                  onClick={(e) => {
+                    e.preventDefault(); // prevents opening product page
+                    alert("Cart feature coming soon!");
+                  }}
+                >
+                  Add to cart
+                </button>
+              </Link>
+            );
+          })
         ) : (
           <div className="rounded-2xl border bg-white p-6 text-gray-700">
             No products match your filters.

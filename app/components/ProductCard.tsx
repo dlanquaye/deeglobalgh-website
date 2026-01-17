@@ -1,14 +1,23 @@
-import type { Product } from "@/lib/products";
+import Image from "next/image";
+import type { Product } from "@/app/lib/products";
+
 
 export default function ProductCard({ product }: { product: Product }) {
+  const imageSrc = product?.image?.src || "/products/placeholder.webp";
+  const imageAlt = product?.image?.alt || product?.name || "DeeglobalGh product";
+  const imageTitle = product?.image?.title || product?.name || "Product image";
+
   return (
     <div className="card-brand overflow-hidden">
       <div className="bg-white">
         <div className="flex h-44 items-center justify-center bg-[color:var(--bg-soft)]">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="h-40 w-auto object-contain"
+          <Image
+            src={imageSrc}
+            alt={imageAlt}
+            title={imageTitle}
+            width={400}
+            height={400}
+            className="h-48 w-auto object-contain"
           />
         </div>
       </div>

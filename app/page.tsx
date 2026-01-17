@@ -1,7 +1,10 @@
 "use client";
+
 import Link from "next/link";
-import { useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { products } from "./lib/products";
 
 function slugify(text: string) {
   return text
@@ -12,8 +15,11 @@ function slugify(text: string) {
 }
 
 export default function Home() {
-    const router = useRouter();
+  const router = useRouter();
   const [search, setSearch] = useState("");
+
+  // pause autoplay on hover
+  const [pauseFeaturedAutoScroll, setPauseFeaturedAutoScroll] = useState(false);
 
   const categories = [
     { name: "Textbooks", desc: "Pre-School to SHS" },
@@ -22,7 +28,10 @@ export default function Home() {
     { name: "Exam Materials", desc: "BECE & WASSCE" },
     { name: "School Essentials", desc: "Stationery & supplies" },
     { name: "Dormitory Essentials", desc: "Boarding student items" },
-    { name: "Uniforms & Clothing Essentials", desc: "Underwear, socks & uniforms" },
+    {
+      name: "Uniforms & Clothing Essentials",
+      desc: "Underwear, socks & uniforms",
+    },
     { name: "Drawing & Technical", desc: "Drawing boards & sets" },
     { name: "Bags & Lunch Packs", desc: "Bags, lunch boxes, bottles" },
     { name: "Calculators", desc: "Scientific calculators" },
@@ -44,48 +53,115 @@ export default function Home() {
     "SHS 3",
   ];
 
+  // Featured products (randomized AFTER page loads to avoid hydration error)
+  const [featured, setFeatured] = useState(products.slice(0, 6));
+
+  useEffect(() => {
+    const shuffled = [...products].sort(() => Math.random() - 0.5);
+    setFeatured(shuffled.slice(0, 6));
+  }, []);
+
+  const hasEnoughProductsForCarousel = featured.length >= 6;
+
+  // Carousel scroll ref
+  const featuredRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollFeatured = useCallback((dir: "left" | "right") => {
+    const el = featuredRef.current;
+    if (!el) return;
+
+    const amount = dir === "left" ? -320 : 320;
+    el.scrollBy({ left: amount, behavior: "smooth" });
+
+    // wrap back to start if near the end
+    if (dir === "right") {
+      const nearEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 40;
+      if (nearEnd) {
+        setTimeout(() => {
+          el.scrollTo({ left: 0, behavior: "smooth" });
+        }, 600);
+      }
+    }
+  }, []);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (!hasEnoughProductsForCarousel) return;
+    if (pauseFeaturedAutoScroll) return;
+
+    const id = setInterval(() => {
+      scrollFeatured("right");
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [scrollFeatured, hasEnoughProductsForCarousel, pauseFeaturedAutoScroll]);
+
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <div className="font-bold text-lg">DeeglobalGh</div>
+          <div className="font-bold text-lg text-blue-900">DeeglobalGh</div>
 
           {/* Big Search */}
           <div className="flex-1">
-  <div className="flex items-center gap-2 rounded-xl border bg-white px-2 py-2">
-    <input
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          const q = search.trim();
-          if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
-          else router.push("/shop");
-        }
-      }}
-      className="w-full bg-transparent px-2 py-2 text-base outline-none"
-      placeholder="Search books, stationery, dorm items, underwear..."
-    />
+            <div className="flex items-center gap-2 rounded-xl border bg-white px-2 py-2">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const q = search.trim();
+                    if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
+                    else router.push("/shop");
+                  }
+                }}
+                className="w-full bg-transparent px-2 py-2 text-base outline-none"
+                placeholder="Search books, stationery, dorm items, underwear..."
+              />
 
-    <button
-      onClick={() => {
-        const q = search.trim();
-        if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
-        else router.push("/shop");
-      }}
-      className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-    >
-      Search
-    </button>
-  </div>
-</div>
+              <button
+                onClick={() => {
+                  const q = search.trim();
+                  if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
+                  else router.push("/shop");
+                }}
+                className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90"
+              >
+                Search
+              </button>
+            </div>
+          </div>
 
+          {/* Kasoa SEO Links */}
+          <Link
+            href="/kasoa"
+            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
+          >
+            Kasoa
+          </Link>
+
+          <Link
+            href="/textbooks-in-kasoa"
+            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
+          >
+            Textbooks in Kasoa
+          </Link>
+
+          <Link
+            href="/stationery-in-kasoa"
+            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
+          >
+            Stationery in Kasoa
+          </Link>
 
           {/* Cart */}
-          <button className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50">
+          <Link
+            href="/cart"
+            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
+          >
             Cart
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -96,25 +172,33 @@ export default function Home() {
             Shop Textbooks, Stationery & School Essentials in Ghana
           </h1>
           <p className="mt-2 text-gray-700">
-            Fast delivery. Secure checkout. Easy shopping for parents and students.
+            Fast delivery. Secure checkout. Easy shopping for parents and
+            students.
           </p>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Link
-  href="/shop"
-  className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 font-extrabold text-white hover:opacity-90"
->
-  Shop All Products
-</Link>
-<a
-  href="https://wa.me/233246011773"
-  target="_blank"
-  rel="noreferrer"
-  className="inline-flex items-center justify-center rounded-xl bg-yellow-500 px-5 py-3 font-extrabold text-blue-950 hover:opacity-90"
->
-  WhatsApp Support
-</a>
+              href="/shop"
+              className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 font-extrabold text-white hover:opacity-90"
+            >
+              Shop All Products
+            </Link>
 
+            <a
+              href="https://wa.me/233246011773"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-xl bg-yellow-500 px-5 py-3 font-extrabold text-blue-950 hover:opacity-90"
+            >
+              WhatsApp Support
+            </a>
+
+            <Link
+              href="/kasoa"
+              className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-extrabold text-blue-900 hover:bg-gray-50"
+            >
+              Shop in Kasoa
+            </Link>
           </div>
         </div>
       </section>
@@ -130,7 +214,7 @@ export default function Home() {
             return (
               <Link
                 key={c.name}
-                href={`/category/${slug}`}
+                href={`/shop?category=${slug}`}
                 className="rounded-2xl border p-5 hover:bg-gray-50 cursor-pointer"
               >
                 <div className="text-lg font-semibold">{c.name}</div>
@@ -139,6 +223,99 @@ export default function Home() {
             );
           })}
         </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="mx-auto max-w-6xl px-4 pb-14">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-bold">Featured Products</h2>
+
+          <Link
+            href="/shop"
+            className="text-sm font-bold text-blue-900 hover:underline"
+          >
+            View all →
+          </Link>
+        </div>
+
+        <p className="mt-2 text-gray-700">
+          Popular picks you can order quickly for delivery.
+        </p>
+
+        {hasEnoughProductsForCarousel ? (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() => scrollFeatured("left")}
+              className="rounded-full border bg-white px-3 py-2 font-bold hover:bg-gray-50"
+              aria-label="Scroll left"
+            >
+              ←
+            </button>
+
+            <div
+              ref={featuredRef}
+              onMouseEnter={() => setPauseFeaturedAutoScroll(true)}
+              onMouseLeave={() => setPauseFeaturedAutoScroll(false)}
+              className="flex flex-1 gap-4 overflow-x-auto pb-3 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none]"
+            >
+              {featured.map((p) => {
+                const imageSrc = p?.image?.src || "/products/placeholder.webp";
+                const imageAlt =
+                  p?.image?.alt || p?.name || "DeeglobalGh product";
+                const imageTitle =
+                  p?.image?.title || p?.name || "Product image";
+
+                return (
+                  <Link
+                    key={p.id}
+                    href={`/product/${p.slug}`}
+                    className="min-w-[280px] max-w-[280px] snap-start rounded-2xl border bg-white p-4 transition hover:-translate-y-1 hover:bg-gray-50"
+                  >
+                    <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
+                      <Image
+                        src={imageSrc}
+                        alt={imageAlt}
+                        title={imageTitle}
+                        width={500}
+                        height={500}
+                        className="h-48 w-auto object-contain"
+                      />
+                    </div>
+
+                    <div className="mt-3 font-semibold">{p.name}</div>
+                    <div className="mt-1 font-extrabold text-blue-900 text-lg">
+                      GH₵ {p.price}
+                    </div>
+
+                    <div className="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-center font-extrabold text-blue-950 hover:opacity-90">
+                      View Product
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => scrollFeatured("right")}
+              className="rounded-full border bg-white px-3 py-2 font-bold hover:bg-gray-50"
+              aria-label="Scroll right"
+            >
+              →
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border bg-white p-5 text-sm text-gray-700">
+            Not enough featured products yet. More items are being added daily.
+            Check back soon or{" "}
+            <Link
+              href="/shop"
+              className="font-bold text-blue-900 hover:underline"
+            >
+              view all products
+            </Link>
+            .
+          </div>
+        )}
       </section>
 
       {/* Shop by Level */}
@@ -155,7 +332,7 @@ export default function Home() {
             return (
               <Link
                 key={level}
-                href={`/level/${slug}`}
+                href={`/shop?level=${slug}`}
                 className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-gray-50"
               >
                 {level}
@@ -195,8 +372,29 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-8 text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} DeeglobalGh. All rights reserved.
+          {/* ✅ NAP Block for Local SEO (Kasoa + Ghana) */}
+          <div className="mt-10 rounded-2xl border bg-white p-6 text-sm text-gray-700">
+            <div className="font-bold text-blue-900 text-base">DeeglobalGh</div>
+
+            <div className="mt-2">
+              <span className="font-semibold">Location:</span> Kasoa, Ghana
+            </div>
+
+            <div className="mt-1">
+              <span className="font-semibold">WhatsApp:</span>{" "}
+              <a href="https://wa.me/233246011773" className="underline">
+                0246 011 773
+              </a>
+            </div>
+
+            <div className="mt-1">
+              <span className="font-semibold">Call:</span> 054 113 1111 / 030 398
+              2358
+            </div>
+
+            <div className="mt-5 text-center text-xs text-gray-500">
+              © {new Date().getFullYear()} DeeglobalGh. All rights reserved.
+            </div>
           </div>
         </div>
       </section>

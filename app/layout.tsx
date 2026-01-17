@@ -26,9 +26,33 @@ export default function RootLayout({
 }>) {
   const year = new Date().getFullYear();
 
+  // ✅ Organization schema (site-wide SEO authority)
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "DeeglobalGh",
+    url: "https://deeglobalgh.com",
+    telephone: "+233246011773",
+    sameAs: ["https://wa.me/233246011773"],
+    areaServed: ["Kasoa", "Ghana"],
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Kasoa",
+      addressCountry: "GH",
+    },
+  };
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* ✅ Organization Schema JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+
         {/* Site Header (Shows on every page) */}
         <header className="sticky top-0 z-50 border-b bg-white">
           {/* Small top accent line (Blue + Gold) */}
@@ -79,12 +103,11 @@ export default function RootLayout({
                 </a>
 
                 <Link
-  href="/cart"
-  className="rounded-lg border border-blue-200 px-3 py-2 font-bold text-blue-900 hover:bg-blue-50"
->
-  Cart
-</Link>
-
+                  href="/cart"
+                  className="rounded-lg border border-blue-200 px-3 py-2 font-bold text-blue-900 hover:bg-blue-50"
+                >
+                  Cart
+                </Link>
               </nav>
             </div>
 
@@ -153,6 +176,12 @@ export default function RootLayout({
                   >
                     WhatsApp Support
                   </a>
+                  <Link
+                    href="/admin/products"
+                    className="text-blue-900 hover:underline"
+                  >
+                    Admin • Products
+                  </Link>
                 </div>
               </div>
             </div>
@@ -161,10 +190,6 @@ export default function RootLayout({
               © {year} DeeGlobalGH. All rights reserved.
             </div>
           </div>
-          <Link href="/admin/products" className="text-blue-900 hover:underline">
-  Admin • Products
-</Link>
-
         </footer>
       </body>
     </html>

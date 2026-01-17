@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { products } from "../../lib/products";
 
-
 export default function AdminProductsPage() {
   const [query, setQuery] = useState("");
 
@@ -80,7 +79,7 @@ export default function AdminProductsPage() {
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <a
-                href={`/product/${p.id}`}
+                href={`/product/${p.slug ?? p.slug}`}
                 className="inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold hover:bg-gray-50"
               >
                 View Product Page
