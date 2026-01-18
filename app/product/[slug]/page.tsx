@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { products } from "@/app/lib/products";
+import AddToCartButton from "./AddToCartButton";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -206,6 +207,8 @@ export default async function ProductPage({ params }: Props) {
               Available for delivery. Send us a message on WhatsApp to order.
             </p>
           )}
+
+<AddToCartButton product={product} />
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <a

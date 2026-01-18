@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { products } from "../lib/products";
+import { useCart } from "@/app/context/CartContext";
 
 const CATEGORY_OPTIONS = [
   { label: "All Categories", value: "" },
@@ -45,6 +46,8 @@ const LEVEL_OPTIONS = [
 ];
 
 export default function ShopPage() {
+  const { addToCart } = useCart();
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
@@ -165,7 +168,7 @@ export default function ShopPage() {
                 href={`/product/${p?.slug}`}
                 className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
               >
-                <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
+                <div className="flex h-52 items-center justify-center overflow-hidden rounded-xl bg-gray-50">
                   <img
                     src={imageSrc}
                     alt={imageAlt}
@@ -181,10 +184,12 @@ export default function ShopPage() {
                 </div>
 
                 <button
+                  type="button"
                   className="mt-3 w-full rounded-xl bg-blue-900 px-4 py-3 font-extrabold text-white hover:opacity-90"
                   onClick={(e) => {
                     e.preventDefault(); // prevents opening product page
-                    alert("Cart feature coming soon!");
+                    e.stopPropagation(); // prevents Link click bubbling
+                    addToCart(p, 1);
                   }}
                 >
                   Add to cart
