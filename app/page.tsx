@@ -98,70 +98,76 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <div className="font-bold text-lg text-blue-900">DeeglobalGh</div>
+      {/* Homepage Header */}
+      <header className="sticky top-0 z-40 border-b bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-3">
+          {/* Top row: Brand + Search */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="font-bold text-lg text-blue-900 whitespace-nowrap">
+              DeeglobalGh
+            </div>
 
-          {/* Big Search */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 rounded-xl border bg-white px-2 py-2">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+            {/* Big Search */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 rounded-xl border bg-white px-2 py-2">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const q = search.trim();
+                      if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
+                      else router.push("/shop");
+                    }
+                  }}
+                  className="w-full bg-transparent px-2 py-2 text-base outline-none"
+                  placeholder="Search books, stationery, dorm items, underwear..."
+                />
+
+                <button
+                  onClick={() => {
                     const q = search.trim();
                     if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
                     else router.push("/shop");
-                  }
-                }}
-                className="w-full bg-transparent px-2 py-2 text-base outline-none"
-                placeholder="Search books, stationery, dorm items, underwear..."
-              />
-
-              <button
-                onClick={() => {
-                  const q = search.trim();
-                  if (q) router.push(`/shop?q=${encodeURIComponent(q)}`);
-                  else router.push("/shop");
-                }}
-                className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90"
-              >
-                Search
-              </button>
+                  }}
+                  className="shrink-0 rounded-lg bg-blue-900 px-4 py-2 text-sm font-extrabold text-white hover:opacity-90"
+                >
+                  Search
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Kasoa SEO Links */}
-          <Link
-            href="/kasoa"
-            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
-          >
-            Kasoa
-          </Link>
+          {/* Kasoa SEO Links (MOBILE FIX: grid on mobile, flex on desktop) */}
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+            <Link
+              href="/kasoa"
+              className="rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
+            >
+              Kasoa
+            </Link>
 
-          <Link
-            href="/textbooks-in-kasoa"
-            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
-          >
-            Textbooks in Kasoa
-          </Link>
+            <Link
+              href="/textbooks-in-kasoa"
+              className="rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
+            >
+              Textbooks in Kasoa
+            </Link>
 
-          <Link
-            href="/stationery-in-kasoa"
-            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
-          >
-            Stationery in Kasoa
-          </Link>
+            <Link
+              href="/stationery-in-kasoa"
+              className="rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
+            >
+              Stationery in Kasoa
+            </Link>
 
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="rounded-xl border px-4 py-3 font-medium hover:bg-gray-50"
-          >
-            Cart
-          </Link>
+            <Link
+              href="/cart"
+              className="rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
+            >
+              Cart
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -215,7 +221,7 @@ export default function Home() {
               <Link
                 key={c.name}
                 href={`/shop?category=${slug}`}
-                className="rounded-2xl border p-5 hover:bg-gray-50 cursor-pointer"
+                className="cursor-pointer rounded-2xl border p-5 hover:bg-gray-50"
               >
                 <div className="text-lg font-semibold">{c.name}</div>
                 <div className="mt-1 text-sm text-gray-600">{c.desc}</div>
@@ -260,10 +266,8 @@ export default function Home() {
             >
               {featured.map((p) => {
                 const imageSrc = p?.image?.src || "/products/placeholder.webp";
-                const imageAlt =
-                  p?.image?.alt || p?.name || "DeeglobalGh product";
-                const imageTitle =
-                  p?.image?.title || p?.name || "Product image";
+                const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
+                const imageTitle = p?.image?.title || p?.name || "Product image";
 
                 return (
                   <Link
@@ -283,7 +287,7 @@ export default function Home() {
                     </div>
 
                     <div className="mt-3 font-semibold">{p.name}</div>
-                    <div className="mt-1 font-extrabold text-blue-900 text-lg">
+                    <div className="mt-1 text-lg font-extrabold text-blue-900">
                       GH₵ {p.price}
                     </div>
 
@@ -307,10 +311,7 @@ export default function Home() {
           <div className="mt-4 rounded-2xl border bg-white p-5 text-sm text-gray-700">
             Not enough featured products yet. More items are being added daily.
             Check back soon or{" "}
-            <Link
-              href="/shop"
-              className="font-bold text-blue-900 hover:underline"
-            >
+            <Link href="/shop" className="font-bold text-blue-900 hover:underline">
               view all products
             </Link>
             .
@@ -374,7 +375,7 @@ export default function Home() {
 
           {/* ✅ NAP Block for Local SEO (Kasoa + Ghana) */}
           <div className="mt-10 rounded-2xl border bg-white p-6 text-sm text-gray-700">
-            <div className="font-bold text-blue-900 text-base">DeeglobalGh</div>
+            <div className="text-base font-bold text-blue-900">DeeglobalGh</div>
 
             <div className="mt-2">
               <span className="font-semibold">Location:</span> Kasoa, Ghana

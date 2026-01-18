@@ -59,49 +59,55 @@ export default function RootLayout({
           <div className="h-1 w-full bg-gradient-to-r from-blue-900 via-blue-700 to-yellow-500" />
 
           <div className="mx-auto max-w-6xl px-4">
-            <div className="flex items-center justify-between gap-4 py-3">
+            <div className="flex items-center justify-between gap-3 py-3">
               {/* Brand */}
-              <Link href="/" className="flex items-center gap-2">
-                <div className="text-lg font-extrabold tracking-tight text-blue-900">
+              <Link href="/" className="flex items-center gap-2 min-w-0">
+                <div className="text-lg font-extrabold tracking-tight text-blue-900 whitespace-nowrap">
                   DeeGlobalGH
                 </div>
+
                 <span className="hidden rounded-full bg-yellow-500 px-2 py-1 text-[11px] font-bold text-blue-950 sm:inline-block">
                   Delivery Available
                 </span>
               </Link>
 
-              {/* Navigation */}
-              <nav className="flex items-center gap-2 text-sm font-semibold">
-                <Link
-                  href="/"
-                  className="rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50"
-                >
-                  Home
-                </Link>
+              {/* Navigation (Mobile optimized) */}
+              <nav className="flex items-center gap-2 text-sm font-semibold shrink-0">
+                {/* Desktop links (hidden on mobile) */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link
+                    href="/"
+                    className="rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50"
+                  >
+                    Home
+                  </Link>
 
-                <Link
-                  href="/shop"
-                  className="rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50"
-                >
-                  Shop
-                </Link>
+                  <Link
+                    href="/shop"
+                    className="rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50"
+                  >
+                    Shop
+                  </Link>
 
-                <Link
-                  href="/category/textbooks"
-                  className="hidden rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50 sm:inline-block"
-                >
-                  Textbooks
-                </Link>
+                  <Link
+                    href="/category/textbooks"
+                    className="rounded-lg px-3 py-2 text-blue-900 hover:bg-blue-50"
+                  >
+                    Textbooks
+                  </Link>
+                </div>
 
+                {/* WhatsApp (always visible) */}
                 <a
                   href="https://wa.me/233246011773"
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg bg-yellow-500 px-3 py-2 font-extrabold text-blue-950 hover:opacity-90"
                 >
-                  WhatsApp Support
+                  WhatsApp
                 </a>
 
+                {/* Cart (always visible) */}
                 <Link
                   href="/cart"
                   className="rounded-lg border border-blue-200 px-3 py-2 font-bold text-blue-900 hover:bg-blue-50"
@@ -112,7 +118,7 @@ export default function RootLayout({
             </div>
 
             {/* Small helper line */}
-            <div className="pb-3 text-xs text-gray-600">
+            <div className="pb-3 text-xs text-gray-600 break-words whitespace-normal">
               Fast delivery • Textbooks • Exam essentials • School supplies
             </div>
           </div>
@@ -162,12 +168,14 @@ export default function RootLayout({
                   <Link href="/shop" className="text-blue-900 hover:underline">
                     Shop All Products
                   </Link>
+
                   <Link
                     href="/category/textbooks"
                     className="text-blue-900 hover:underline"
                   >
                     Textbooks
                   </Link>
+
                   <a
                     href="https://wa.me/233246011773"
                     target="_blank"
@@ -176,6 +184,7 @@ export default function RootLayout({
                   >
                     WhatsApp Support
                   </a>
+
                   <Link
                     href="/admin/products"
                     className="text-blue-900 hover:underline"
