@@ -275,17 +275,19 @@ export default function Home() {
                     href={`/product/${p.slug}`}
                     className="min-w-[280px] max-w-[280px] snap-start rounded-2xl border bg-white p-4 transition hover:-translate-y-1 hover:bg-gray-50"
                   >
-                    <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                      <Image
-                        src={imageSrc}
-                        alt={imageAlt}
-                        title={imageTitle}
-                        width={500}
-                        height={500}
-                        className="h-48 w-auto object-contain"
-                      />
-                    </div>
+                    <div className="relative h-52 w-full overflow-hidden rounded-xl bg-gray-50">
+  <Image
+    src={imageSrc}
+    alt={imageAlt}
+    title={imageTitle}
+    fill
+    sizes="(max-width: 640px) 100vw, 280px"
+    className="object-contain p-3"
+  />
+</div>
 
+                      
+                      
                     <div className="mt-3 font-semibold">{p.name}</div>
                     <div className="mt-1 text-lg font-extrabold text-blue-900">
                       GH₵ {p.price}

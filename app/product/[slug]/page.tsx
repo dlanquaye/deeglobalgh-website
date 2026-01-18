@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { products } from "@/app/lib/products";
 
@@ -7,6 +8,11 @@ type Props = {
 };
 
 const SITE_URL = "https://deeglobalgh.com";
+
+function normalizeImageSrc(src?: string) {
+  if (!src) return "/products/placeholder.webp";
+  return src.startsWith("/") ? src : `/${src}`;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -28,7 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     `Buy ${product.name} in Ghana from DeeglobalGh. Available for delivery.`;
 
   const canonicalUrl = `${SITE_URL}/product/${product.slug}`;
-  const imageUrl = `${SITE_URL}${product.image?.src || "/products/placeholder.webp"}`;
+
+  const imageSrc = normalizeImageSrc(product.image?.src);
+  const imageUrl = `${SITE_URL}${imageSrc}`;
 
   return {
     title,
@@ -74,7 +82,7 @@ export default async function ProductPage({ params }: Props) {
   }
 
   // ✅ Image fields (SEO)
-  const imageSrc = product.image?.src || "/products/placeholder.webp";
+  const imageSrc = normalizeImageSrc(product.image?.src);
   const imageAlt = product.image?.alt || product.name || "DeeglobalGh product";
   const imageTitle = product.image?.title || product.name || "Product image";
 
@@ -85,7 +93,7 @@ export default async function ProductPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: [imageSrc],
+    image: [`${SITE_URL}${imageSrc}`],
     description:
       product.seo?.fullDescription ||
       product.seo?.metaDescription ||
@@ -103,8 +111,6 @@ export default async function ProductPage({ params }: Props) {
       price: product.price,
       availability: "https://schema.org/InStock",
       itemCondition: "https://schema.org/NewCondition",
-
-      // ✅ Optional but recommended (Merchant Listings)
       shippingDetails: {
         "@type": "OfferShippingDetails",
         shippingDestination: {
@@ -132,13 +138,11 @@ export default async function ProductPage({ params }: Props) {
           },
         },
       },
-
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "GH",
         returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
       },
-
       priceValidUntil: "2026-12-31",
     },
   };
@@ -165,19 +169,21 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Product Image */}
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="flex h-96 items-center justify-center rounded-xl bg-gray-50">
-            <img
-              src={imageSrc}
-              alt={imageAlt}
-              title={imageTitle}
-              className="h-80 w-auto object-contain"
-              loading="lazy"
-            />
-          </div>
+      
+        {/* ✅ Product Image */}
+<div className="rounded-2xl border bg-white p-4">
+  <div className="flex h-[360px] sm:h-[420px] lg:h-[520px] w-full items-center justify-center overflow-hidden rounded-2xl border bg-gray-50">
+    <img
+      src={imageSrc}
+      alt={imageAlt}
+      title={imageTitle}
+      loading="lazy"
+      className="max-h-full max-w-full object-contain p-4"
+    />
+  </div>
 
-          {/* Optional Caption (good SEO + trust) */}
+
+          {/* Optional Caption */}
           {product.image?.caption ? (
             <p className="mt-3 text-sm text-gray-600">{product.image.caption}</p>
           ) : null}
@@ -193,7 +199,6 @@ export default async function ProductPage({ params }: Props) {
 
           <div className="mt-2 text-xl font-bold">GH₵ {product.price}</div>
 
-          {/* ✅ short summary */}
           {product.seo?.shortSummary ? (
             <p className="mt-4 text-gray-700">{product.seo.shortSummary}</p>
           ) : (
@@ -227,7 +232,9 @@ export default async function ProductPage({ params }: Props) {
       {/* Related Products */}
       <section className="mt-10">
         <h2 className="text-xl font-bold text-blue-900">Related Products</h2>
-        <p className="mt-2 text-sm text-gray-700">You may also like these items.</p>
+        <p className="mt-2 text-sm text-gray-700">
+          You may also like these items.
+        </p>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products
@@ -239,7 +246,7 @@ export default async function ProductPage({ params }: Props) {
             })
             .slice(0, 3)
             .map((rp) => {
-              const rpImageSrc = rp.image?.src || "/products/placeholder.webp";
+              const rpImageSrc = normalizeImageSrc(rp.image?.src);
               const rpImageAlt = rp.image?.alt || rp.name || "Product image";
               const rpImageTitle = rp.image?.title || rp.name || "Product";
 
@@ -249,13 +256,14 @@ export default async function ProductPage({ params }: Props) {
                   href={`/product/${rp.slug}`}
                   className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
                 >
-                  <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                    <img
+                  <div className="relative w-full overflow-hidden rounded-2xl border bg-gray-50 h-56">
+                    <Image
                       src={rpImageSrc}
                       alt={rpImageAlt}
                       title={rpImageTitle}
-                      className="h-48 w-auto object-contain"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 320px"
+                      className="object-contain p-4"
                     />
                   </div>
 
