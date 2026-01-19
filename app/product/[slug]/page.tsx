@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { products } from "@/app/lib/products";
 import AddToCartButton from "./AddToCartButton";
@@ -71,25 +70,32 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) {
     return (
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-2xl font-bold">Product not found</h1>
-        <p className="mt-2 text-gray-700">Sorry, this product does not exist.</p>
+      <main className="py-6">
+        <section className="card-brand p-6">
+          <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
+            Product not found
+          </h1>
+          <p className="mt-2 text-[color:var(--text-muted)]">
+            Sorry, this product does not exist.
+          </p>
 
-        <Link href="/shop" className="mt-4 inline-block underline">
-          Back to Shop
-        </Link>
+          <Link
+            href="/shop"
+            className="btn-outline mt-4 inline-flex items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
+          >
+            Back to Shop
+          </Link>
+        </section>
       </main>
     );
   }
 
-  // ✅ Image fields (SEO)
   const imageSrc = normalizeImageSrc(product.image?.src);
   const imageAlt = product.image?.alt || product.name || "DeeglobalGh product";
   const imageTitle = product.image?.title || product.name || "Product image";
 
   const productUrl = `${SITE_URL}/product/${product.slug}`;
 
-  // ✅ Product structured data (JSON-LD for Google)
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -149,137 +155,174 @@ export default async function ProductPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <main className="py-6">
       {/* ✅ Product Schema JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
       />
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-3 text-sm">
-        <Link href="/" className="underline">
-          Home
-        </Link>
-        <span className="text-gray-400">/</span>
-        <Link href="/shop" className="underline">
-          Shop
-        </Link>
-        <span className="text-gray-400">/</span>
-        <span className="text-gray-600">{product.name}</span>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-      
-        {/* ✅ Product Image */}
-<div className="rounded-2xl border bg-white p-4">
-  <div className="flex h-[360px] sm:h-[420px] lg:h-[520px] w-full items-center justify-center overflow-hidden rounded-2xl border bg-gray-50">
-    <img
-      src={imageSrc}
-      alt={imageAlt}
-      title={imageTitle}
-      loading="lazy"
-      className="max-h-full max-w-full object-contain p-4"
-    />
-  </div>
-
-
-          {/* Optional Caption */}
-          {product.image?.caption ? (
-            <p className="mt-3 text-sm text-gray-600">{product.image.caption}</p>
-          ) : null}
+      <section className="card-brand p-6">
+        {/* Breadcrumb */}
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--text-muted)]">
+          <Link href="/" className="hover:underline text-[color:var(--brand-blue)]">
+            Home
+          </Link>
+          <span className="opacity-60">/</span>
+          <Link
+            href="/shop"
+            className="hover:underline text-[color:var(--brand-blue)]"
+          >
+            Shop
+          </Link>
+          <span className="opacity-60">/</span>
+          <span className="text-[color:var(--text-main)] font-semibold">
+            {product.name}
+          </span>
         </div>
 
-        {/* Product Info */}
-        <div className="rounded-2xl border bg-white p-6">
-          <h1 className="text-2xl font-bold">{product.name}</h1>
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Image */}
+          <div className="card-brand p-4">
+            <div className="flex h-[360px] sm:h-[420px] lg:h-[520px] w-full items-center justify-center overflow-hidden rounded-2xl border bg-white">
+              <img
+                src={imageSrc}
+                alt={imageAlt}
+                title={imageTitle}
+                loading="lazy"
+                className="max-h-full max-w-full object-contain p-4"
+              />
+            </div>
 
-          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-900">
-            Product Code: {product.id}
+            {product.image?.caption ? (
+              <p className="mt-3 text-sm text-[color:var(--text-muted)]">
+                {product.image.caption}
+              </p>
+            ) : null}
           </div>
 
-          <div className="mt-2 text-xl font-bold">GH₵ {product.price}</div>
+          {/* Info */}
+          <div className="card-brand p-6">
+            <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
+              {product.name}
+            </h1>
 
-          {product.seo?.shortSummary ? (
-            <p className="mt-4 text-gray-700">{product.seo.shortSummary}</p>
-          ) : (
-            <p className="mt-4 text-gray-700">
-              Available for delivery. Send us a message on WhatsApp to order.
-            </p>
-          )}
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[color:var(--brand-blue-soft)] px-4 py-2 text-sm font-extrabold text-[color:var(--brand-blue)]">
+              Product Code: {product.id}
+            </div>
 
-<AddToCartButton product={product} />
+            <div className="mt-4 text-2xl font-extrabold text-[color:var(--brand-blue)]">
+              GH₵ {product.price}
+            </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <a
-              href={`https://wa.me/233246011773?text=${encodeURIComponent(
-                `Hello DeeglobalGh, I want to order:\n\n• Product: ${product.name}\n• Product Code: ${product.id}\n• Price: GH₵ ${product.price}\n• Link: ${productUrl}\n\nSOURCE: DG-WEBSITE`
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-xl bg-black px-5 py-3 font-semibold text-white hover:opacity-90"
-            >
-              Order on WhatsApp
-            </a>
+            {product.seo?.shortSummary ? (
+              <p className="mt-4 text-[color:var(--text-muted)]">
+                {product.seo.shortSummary}
+              </p>
+            ) : (
+              <p className="mt-4 text-[color:var(--text-muted)]">
+                Available for delivery. Send us a message on WhatsApp to order.
+              </p>
+            )}
+
+            {/* ✅ Cart CTA */}
+            <AddToCartButton product={product} />
+
+            {/* WhatsApp + Continue */}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <a
+                href={`https://wa.me/233246011773?text=${encodeURIComponent(
+                  `Hello DeeglobalGh, I want to order:\n\n• Product: ${product.name}\n• Product Code: ${product.id}\n• Price: GH₵ ${product.price}\n• Link: ${productUrl}\n\nSOURCE: DG-WEBSITE`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-black px-5 py-3 font-extrabold text-white hover:opacity-90"
+              >
+                Order on WhatsApp
+              </a>
+
+              <Link
+                href="/shop"
+                className="btn-outline inline-flex flex-1 items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
+              >
+                Continue Shopping
+              </Link>
+            </div>
+
+            {/* Trust line */}
+            <div className="mt-5 rounded-2xl border bg-white p-4 text-sm text-[color:var(--text-muted)]">
+              Fast delivery across Kasoa and nearby areas. Confirm delivery fee on
+              WhatsApp.
+            </div>
+          </div>
+        </div>
+
+        {/* Related Products */}
+        <section className="mt-10">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-extrabold text-[color:var(--brand-blue)]">
+                Related Products
+              </h2>
+              <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                You may also like these items.
+              </p>
+            </div>
 
             <Link
               href="/shop"
-              className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-semibold hover:bg-gray-50"
+              className="text-sm font-extrabold text-[color:var(--brand-blue)] hover:underline"
             >
-              Continue Shopping
+              View all →
             </Link>
           </div>
-        </div>
-      </div>
 
-      {/* Related Products */}
-      <section className="mt-10">
-        <h2 className="text-xl font-bold text-blue-900">Related Products</h2>
-        <p className="mt-2 text-sm text-gray-700">
-          You may also like these items.
-        </p>
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {products
+              .filter((x) => x.id !== product.id)
+              .sort((a, b) => {
+                const aScore = a.categorySlug === product.categorySlug ? 1 : 0;
+                const bScore = b.categorySlug === product.categorySlug ? 1 : 0;
+                return bScore - aScore;
+              })
+              .slice(0, 3)
+              .map((rp) => {
+                const rpImageSrc = normalizeImageSrc(rp.image?.src);
+                const rpImageAlt = rp.image?.alt || rp.name || "Product image";
+                const rpImageTitle = rp.image?.title || rp.name || "Product";
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products
-            .filter((x) => x.id !== product.id)
-            .sort((a, b) => {
-              const aScore = a.categorySlug === product.categorySlug ? 1 : 0;
-              const bScore = b.categorySlug === product.categorySlug ? 1 : 0;
-              return bScore - aScore;
-            })
-            .slice(0, 3)
-            .map((rp) => {
-              const rpImageSrc = normalizeImageSrc(rp.image?.src);
-              const rpImageAlt = rp.image?.alt || rp.name || "Product image";
-              const rpImageTitle = rp.image?.title || rp.name || "Product";
+                return (
+                  <Link
+                    key={rp.id}
+                    href={`/product/${rp.slug}`}
+                    className="card-brand p-4 transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="flex h-52 items-center justify-center overflow-hidden rounded-2xl border bg-white">
+                      <img
+                        src={rpImageSrc}
+                        alt={rpImageAlt}
+                        title={rpImageTitle}
+                        className="h-48 w-auto object-contain p-2"
+                        loading="lazy"
+                      />
+                    </div>
 
-              return (
-                <Link
-                  key={rp.id}
-                  href={`/product/${rp.slug}`}
-                  className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
-                >
-                  <div className="relative w-full overflow-hidden rounded-2xl border bg-gray-50 h-56">
-                    <Image
-                      src={rpImageSrc}
-                      alt={rpImageAlt}
-                      title={rpImageTitle}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 320px"
-                      className="object-contain p-4"
-                    />
-                  </div>
+                    <div className="mt-4 font-semibold text-[color:var(--text-main)]">
+                      {rp.name}
+                    </div>
 
-                  <div className="mt-3 font-semibold">{rp.name}</div>
-                  <div className="mt-1 font-bold text-lg">GH₵ {rp.price}</div>
+                    <div className="mt-1 font-extrabold text-lg text-[color:var(--brand-blue)]">
+                      GH₵ {rp.price}
+                    </div>
 
-                  <div className="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-center font-extrabold text-blue-950">
-                    View Product
-                  </div>
-                </Link>
-              );
-            })}
-        </div>
+                    <div className="mt-4 w-full rounded-2xl bg-[color:var(--brand-yellow)] px-4 py-3 text-center font-extrabold text-blue-950 hover:opacity-90">
+                      View Product
+                    </div>
+                  </Link>
+                );
+              })}
+          </div>
+        </section>
       </section>
     </main>
   );

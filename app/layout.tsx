@@ -132,7 +132,12 @@ export default function RootLayout({
           </header>
 
           {/* Page content */}
-          {children}
+<div className="min-h-screen bg-[color:var(--bg-page)]">
+  <div className="mx-auto max-w-6xl px-4 py-6">
+    {children}
+  </div>
+</div>
+
 
           {/* Footer */}
           <footer className="mt-16 border-t bg-gray-50">

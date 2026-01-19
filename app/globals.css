@@ -1,25 +1,65 @@
 @import "tailwindcss";
 
+/* =========================
+   Premium Clean Foundation
+   ========================= */
+:root {
+  --bg-page: #f6f8fb;
+  --bg-card: #ffffff;
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+
+  --border: rgba(15, 23, 42, 0.08);
+
+  --brand-blue: #0f2b7a;
+  --brand-blue-soft: rgba(15, 43, 122, 0.08);
+
+  --brand-yellow: #facc15;
+  --shadow-soft: 0 10px 30px rgba(2, 6, 23, 0.06);
+}
+
 html,
 body {
   max-width: 100%;
   overflow-x: hidden;
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-page);
+  color: var(--text-main);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ✅ Premium Clean reusable UI classes */
+.card-brand {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-primary {
+  border-radius: 14px;
+  background: var(--brand-blue);
+  color: #ffffff;
+  font-weight: 800;
+  transition: opacity 200ms ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-outline {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.input-brand {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
 }

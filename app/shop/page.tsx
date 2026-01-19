@@ -69,21 +69,17 @@ export default function ShopPage() {
     const q = query.trim().toLowerCase();
 
     return products.filter((p: any) => {
-      // SAFE fields (so the page never crashes)
       const name = String(p?.name || "").toLowerCase();
       const cat = String(p?.categorySlug || "").toLowerCase();
 
       const levelsArray = Array.isArray(p?.levelSlugs) ? p.levelSlugs : [];
       const levels = levelsArray.join(" ").toLowerCase();
 
-      // 1) Search match
       const matchesSearch =
         !q || name.includes(q) || cat.includes(q) || levels.includes(q);
 
-      // 2) Category match
       const matchesCategory = !category || p?.categorySlug === category;
 
-      // 3) Level match
       const matchesLevel = !level || levelsArray.includes(level);
 
       return matchesSearch && matchesCategory && matchesLevel;
@@ -91,118 +87,134 @@ export default function ShopPage() {
   }, [query, category, level]);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-blue-900">Shop All Products</h1>
+    <main className="py-6">
+      <section className="card-brand p-6">
+        {/* Header */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
+              Shop All Products
+            </h1>
 
-      <p className="mt-2 text-gray-700">
-        Browse our products and order for delivery.
-      </p>
+            <p className="mt-2 text-[color:var(--text-muted)]">
+              Browse our products and order for delivery.
+            </p>
 
-      <p className="mt-2 text-sm text-gray-600">
-        Showing <span className="font-semibold">{filteredProducts.length}</span>{" "}
-        product{filteredProducts.length === 1 ? "" : "s"}.
-      </p>
-
-      {/* Filters */}
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {/* Search */}
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search products... (e.g. Chemistry, Biology)"
-          className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
-        />
-
-        {/* Category */}
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
-        >
-          {CATEGORY_OPTIONS.map((c) => (
-            <option key={c.label} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Level */}
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-          className="w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
-        >
-          {LEVEL_OPTIONS.map((l) => (
-            <option key={l.label} value={l.value}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Clear Filters */}
-      <div className="mt-4">
-        <button
-          onClick={() => {
-            setQuery("");
-            setCategory("");
-            setLevel("");
-          }}
-          className="rounded-xl border border-blue-200 bg-white px-5 py-3 text-sm font-bold text-blue-900 hover:bg-blue-50"
-        >
-          Clear Filters
-        </button>
-      </div>
-
-      {/* Product Grid */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map((p: any) => {
-            const imageSrc = p?.image?.src || "/products/placeholder.webp";
-            const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-            const imageTitle = p?.image?.title || p?.name || "Product image";
-
-            return (
-              <Link
-                key={p?.id}
-                href={`/product/${p?.slug}`}
-                className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
-              >
-                <div className="flex h-52 items-center justify-center overflow-hidden rounded-xl bg-gray-50">
-                  <img
-                    src={imageSrc}
-                    alt={imageAlt}
-                    title={imageTitle}
-                    className="h-48 w-auto object-contain"
-                    loading="lazy"
-                  />
-                </div>
-
-                <div className="mt-3 font-semibold">{p?.name}</div>
-                <div className="mt-1 font-bold text-lg text-blue-900">
-                  GH₵ {p?.price}
-                </div>
-
-                <button
-                  type="button"
-                  className="mt-3 w-full rounded-xl bg-blue-900 px-4 py-3 font-extrabold text-white hover:opacity-90"
-                  onClick={(e) => {
-                    e.preventDefault(); // prevents opening product page
-                    e.stopPropagation(); // prevents Link click bubbling
-                    addToCart(p, 1);
-                  }}
-                >
-                  Add to cart
-                </button>
-              </Link>
-            );
-          })
-        ) : (
-          <div className="rounded-2xl border bg-white p-6 text-gray-700">
-            No products match your filters.
+            <p className="mt-2 text-sm text-[color:var(--text-muted)]">
+              Showing{" "}
+              <span className="font-semibold text-[color:var(--text-main)]">
+                {filteredProducts.length}
+              </span>{" "}
+              product{filteredProducts.length === 1 ? "" : "s"}.
+            </p>
           </div>
-        )}
-      </div>
+
+          {/* Clear Filters */}
+          <div className="mt-2 sm:mt-0">
+            <button
+              onClick={() => {
+                setQuery("");
+                setCategory("");
+                setLevel("");
+              }}
+              className="btn-outline px-5 py-3 text-sm text-[color:var(--brand-blue)] hover:bg-gray-50"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* Search */}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search products... (e.g. Chemistry, Biology)"
+            className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+          />
+
+          {/* Category */}
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+          >
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c.label} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Level */}
+          <select
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+          >
+            {LEVEL_OPTIONS.map((l) => (
+              <option key={l.label} value={l.value}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Product Grid */}
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((p: any) => {
+              const imageSrc = p?.image?.src || "/products/placeholder.webp";
+              const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
+              const imageTitle =
+                p?.image?.title || p?.name || "Product image";
+
+              return (
+                <Link
+                  key={p?.id}
+                  href={`/product/${p?.slug}`}
+                  className="card-brand p-4 transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="flex h-52 items-center justify-center overflow-hidden rounded-2xl border bg-white">
+                    <img
+                      src={imageSrc}
+                      alt={imageAlt}
+                      title={imageTitle}
+                      className="h-48 w-auto object-contain p-2"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <div className="mt-4 font-semibold text-[color:var(--text-main)]">
+                    {p?.name}
+                  </div>
+
+                  <div className="mt-1 font-extrabold text-lg text-[color:var(--brand-blue)]">
+                    GH₵ {p?.price}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-primary mt-4 w-full px-4 py-3"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      addToCart(p, 1);
+                    }}
+                  >
+                    Add to cart
+                  </button>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="card-brand p-6 text-[color:var(--text-muted)]">
+              No products match your filters.
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
