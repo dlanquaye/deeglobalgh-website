@@ -38,6 +38,7 @@ export type Product = {
 };
 
 export const products: Product[] = [
+  
   {
     id: "DG0001",
     name: "Wise Ant Chemistry – SHS 1–3 Combined Edition",
@@ -2082,7 +2083,276 @@ export const products: Product[] = [
         "jhs-3"
       ],
       "brand": "Golden"
+      
     }
   }
+  ,
+  {
+    id: "DG-PQ-JHS-0002",
+    name: "A+ Series Mathematics Past Questions for JHS",
+    slug: "a-plus-series-mathematics-past-questions-for-jhs",
+    price: 65,
+    image: {
+      src: "/products/A+-series-mathematics-past-questions-for-jhs.webp",
+      alt: "A+ Series Mathematics Past Questions for JHS students in Ghana",
+      title: "A+ Series Mathematics Past Questions for JHS",
+      caption: "JHS Mathematics Past Questions for BECE preparation.",
+      description:
+        "Cover image of A+ Series Mathematics Past Questions for JHS learners.",
+    },
+    categorySlug: "jhs-past-questions",
+    levelSlugs: ["jhs-1", "jhs-2", "jhs-3"],
+    seo: {
+      focusKeyphrase: "JHS maths past questions",
+      metaTitle: "A+ Series Mathematics Past Questions for JHS | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Series Mathematics Past Questions for JHS in Ghana. Ideal for BECE revision and practice. Order from DeeglobalGh for fast delivery in Kasoa and beyond.",
+      socialTitle: "A+ Series Mathematics Past Questions for JHS",
+      socialDescription:
+        "Get JHS Maths Past Questions for BECE preparation. Order now from DeeglobalGh with delivery.",
+      shortSummary:
+        "A+ Series Mathematics Past Questions for JHS learners preparing for BECE.",
+      fullDescription:
+        "A+ Series Mathematics Past Questions for JHS supports learners with BECE-focused practice. It includes past questions to help students revise key topics, build speed, and improve confidence for examinations.",
+      brand: "A+ Series",
+      tags: [
+        "JHS Past Questions",
+        "BECE Past Questions",
+        "Mathematics Past Questions",
+        "Exam Preparation",
+        "Past Questions Ghana",
+      ],
+    },
+  },
+  {
+    id: "DG-PQ-JHS-0003",
+    name: "A+ English Past Questions for JHS",
+    slug: "a-plus-english-past-questions-for-jhs",
+    price: 65,
+    image: {
+      src: "/products/a+-english-past-questions-for-jhs.webp",
+      alt: "A+ English Past Questions for JHS students in Ghana",
+      title: "A+ English Past Questions for JHS",
+      caption: "JHS English Past Questions for BECE preparation.",
+      description:
+        "Cover image of A+ English Past Questions for JHS learners.",
+    },
+    categorySlug: "jhs-past-questions",
+    levelSlugs: ["jhs-1", "jhs-2", "jhs-3"],
+    seo: {
+      focusKeyphrase: "JHS English past questions",
+      metaTitle: "A+ English Past Questions for JHS | DeeglobalGh",
+      metaDescription:
+        "Buy A+ English Past Questions for JHS in Ghana. Great for BECE English revision. Order from DeeglobalGh for fast delivery in Kasoa and beyond.",
+      socialTitle: "A+ English Past Questions for JHS",
+      socialDescription:
+        "Get JHS English Past Questions for BECE preparation. Delivery available from DeeglobalGh.",
+      shortSummary:
+        "A+ English Past Questions for JHS learners for BECE revision and exam practice.",
+      fullDescription:
+        "A+ English Past Questions for JHS helps learners prepare for BECE with structured practice questions. It supports comprehension, grammar, and exam technique with repeated practice.",
+      brand: "A+ Series",
+      tags: [
+        "JHS Past Questions",
+        "BECE Past Questions",
+        "English Past Questions",
+        "Exam Preparation",
+        "Past Questions Ghana",
+      ],
+    },
+  },
+  {
+    id: "DG-PQ-JHS-0004",
+    name: "A+ Series Science Past Questions for JHS",
+    slug: "a-plus-series-science-past-questions-for-jhs",
+    price: 65,
+    image: {
+      src: "/products/a+-series-science-past-questions-for-jhs.webp",
+      alt: "A+ Series Science Past Questions for JHS students in Ghana",
+      title: "A+ Series Science Past Questions for JHS",
+      caption: "JHS Science Past Questions for BECE preparation.",
+      description:
+        "Cover image of A+ Series Science Past Questions for JHS learners.",
+    },
+    categorySlug: "jhs-past-questions",
+    levelSlugs: ["jhs-1", "jhs-2", "jhs-3"],
+    seo: {
+      focusKeyphrase: "JHS science past questions",
+      metaTitle: "A+ Series Science Past Questions for JHS | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Series Science Past Questions for JHS in Ghana. Ideal for BECE Integrated Science revision. Order from DeeglobalGh for fast delivery in Kasoa and beyond.",
+      socialTitle: "A+ Series Science Past Questions for JHS",
+      socialDescription:
+        "Get JHS Science Past Questions for BECE preparation. Delivery available from DeeglobalGh.",
+      shortSummary:
+        "A+ Series Science Past Questions for JHS learners preparing for BECE.",
+      fullDescription:
+        "A+ Series Science Past Questions for JHS supports learners preparing for BECE Integrated Science. It provides practice questions to strengthen understanding and improve exam performance.",
+      brand: "A+ Series",
+      tags: [
+        "JHS Past Questions",
+        "BECE Past Questions",
+        "Science Past Questions",
+        "Exam Preparation",
+        "Past Questions Ghana",
+      ],
+    },
+  },
+  {
+    id: "DG-PQ-SHS-0002",
+    name: "A+ Core Mathematics Past Question for SHS",
+    slug: "a-plus-core-mathematics-past-question-for-shs",
+    price: 160,
+    image: {
+      src: "/products/a+-core-mathematics-past-question-for-shs.webp",
+      alt: "A+ Core Mathematics Past Question for SHS students in Ghana",
+      title: "A+ Core Mathematics Past Question for SHS",
+      caption: "SHS Core Maths Past Questions for WASSCE preparation.",
+      description:
+        "Cover image of A+ Core Mathematics Past Question for SHS learners.",
+    },
+    categorySlug: "shs-past-questions",
+    levelSlugs: ["shs-1", "shs-2", "shs-3"],
+    seo: {
+      focusKeyphrase: "SHS core maths past questions",
+      metaTitle: "A+ Core Mathematics Past Question for SHS | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Core Mathematics Past Questions for SHS in Ghana. Perfect for WASSCE Core Maths preparation. Order from DeeglobalGh for fast delivery in Kasoa and beyond.",
+      socialTitle: "A+ Core Mathematics Past Questions for SHS",
+      socialDescription:
+        "Get SHS Core Maths Past Questions for WASSCE preparation. Delivery available from DeeglobalGh.",
+      shortSummary:
+        "A+ Core Mathematics Past Questions for SHS learners for WASSCE revision and practice.",
+      fullDescription:
+        "A+ Core Mathematics Past Question for SHS supports SHS learners preparing for WASSCE Core Mathematics. It provides past questions to help students practise consistently, improve speed, and strengthen exam confidence.",
+      brand: "A+ Series",
+      tags: [
+        "SHS Past Questions",
+        "WASSCE Past Questions",
+        "Core Mathematics Past Questions",
+        "Exam Preparation",
+        "Past Questions Ghana",
+      ],
+    },
+  },
+  {
+    id: "DG-PQ-SHS-0003",
+    name: "A+ Series English Questions and Answers (SHS WASSCE Edition)",
+    slug: "a-plus-series-english-questions-and-answers-shs-wassce-edition",
+    price: 160,
+    image: {
+      src: "/products/a+-series-english-questions-and-answers-shs-wassce-edition.webp",
+      alt: "A+ Series English Questions and Answers for SHS WASSCE in Ghana",
+      title: "A+ Series English Questions and Answers (SHS WASSCE Edition)",
+      caption: "SHS English Past Questions for WASSCE preparation.",
+      description:
+        "Cover image of A+ Series English Questions and Answers for SHS WASSCE edition.",
+    },
+    categorySlug: "shs-past-questions",
+    levelSlugs: ["shs-1", "shs-2", "shs-3"],
+    seo: {
+      focusKeyphrase: "WASSCE English past questions",
+      metaTitle:
+        "A+ Series English Questions and Answers (WASSCE) | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Series English Questions and Answers (WASSCE Edition) in Ghana. Ideal for SHS English revision and WASSCE preparation. Order from DeeglobalGh for delivery.",
+      socialTitle: "A+ Series English Questions and Answers (WASSCE Edition)",
+      socialDescription:
+        "Get SHS English WASSCE Past Questions and Answers from DeeglobalGh. Delivery available in Kasoa and beyond.",
+      shortSummary:
+        "A+ Series English Questions and Answers for SHS learners preparing for WASSCE.",
+      fullDescription:
+        "A+ Series English Questions and Answers (SHS WASSCE Edition) supports SHS learners preparing for WASSCE English Language. It provides exam-style questions and answers to build comprehension skills, grammar accuracy, and exam technique.",
+      brand: "A+ Series",
+      tags: [
+        "SHS Past Questions",
+        "WASSCE Past Questions",
+        "English Past Questions",
+        "WASSCE English",
+        "Exam Preparation",
+      ],
+    },
+  },
+  {
+    id: "DG-PQ-SHS-0004",
+    name: "A+ Integrated Science Past Question for SHS",
+    slug: "a-plus-integrated-science-past-question-for-shs",
+    price: 160,
+    image: {
+      src: "/products/a+-integrated-science-past-question-for-shs.webp",
+      alt: "A+ Integrated Science Past Question for SHS students in Ghana",
+      title: "A+ Integrated Science Past Question for SHS",
+      caption: "SHS Integrated Science Past Questions for WASSCE preparation.",
+      description:
+        "Cover image of A+ Integrated Science Past Question for SHS learners.",
+    },
+    categorySlug: "shs-past-questions",
+    levelSlugs: ["shs-1", "shs-2", "shs-3"],
+    seo: {
+      focusKeyphrase: "WASSCE Integrated Science past questions",
+      metaTitle: "A+ Integrated Science Past Question for SHS | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Integrated Science Past Questions for SHS in Ghana. Perfect for WASSCE Integrated Science revision. Order from DeeglobalGh for fast delivery in Kasoa and beyond.",
+      socialTitle: "A+ Integrated Science Past Questions for SHS",
+      socialDescription:
+        "Get SHS Integrated Science Past Questions for WASSCE preparation. Delivery available from DeeglobalGh.",
+      shortSummary:
+        "A+ Integrated Science Past Questions for SHS learners preparing for WASSCE.",
+      fullDescription:
+        "A+ Integrated Science Past Question for SHS supports WASSCE preparation with focused practice questions. It helps learners revise key topics and improve performance through regular exam-style practice.",
+      brand: "A+ Series",
+      tags: [
+        "SHS Past Questions",
+        "WASSCE Past Questions",
+        "Integrated Science Past Questions",
+        "Exam Preparation",
+        "Past Questions Ghana",
+      ],
+    },
+  }
+    ,
+  {
+    id: "DG-PQ-SHS-0005",
+    name: "A+ Series Elective Mathematics Questions and Answers (SHS WASSCE Edition)",
+    slug: "a-plus-series-elective-mathematics-questions-and-answers-shs-wassce-edition",
+    price: 160,
+    image: {
+      src: "/products/a+-series-elective-mathematics-questions-and-answers-shs-wassce-edition.webp",
+      alt: "A+ Series Elective Mathematics Questions and Answers for SHS WASSCE in Ghana",
+      title:
+        "A+ Series Elective Mathematics Questions and Answers (SHS WASSCE Edition)",
+      caption: "Elective Mathematics questions and answers for WASSCE revision.",
+      description:
+        "Cover image of A+ Series Elective Mathematics Questions and Answers (SHS WASSCE Edition).",
+    },
+    categorySlug: "shs-past-questions",
+    levelSlugs: ["shs-1", "shs-2", "shs-3"],
+    seo: {
+      focusKeyphrase: "WASSCE elective maths past questions",
+      metaTitle:
+        "A+ Series Elective Mathematics Q&A (WASSCE) | DeeglobalGh",
+      metaDescription:
+        "Buy A+ Series Elective Mathematics Questions and Answers (WASSCE Edition) in Ghana. Perfect for Elective Maths revision and WASSCE preparation. Order from DeeglobalGh for delivery.",
+      socialTitle:
+        "A+ Series Elective Mathematics Questions and Answers (WASSCE Edition)",
+      socialDescription:
+        "Get Elective Mathematics WASSCE Questions and Answers from DeeglobalGh. Delivery available in Kasoa and beyond.",
+      shortSummary:
+        "Elective Mathematics questions and answers for SHS learners preparing for WASSCE.",
+      fullDescription:
+        "A+ Series Elective Mathematics Questions and Answers (SHS WASSCE Edition) supports learners preparing for WASSCE Elective Mathematics. It provides structured practice questions with answers to improve speed, accuracy, and exam confidence.",
+      brand: "A+ Series",
+      tags: [
+        "SHS Past Questions",
+        "WASSCE Past Questions",
+        "Elective Mathematics",
+        "Elective Maths Past Questions",
+        "Questions and Answers",
+        "Exam Preparation",
+      ],
+    },
+  }
+
+
 ];
 

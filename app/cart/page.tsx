@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo } from "react";
 import { useCart } from "@/app/context/CartContext";
-
-const WHATSAPP_NUMBER = "233246011773";
 
 function formatMoney(amount: number) {
   return `GH₵ ${amount.toFixed(0)}`;
@@ -22,36 +19,6 @@ export default function CartPage() {
     clearCart,
   } = useCart();
 
-  const whatsappMessage = useMemo(() => {
-    if (!items.length) return "";
-
-    const lines = items.map((x, index) => {
-      const lineTotal = x.price * x.qty;
-      return `${index + 1}. ${x.name}\n   Qty: ${x.qty}\n   Price: GH₵ ${
-        x.price
-      }\n   Total: GH₵ ${lineTotal}`;
-    });
-
-    return [
-      "Hello DeeglobalGh, I want to order the following items:",
-      "",
-      ...lines,
-      "",
-      `Subtotal: ${formatMoney(subtotal)}`,
-      "",
-      "Delivery Details:",
-      "• Name:",
-      "• Location:",
-      "• Landmark:",
-      "",
-      "SOURCE: DG-WEBSITE",
-    ].join("\n");
-  }, [items, subtotal]);
-
-  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    whatsappMessage
-  )}`;
-
   return (
     <main className="py-6">
       <section className="card-brand p-6">
@@ -61,7 +28,7 @@ export default function CartPage() {
               Your Cart
             </h1>
             <p className="mt-2 text-[color:var(--text-muted)]">
-              Review your items and place your delivery order.
+              Review your items and proceed to checkout.
             </p>
           </div>
 
@@ -185,19 +152,20 @@ export default function CartPage() {
                 </div>
 
                 <div className="pt-3 text-xs text-[color:var(--text-muted)]">
-                  Delivery fees depend on your location. Confirm on WhatsApp.
+                  Delivery fees depend on your location and will be confirmed at
+                  checkout.
                 </div>
               </div>
 
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--brand-yellow)] px-5 py-3 font-extrabold text-blue-950 hover:opacity-90"
+              {/* ✅ Proceed to Checkout */}
+              <Link
+                href="/checkout"
+                className="btn-primary mt-6 inline-flex w-full items-center justify-center px-5 py-3"
               >
-                Order on WhatsApp
-              </a>
+                Proceed to Checkout
+              </Link>
 
+              {/* Continue Shopping */}
               <Link
                 href="/shop"
                 className="btn-outline mt-3 inline-flex w-full items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"

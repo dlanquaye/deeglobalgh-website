@@ -165,7 +165,10 @@ export default async function ProductPage({ params }: Props) {
       <section className="card-brand p-6">
         {/* Breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--text-muted)]">
-          <Link href="/" className="hover:underline text-[color:var(--brand-blue)]">
+          <Link
+            href="/"
+            className="hover:underline text-[color:var(--brand-blue)]"
+          >
             Home
           </Link>
           <span className="opacity-60">/</span>
@@ -221,29 +224,18 @@ export default async function ProductPage({ params }: Props) {
               </p>
             ) : (
               <p className="mt-4 text-[color:var(--text-muted)]">
-                Available for delivery. Send us a message on WhatsApp to order.
+                Available for delivery in Kasoa, Accra, and nearby areas.
               </p>
             )}
 
             {/* ✅ Cart CTA */}
             <AddToCartButton product={product} />
 
-            {/* WhatsApp + Continue */}
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <a
-                href={`https://wa.me/233246011773?text=${encodeURIComponent(
-                  `Hello DeeglobalGh, I want to order:\n\n• Product: ${product.name}\n• Product Code: ${product.id}\n• Price: GH₵ ${product.price}\n• Link: ${productUrl}\n\nSOURCE: DG-WEBSITE`
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-black px-5 py-3 font-extrabold text-white hover:opacity-90"
-              >
-                Order on WhatsApp
-              </a>
-
+            {/* Continue shopping */}
+            <div className="mt-5">
               <Link
                 href="/shop"
-                className="btn-outline inline-flex flex-1 items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
+                className="btn-outline inline-flex w-full items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
               >
                 Continue Shopping
               </Link>
@@ -251,8 +243,8 @@ export default async function ProductPage({ params }: Props) {
 
             {/* Trust line */}
             <div className="mt-5 rounded-2xl border bg-white p-4 text-sm text-[color:var(--text-muted)]">
-              Fast delivery across Kasoa and nearby areas. Confirm delivery fee on
-              WhatsApp.
+              Fast delivery across Kasoa and nearby areas. Delivery fee depends
+              on your location.
             </div>
           </div>
         </div>

@@ -1,7 +1,12 @@
-import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { products } from "../../lib/products";
+import CategoryClient from "./CategoryClient";
+
+const SITE_URL = "https://deeglobalgh.com";
+
+function prettifySlug(slug: string) {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export async function generateMetadata({
   params,
@@ -10,11 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
 
-  const SITE_URL = "https://deeglobalgh.com";
-
-  const pretty = slug
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const pretty = prettifySlug(slug);
 
   const title = `${pretty} | DeeglobalGh`;
   const description = `Shop ${pretty} in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
@@ -47,73 +48,51 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
 
-  const pretty = slug
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  // ✅ Special landing page: Exam Past Questions
+  if (slug === "exam-past-questions") {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <h1 className="text-2xl font-bold">Exam Past Questions</h1>
 
-  const filtered = products.filter((p) => p.categorySlug === slug);
+        <p className="mt-2 text-gray-700">
+          Shop verified Past Questions for BECE and WASSCE. Order from{" "}
+          <span className="font-semibold">DeeglobalGh</span> for fast delivery in Kasoa and beyond.
+        </p>
 
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{pretty}</h1>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <a
+            href="/category/jhs-past-questions"
+            className="rounded-2xl border bg-white p-6 hover:bg-gray-50"
+          >
+            <div className="text-lg font-bold">JHS Past Questions</div>
+            <div className="mt-2 text-gray-700">BECE Past Questions for JHS students.</div>
+            <div className="mt-4 inline-flex rounded-xl bg-black px-4 py-3 font-semibold text-white">
+              View JHS Past Questions
+            </div>
+          </a>
 
-      <p className="mt-2 text-gray-700">
-        Showing products under <span className="font-semibold">{pretty}</span>.
-      </p>
+          <a
+            href="/category/shs-past-questions"
+            className="rounded-2xl border bg-white p-6 hover:bg-gray-50"
+          >
+            <div className="text-lg font-bold">SHS Past Questions</div>
+            <div className="mt-2 text-gray-700">WASSCE Past Questions for SHS students.</div>
+            <div className="mt-4 inline-flex rounded-xl bg-black px-4 py-3 font-semibold text-white">
+              View SHS Past Questions
+            </div>
+          </a>
+        </div>
 
-      <div className="mt-4">
-        <Link
-          href={`/shop?category=${slug}`}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-extrabold text-white hover:opacity-90"
-        >
-          View all in Shop
-        </Link>
-      </div>
+        <div className="mt-8 rounded-2xl border bg-white p-6">
+          <div className="text-lg font-bold">Need help choosing?</div>
+          <p className="mt-2 text-gray-700">
+            Use the WhatsApp Live Chat button to ask us questions before you buy.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
-      <p className="mt-2 text-sm text-gray-600">
-        Found <span className="font-semibold">{filtered.length}</span> product
-        {filtered.length === 1 ? "" : "s"} in this category.
-      </p>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length > 0 ? (
-          filtered.map((p) => {
-            const imageSrc = p?.image?.src || "/products/placeholder.webp";
-            const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-            const imageTitle = p?.image?.title || p?.name || "Product image";
-
-            return (
-              <Link
-                key={p.id}
-                href={`/product/${p.slug}`}
-                className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
-              >
-                <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                  <Image
-                    src={imageSrc}
-                    alt={imageAlt}
-                    title={imageTitle}
-                    width={500}
-                    height={500}
-                    className="h-48 w-auto object-contain"
-                  />
-                </div>
-
-                <div className="mt-3 font-semibold">{p.name}</div>
-                <div className="mt-1 font-bold text-lg">GH₵ {p.price}</div>
-
-                <div className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-center font-semibold text-white">
-                  Add to cart
-                </div>
-              </Link>
-            );
-          })
-        ) : (
-          <div className="mt-6 rounded-2xl border bg-white p-6 text-gray-700">
-            No products found in this category yet.
-          </div>
-        )}
-      </div>
-    </main>
-  );
+  // ✅ Normal categories use the Client component (real add to cart)
+  return <CategoryClient slug={slug} products={products} />;
 }

@@ -17,6 +17,11 @@ const CATEGORY_OPTIONS = [
     value: "jhs-combined-edition-textbooks",
   },
   { label: "Exam Materials", value: "exam-materials" },
+
+  // ✅ Past Questions
+  { label: "JHS Past Questions", value: "jhs-past-questions" },
+  { label: "SHS Past Questions", value: "shs-past-questions" },
+
   { label: "School Essentials", value: "school-essentials" },
   { label: "Dormitory Essentials", value: "dormitory-essentials" },
   {
@@ -52,7 +57,10 @@ export default function ShopPage() {
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
 
-  // Read search query (?q=...) from URL
+  // ✅ Feedback per product after add-to-cart
+  const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
+
+  // ✅ Read query params from URL (?q=...&category=...&level=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
@@ -79,7 +87,6 @@ export default function ShopPage() {
         !q || name.includes(q) || cat.includes(q) || levels.includes(q);
 
       const matchesCategory = !category || p?.categorySlug === category;
-
       const matchesLevel = !level || levelsArray.includes(level);
 
       return matchesSearch && matchesCategory && matchesLevel;
@@ -112,6 +119,7 @@ export default function ShopPage() {
           {/* Clear Filters */}
           <div className="mt-2 sm:mt-0">
             <button
+              type="button"
               onClick={() => {
                 setQuery("");
                 setCategory("");
@@ -166,13 +174,16 @@ export default function ShopPage() {
           {filteredProducts.length > 0 ? (
             filteredProducts.map((p: any) => {
               const imageSrc = p?.image?.src || "/products/placeholder.webp";
-              const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-              const imageTitle =
-                p?.image?.title || p?.name || "Product image";
+              const imageAlt =
+                p?.image?.alt || p?.name || "DeeglobalGh product";
+              const imageTitle = p?.image?.title || p?.name || "Product image";
+
+              // ✅ safe per-product key
+              const pid = String(p?.id || p?.slug);
 
               return (
                 <Link
-                  key={p?.id}
+                  key={pid}
                   href={`/product/${p?.slug}`}
                   className="card-brand p-4 transition hover:-translate-y-1 hover:shadow-xl"
                 >
@@ -200,10 +211,17 @@ export default function ShopPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+
                       addToCart(p, 1);
+
+                      setAddedMap((prev) => ({ ...prev, [pid]: true }));
+
+                      window.setTimeout(() => {
+                        setAddedMap((prev) => ({ ...prev, [pid]: false }));
+                      }, 2000);
                     }}
                   >
-                    Add to cart
+                    {addedMap[pid] ? "Added ✓" : "Add to cart"}
                   </button>
                 </Link>
               );

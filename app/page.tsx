@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { products } from "./lib/products";
+import { useCart } from "@/app/context/CartContext";
 
 function slugify(text: string) {
   return text
@@ -16,45 +17,64 @@ function slugify(text: string) {
 
 export default function Home() {
   const router = useRouter();
+  const { addToCart, totalItems } = useCart();
+
   const [search, setSearch] = useState("");
+
+  // Featured products (randomized AFTER page loads to avoid hydration error)
+  const [featured, setFeatured] = useState(products.slice(0, 6));
+
+  // "Added ✓" feedback per product
+  const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
   // pause autoplay on hover
   const [pauseFeaturedAutoScroll, setPauseFeaturedAutoScroll] = useState(false);
 
-  const categories = [
-    { name: "Textbooks", desc: "Pre-School to SHS" },
-    { name: "JHS Combined Edition Textbooks", desc: "JHS 1–3 combined books" },
-    { name: "SHS Combined Edition Textbooks", desc: "SHS 1–3 combined books" },
-    { name: "Exam Materials", desc: "BECE & WASSCE" },
-    { name: "School Essentials", desc: "Stationery & supplies" },
-    { name: "Dormitory Essentials", desc: "Boarding student items" },
-    {
-      name: "Uniforms & Clothing Essentials",
-      desc: "Underwear, socks & uniforms",
-    },
-    { name: "Drawing & Technical", desc: "Drawing boards & sets" },
-    { name: "Bags & Lunch Packs", desc: "Bags, lunch boxes, bottles" },
-    { name: "Calculators", desc: "Scientific calculators" },
-  ];
+  const categories = useMemo(
+    () => [
+      { name: "Textbooks", desc: "Pre-School to SHS" },
+      { name: "JHS Combined Edition Textbooks", desc: "JHS 1–3 combined books" },
+      { name: "SHS Combined Edition Textbooks", desc: "SHS 1–3 combined books" },
 
-  const levels = [
-    "Pre-School",
-    "Basic 1",
-    "Basic 2",
-    "Basic 3",
-    "Basic 4",
-    "Basic 5",
-    "Basic 6",
-    "JHS 1",
-    "JHS 2",
-    "JHS 3",
-    "SHS 1",
-    "SHS 2",
-    "SHS 3",
-  ];
+      // ✅ Past Questions category landing page
+      {
+        name: "Exam Past Questions",
+        desc: "BECE & WASSCE",
+        href: "/category/exam-past-questions",
+      },
 
-  // Featured products (randomized AFTER page loads to avoid hydration error)
-  const [featured, setFeatured] = useState(products.slice(0, 6));
+      { name: "Exam Materials", desc: "BECE & WASSCE" },
+      { name: "School Essentials", desc: "Stationery & supplies" },
+      { name: "Dormitory Essentials", desc: "Boarding student items" },
+      {
+        name: "Uniforms & Clothing Essentials",
+        desc: "Underwear, socks & uniforms",
+      },
+      { name: "Drawing & Technical", desc: "Drawing boards & sets" },
+      { name: "Bags & Lunch Packs", desc: "Bags, lunch boxes, bottles" },
+      { name: "Calculators", desc: "Scientific calculators" },
+    ],
+    []
+  );
+
+  const levels = useMemo(
+    () => [
+      "Pre-School",
+      "Basic 1",
+      "Basic 2",
+      "Basic 3",
+      "Basic 4",
+      "Basic 5",
+      "Basic 6",
+      "JHS 1",
+      "JHS 2",
+      "JHS 3",
+      "SHS 1",
+      "SHS 2",
+      "SHS 3",
+    ],
+    []
+  );
 
   useEffect(() => {
     const shuffled = [...products].sort(() => Math.random() - 0.5);
@@ -161,11 +181,17 @@ export default function Home() {
               Stationery in Kasoa
             </Link>
 
+            {/* Cart badge */}
             <Link
               href="/cart"
-              className="rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
+              className="relative rounded-xl border px-4 py-3 text-center font-medium hover:bg-gray-50"
             >
               Cart
+              {totalItems > 0 ? (
+                <span className="absolute -top-2 -right-2 flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-600 px-2 text-xs font-extrabold text-white">
+                  {totalItems}
+                </span>
+              ) : null}
             </Link>
           </div>
         </div>
@@ -216,11 +242,12 @@ export default function Home() {
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((c) => {
             const slug = slugify(c.name);
+            const href = (c as any).href || `/shop?category=${slug}`;
 
             return (
               <Link
                 key={c.name}
-                href={`/shop?category=${slug}`}
+                href={href}
                 className="cursor-pointer rounded-2xl border p-5 hover:bg-gray-50"
               >
                 <div className="text-lg font-semibold">{c.name}</div>
@@ -265,38 +292,56 @@ export default function Home() {
               className="flex flex-1 gap-4 overflow-x-auto pb-3 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none]"
             >
               {featured.map((p) => {
-                const imageSrc = p?.image?.src || "/products/placeholder.webp";
-                const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-                const imageTitle = p?.image?.title || p?.name || "Product image";
+                const imageSrc =
+                  p?.image?.src || "/products/placeholder.webp";
+                const imageAlt =
+                  p?.image?.alt || p?.name || "DeeglobalGh product";
+                const imageTitle =
+                  p?.image?.title || p?.name || "Product image";
+
+                const pid = String(p?.id || p?.slug);
 
                 return (
-                  <Link
-                    key={p.id}
-                    href={`/product/${p.slug}`}
+                  <div
+                    key={pid}
                     className="min-w-[280px] max-w-[280px] snap-start rounded-2xl border bg-white p-4 transition hover:-translate-y-1 hover:bg-gray-50"
                   >
-                    <div className="relative h-52 w-full overflow-hidden rounded-xl bg-gray-50">
-  <Image
-    src={imageSrc}
-    alt={imageAlt}
-    title={imageTitle}
-    fill
-    sizes="(max-width: 640px) 100vw, 280px"
-    className="object-contain p-3"
-  />
-</div>
+                    {/* ✅ Link only wraps product details */}
+                    <Link href={`/product/${p.slug}`} className="block">
+                      <div className="relative h-52 w-full overflow-hidden rounded-xl bg-gray-50">
+                        <Image
+                          src={imageSrc}
+                          alt={imageAlt}
+                          title={imageTitle}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 280px"
+                          className="object-contain p-3"
+                        />
+                      </div>
 
-                      
-                      
-                    <div className="mt-3 font-semibold">{p.name}</div>
-                    <div className="mt-1 text-lg font-extrabold text-blue-900">
-                      GH₵ {p.price}
-                    </div>
+                      <div className="mt-3 font-semibold">{p.name}</div>
+                      <div className="mt-1 text-lg font-extrabold text-blue-900">
+                        GH₵ {p.price}
+                      </div>
+                    </Link>
 
-                    <div className="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-center font-extrabold text-blue-950 hover:opacity-90">
-                      View Product
-                    </div>
-                  </Link>
+                    {/* ✅ Add to Cart OUTSIDE Link */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        addToCart(p, 1);
+
+                        setAddedMap((prev) => ({ ...prev, [pid]: true }));
+
+                        window.setTimeout(() => {
+                          setAddedMap((prev) => ({ ...prev, [pid]: false }));
+                        }, 2000);
+                      }}
+                      className="mt-3 w-full rounded-xl bg-yellow-500 px-4 py-3 text-center font-extrabold text-blue-950 hover:opacity-90"
+                    >
+                      {addedMap[pid] ? "Added ✓" : "Add to cart"}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -313,7 +358,10 @@ export default function Home() {
           <div className="mt-4 rounded-2xl border bg-white p-5 text-sm text-gray-700">
             Not enough featured products yet. More items are being added daily.
             Check back soon or{" "}
-            <Link href="/shop" className="font-bold text-blue-900 hover:underline">
+            <Link
+              href="/shop"
+              className="font-bold text-blue-900 hover:underline"
+            >
               view all products
             </Link>
             .
@@ -355,18 +403,21 @@ export default function Home() {
                 Delivery across Kasoa, Accra and beyond.
               </div>
             </div>
+
             <div className="rounded-2xl border bg-white p-5">
               <div className="font-semibold">Secure Checkout</div>
               <div className="mt-1 text-sm text-gray-600">
                 Pay with MoMo or card securely.
               </div>
             </div>
+
             <div className="rounded-2xl border bg-white p-5">
               <div className="font-semibold">WhatsApp Support</div>
               <div className="mt-1 text-sm text-gray-600">
                 Ask questions before you buy.
               </div>
             </div>
+
             <div className="rounded-2xl border bg-white p-5">
               <div className="font-semibold">Trusted Shop</div>
               <div className="mt-1 text-sm text-gray-600">
@@ -375,7 +426,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ✅ NAP Block for Local SEO (Kasoa + Ghana) */}
+          {/* NAP Block */}
           <div className="mt-10 rounded-2xl border bg-white p-6 text-sm text-gray-700">
             <div className="text-base font-bold text-blue-900">DeeglobalGh</div>
 
