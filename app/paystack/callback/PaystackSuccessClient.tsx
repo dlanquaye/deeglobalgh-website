@@ -9,6 +9,7 @@ type Props = {
 };
 
 const PAYSTACK_ORDER_SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
+const ORDERS_KEY = "dg_orders_v1";
 
 type Snapshot = {
   customer?: {
@@ -21,6 +22,23 @@ type Snapshot = {
   items?: { id: string; name: string; qty: number; price: number }[];
   subtotal?: number;
   createdAt?: string;
+};
+
+type OrderRecord = {
+  id: string;
+  createdAt: string;
+  customer: {
+    fullName: string;
+    phone: string;
+    area: string;
+    location: string;
+    notes?: string;
+  };
+  items: { id: string; name: string; qty: number; price: number }[];
+  subtotal: number;
+  paymentMethod: "PAYSTACK" | "PAY_ON_DELIVERY";
+  paystackReference?: string;
+  paystackStatus?: "success" | "failed" | "abandoned" | "unknown";
 };
 
 function formatMoney(amount: number) {
@@ -43,7 +61,6 @@ function buildWhatsAppMessage(params: {
   lines.push("PAYMENT DETAILS");
   lines.push(`Paystack Reference: ${params.reference}`);
   lines.push("Payment Status: VERIFIED (SUCCESS)");
-
 
   lines.push("");
   lines.push("CUSTOMER DETAILS");
@@ -79,6 +96,39 @@ function safeParseSnapshot(): Snapshot | null {
   } catch {
     return null;
   }
+}
+
+function safeParseOrders(): OrderRecord[] {
+  try {
+    const raw = localStorage.getItem(ORDERS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as OrderRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * ✅ Updates the most recent PAYSTACK order (top-down search) with reference + success status
+ */
+function markLatestPaystackOrderAsSuccess(reference: string) {
+  const orders = safeParseOrders();
+  if (!orders.length) return;
+
+  const idx = orders.findIndex((o) => o.paymentMethod === "PAYSTACK");
+  if (idx === -1) return;
+
+  const updated: OrderRecord = {
+    ...orders[idx],
+    paystackReference: reference,
+    paystackStatus: "success",
+  };
+
+  const next = [...orders];
+  next[idx] = updated;
+
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(next));
 }
 
 export default function PaystackSuccessClient({ reference, status }: Props) {
@@ -119,6 +169,9 @@ export default function PaystackSuccessClient({ reference, status }: Props) {
 
     setDidRun(true);
 
+    // ✅ Update Orders Log: mark latest PAYSTACK order as success
+    markLatestPaystackOrderAsSuccess(reference);
+
     // ✅ First open WhatsApp
     window.location.href = waUrl;
 
@@ -131,7 +184,7 @@ export default function PaystackSuccessClient({ reference, status }: Props) {
     setTimeout(() => {
       localStorage.removeItem(PAYSTACK_ORDER_SNAPSHOT_KEY);
     }, 60000);
-  }, [status, waUrl, clearCart, didRun]);
+  }, [status, waUrl, clearCart, didRun, reference]);
 
   if (status !== "success") return null;
 
