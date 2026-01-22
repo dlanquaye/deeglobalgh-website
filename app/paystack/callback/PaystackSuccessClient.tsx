@@ -74,8 +74,10 @@ export default function PaystackSuccessClient({ reference, status }: Props) {
 
     }
 
-    // ✅ Try auto-open (may be blocked by browser)
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    // ✅ Auto-open WhatsApp in same tab (more reliable on desktop)
+window.location.href = waUrl;
+
+
   }, [status, clearCart, waUrl, cartCleared]);
 
   if (status !== "success") return null;
@@ -84,20 +86,19 @@ export default function PaystackSuccessClient({ reference, status }: Props) {
   return (
     <div style={{ marginTop: 16 }}>
       <a
-        href={waUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "inline-block",
-          padding: "12px 16px",
-          borderRadius: 12,
-          fontWeight: 800,
-          textDecoration: "none",
-          border: "1px solid #0a7c3a",
-        }}
-      >
-        Open WhatsApp to Send Order
-      </a>
+  href={waUrl}
+  style={{
+    display: "inline-block",
+    padding: "12px 16px",
+    borderRadius: 12,
+    fontWeight: 800,
+    textDecoration: "none",
+    border: "1px solid #0a7c3a",
+  }}
+>
+  Open WhatsApp to Send Order
+</a>
+
 
       <p style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
         If WhatsApp did not open automatically, click the button above.
