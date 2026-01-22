@@ -5,7 +5,7 @@ export const metadata = {
   description:
     "Buy stationery in Kasoa: pens, pencils, rulers, crayons, erasers, sharpeners, calculators, and school supplies. Order from DeeglobalGh for fast delivery in Kasoa.",
   alternates: {
-    canonical: "https://deeglobalgh.com/stationery-in-kasoa",
+    canonical: "https://shopdeeglobalgh.com/stationery-in-kasoa",
   },
 };
 
@@ -14,7 +14,7 @@ export default function StationeryInKasoaPage() {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "Stationery in Kasoa",
-    url: "https://deeglobalgh.com/stationery-in-kasoa",
+    url: "https://shopdeeglobalgh.com/stationery-in-kasoa",
     about: "Stationery in Kasoa",
   };
 

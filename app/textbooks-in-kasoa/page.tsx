@@ -5,7 +5,7 @@ export const metadata = {
   description:
     "Buy Textbooks in Kasoa for Pre-School, Basic 1–6, JHS 1–3 and SHS 1–3. Combined Edition textbooks available. Order from DeeglobalGh for fast delivery.",
   alternates: {
-    canonical: "https://deeglobalgh.com/textbooks-in-kasoa",
+    canonical: "https://shopdeeglobalgh.com/textbooks-in-kasoa",
   },
 };
 
@@ -14,7 +14,7 @@ export default function TextbooksInKasoaPage() {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "Textbooks in Kasoa",
-    url: "https://deeglobalgh.com/textbooks-in-kasoa",
+    url: "https://shopdeeglobalgh.com/textbooks-in-kasoa",
     about: "Textbooks in Kasoa",
   };
 

@@ -5,7 +5,7 @@ export const metadata = {
   description:
     "Buy textbooks, stationery, exam materials, and school essentials in Kasoa. Order from DeeglobalGh for fast delivery across Kasoa and nearby areas.",
   alternates: {
-    canonical: "https://deeglobalgh.com/kasoa",
+    canonical: "https://shopdeeglobalgh.com/kasoa",
   },
 };
 
@@ -14,7 +14,7 @@ export default function KasoaPage() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: "DeeglobalGh",
-    url: "https://deeglobalgh.com",
+    url: "https://shopdeeglobalgh.com",
     areaServed: "Kasoa",
     address: {
       "@type": "PostalAddress",
