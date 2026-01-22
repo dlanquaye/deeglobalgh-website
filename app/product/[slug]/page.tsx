@@ -7,7 +7,8 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-const SITE_URL = "https://deeglobalgh.com";
+const SITE_URL = "https://shopdeeglobalgh.com";
+
 
 function normalizeImageSrc(src?: string) {
   if (!src) return "/products/placeholder.webp";
