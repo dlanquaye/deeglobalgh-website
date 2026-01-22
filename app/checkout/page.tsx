@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
@@ -12,6 +12,23 @@ function formatMoney(amount: number) {
 }
 
 const PAYSTACK_ORDER_SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
+const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
+
+type CustomerProfile = {
+  fullName: string;
+  phone: string;
+  area: string;
+  location: string;
+  notes: string;
+};
+
+function safeParse<T>(raw: string | null): T | null {
+  try {
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
 
 function buildWhatsAppMessage(args: {
   name: string;
@@ -65,6 +82,25 @@ export default function CheckoutPage() {
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
+  // ✅ Auto-fill returning customer details
+  useEffect(() => {
+    const saved = safeParse<CustomerProfile>(
+      typeof window !== "undefined"
+        ? localStorage.getItem(CUSTOMER_PROFILE_KEY)
+        : null
+    );
+
+    if (!saved) return;
+
+    if (!fullName.trim()) setFullName(saved.fullName || "");
+    if (!phone.trim()) setPhone(saved.phone || "");
+    if (!location.trim()) setLocation(saved.location || "");
+    if (!notes.trim()) setNotes(saved.notes || "");
+
+    if (saved.area) setArea(saved.area);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const canCheckout = useMemo(() => {
     if (!items.length) return false;
     if (!fullName.trim()) return false;
@@ -72,6 +108,18 @@ export default function CheckoutPage() {
     if (!location.trim()) return false;
     return true;
   }, [items.length, fullName, phone, location]);
+
+  const saveCustomerProfile = () => {
+    const profile: CustomerProfile = {
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      area,
+      location: location.trim(),
+      notes: notes.trim(),
+    };
+
+    localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
+  };
 
   // ✅ This will allow callback page to show summary after Paystack payment
   const savePaystackSnapshot = () => {
@@ -99,6 +147,9 @@ export default function CheckoutPage() {
   const placeOrder = () => {
     if (!canCheckout) return;
 
+    // ✅ Save customer for auto-fill next time
+    saveCustomerProfile();
+
     const msg = buildWhatsAppMessage({
       name: fullName,
       phone,
@@ -121,6 +172,9 @@ export default function CheckoutPage() {
 
   const payNowWithPaystack = async () => {
     if (!canCheckout) return;
+
+    // ✅ Save customer for auto-fill next time
+    saveCustomerProfile();
 
     try {
       setPayError(null);
@@ -177,11 +231,11 @@ export default function CheckoutPage() {
       {/* Trust */}
       <div className="mt-4 rounded-2xl border bg-white p-5">
         <div className="font-semibold text-[color:var(--text-main)]">
-  Pay Before Delivery (Recommended)
+          Pay Before Delivery (Recommended)
         </div>
         <div className="mt-1 text-sm text-[color:var(--text-muted)]">
-          Pay with MoMo or Card to confirm your order instantly. After payment, WhatsApp will open for delivery confirmation in Kasoa and beyond.
-
+          Pay with MoMo or Card to confirm your order instantly. After payment,
+          WhatsApp will open for delivery confirmation in Kasoa and beyond.
         </div>
       </div>
 
@@ -277,7 +331,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Pay Now with Paystack */}
+            {/* ✅ Pay Now with Paystack (Recommended) */}
             <button
               type="button"
               onClick={payNowWithPaystack}
@@ -288,11 +342,14 @@ export default function CheckoutPage() {
                   : "bg-yellow-500 text-black hover:opacity-90"
               }`}
             >
-              {payLoading ? "Starting Payment..." : "Pay Now (MoMo/Card) — Paystack"}
+              {payLoading
+                ? "Starting Payment..."
+                : "Pay Now (MoMo/Card) — Paystack (Recommended)"}
             </button>
 
             {/* WhatsApp Order */}
             <button
+              type="button"
               onClick={placeOrder}
               disabled={!canCheckout}
               className={`mt-4 w-full rounded-2xl px-5 py-4 text-center text-base font-extrabold ${
@@ -302,13 +359,12 @@ export default function CheckoutPage() {
               }`}
             >
               Order on WhatsApp (Pay on Delivery)
-<p className="mt-2 text-center text-xs text-[color:var(--text-muted)]">
-  Pay with Paystack to confirm your order instantly and speed up delivery.
-</p>
-
             </button>
 
-            
+            <p className="mt-2 text-center text-xs text-[color:var(--text-muted)]">
+              Pay with Paystack to confirm your order instantly and speed up
+              delivery.
+            </p>
 
             {payError ? (
               <div className="mt-2 text-sm font-semibold text-red-600">
