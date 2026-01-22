@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
+import { addOrder, generateOrderId } from "@/app/lib/orders";
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-GH", {
@@ -59,7 +60,9 @@ function buildWhatsAppMessage(args: {
   lines.push("ORDER ITEMS");
 
   items.forEach((x, idx) => {
-    lines.push(`${idx + 1}. ${x.name}  x${x.qty}  (GH₵ ${formatMoney(x.price)})`);
+    lines.push(
+      `${idx + 1}. ${x.name}  x${x.qty}  (GH₵ ${formatMoney(x.price)})`
+    );
   });
 
   lines.push("");
@@ -96,8 +99,8 @@ export default function CheckoutPage() {
     if (!phone.trim()) setPhone(saved.phone || "");
     if (!location.trim()) setLocation(saved.location || "");
     if (!notes.trim()) setNotes(saved.notes || "");
-
     if (saved.area) setArea(saved.area);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -121,7 +124,7 @@ export default function CheckoutPage() {
     localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
   };
 
-  // ✅ This will allow callback page to show summary after Paystack payment
+  // ✅ Paystack snapshot for callback summary
   const savePaystackSnapshot = () => {
     const snapshot = {
       customer: {
@@ -144,11 +147,34 @@ export default function CheckoutPage() {
     localStorage.setItem(PAYSTACK_ORDER_SNAPSHOT_KEY, JSON.stringify(snapshot));
   };
 
+  // ✅ Save order record into Orders Log (local CRM)
+  const saveOrderRecord = (paymentMethod: "PAYSTACK" | "PAY_ON_DELIVERY") => {
+    addOrder({
+      id: generateOrderId(),
+      createdAt: new Date().toISOString(),
+      customer: {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        area,
+        location: location.trim(),
+        notes: notes.trim(),
+      },
+      items: items.map((x) => ({
+        id: x.id,
+        name: x.name,
+        qty: x.qty,
+        price: x.price,
+      })),
+      subtotal,
+      paymentMethod,
+    });
+  };
+
   const placeOrder = () => {
     if (!canCheckout) return;
 
-    // ✅ Save customer for auto-fill next time
     saveCustomerProfile();
+    saveOrderRecord("PAY_ON_DELIVERY");
 
     const msg = buildWhatsAppMessage({
       name: fullName,
@@ -173,8 +199,8 @@ export default function CheckoutPage() {
   const payNowWithPaystack = async () => {
     if (!canCheckout) return;
 
-    // ✅ Save customer for auto-fill next time
     saveCustomerProfile();
+    saveOrderRecord("PAYSTACK");
 
     try {
       setPayError(null);
