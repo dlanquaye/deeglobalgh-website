@@ -5,11 +5,11 @@ export const metadata: Metadata = {
   description:
     "Browse textbooks, school essentials, and exam materials. Order from DeeglobalGh for fast delivery in Kasoa and across Ghana.",
   robots: {
-    index: false,
+    index: true,
     follow: true,
   },
   alternates: {
-    canonical: "https://deeglobalgh.com/shop",
+    canonical: "https://shopdeeglobalgh.com/shop",
   },
 };
 
