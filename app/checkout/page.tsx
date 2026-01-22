@@ -177,11 +177,11 @@ export default function CheckoutPage() {
       {/* Trust */}
       <div className="mt-4 rounded-2xl border bg-white p-5">
         <div className="font-semibold text-[color:var(--text-main)]">
-          Delivery Orders Only
+  Pay Before Delivery (Recommended)
         </div>
         <div className="mt-1 text-sm text-[color:var(--text-muted)]">
-          Fill your details and send your order on WhatsApp for fast delivery in
-          Kasoa and beyond.
+          Pay with MoMo or Card to confirm your order instantly. After payment, WhatsApp will open for delivery confirmation in Kasoa and beyond.
+
         </div>
       </div>
 
@@ -277,19 +277,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* WhatsApp Order */}
-            <button
-              onClick={placeOrder}
-              disabled={!canCheckout}
-              className={`mt-4 w-full rounded-2xl px-5 py-4 text-center text-base font-extrabold ${
-                canCheckout
-                  ? "bg-green-600 text-white hover:opacity-90"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              Order on WhatsApp (Pay on Delivery)
-            </button>
-
             {/* Pay Now with Paystack */}
             <button
               type="button"
@@ -303,6 +290,25 @@ export default function CheckoutPage() {
             >
               {payLoading ? "Starting Payment..." : "Pay Now (MoMo/Card) — Paystack"}
             </button>
+
+            {/* WhatsApp Order */}
+            <button
+              onClick={placeOrder}
+              disabled={!canCheckout}
+              className={`mt-4 w-full rounded-2xl px-5 py-4 text-center text-base font-extrabold ${
+                canCheckout
+                  ? "bg-green-600 text-white hover:opacity-90"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              Order on WhatsApp (Pay on Delivery)
+<p className="mt-2 text-center text-xs text-[color:var(--text-muted)]">
+  Pay with Paystack to confirm your order instantly and speed up delivery.
+</p>
+
+            </button>
+
+            
 
             {payError ? (
               <div className="mt-2 text-sm font-semibold text-red-600">

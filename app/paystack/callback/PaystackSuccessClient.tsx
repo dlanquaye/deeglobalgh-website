@@ -42,7 +42,8 @@ function buildWhatsAppMessage(params: {
   lines.push("");
   lines.push("PAYMENT DETAILS");
   lines.push(`Paystack Reference: ${params.reference}`);
-  lines.push("Payment Status: VERIFIED ✅");
+  lines.push("Payment Status: VERIFIED (SUCCESS)");
+
 
   lines.push("");
   lines.push("CUSTOMER DETAILS");
