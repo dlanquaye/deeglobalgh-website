@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { products } from "./lib/products";
 
-const SITE_URL = "https://deeglobalgh.com";
+const SITE_URL = "https://shopdeeglobalgh.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
@@ -12,7 +12,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/textbooks-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/stationery-in-kasoa`, lastModified: new Date() },
-
   ];
 
   const productPages: MetadataRoute.Sitemap = products.map((p) => ({
