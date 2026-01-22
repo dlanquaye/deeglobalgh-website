@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
-    console.log("PAYSTACK SECRET EXISTS:", !!secret);
 
     if (!secret) {
       return NextResponse.json(
@@ -16,10 +15,7 @@ export async function GET(req: Request) {
     const reference = url.searchParams.get("reference");
 
     if (!reference) {
-      return NextResponse.json(
-        { error: "Missing reference" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing reference" }, { status: 400 });
     }
 
     const res = await fetch(
@@ -29,11 +25,11 @@ export async function GET(req: Request) {
         headers: {
           Authorization: `Bearer ${secret}`,
         },
+        cache: "no-store",
       }
     );
 
     const data = await res.json();
-    console.log("PAYSTACK VERIFY RESPONSE:", data);
 
     if (!res.ok) {
       return NextResponse.json(
@@ -44,7 +40,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json(data);
   } catch (err: any) {
-    console.log("PAYSTACK VERIFY ERROR:", err?.message || err);
     return NextResponse.json(
       { error: "Server error", details: err?.message || String(err) },
       { status: 500 }
