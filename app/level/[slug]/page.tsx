@@ -10,7 +10,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
 
-  const SITE_URL = "https://deeglobalgh.com";
+  const SITE_URL = "https://shopdeeglobalgh.com";
 
   const pretty = slug
     .replace(/-/g, " ")

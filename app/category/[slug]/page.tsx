@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { products } from "../../lib/products";
 import CategoryClient from "./CategoryClient";
 
-const SITE_URL = "https://deeglobalgh.com";
+const SITE_URL = "https://shopdeeglobalgh.com";
 
 function prettifySlug(slug: string) {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

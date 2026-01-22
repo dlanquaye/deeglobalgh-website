@@ -35,7 +35,7 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "DeeglobalGh",
-    url: "https://deeglobalgh.com",
+    url: "https://shopdeeglobalgh.com",
     telephone: "+233246011773",
     sameAs: ["https://wa.me/233246011773"],
     areaServed: ["Kasoa", "Ghana"],
