@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PaystackSuccessClient from "./PaystackSuccessClient";
+import PaystackFailureClient from "./PaystackFailureClient";
 import OrderSummaryClient from "./OrderSummaryClient";
 
 type Props = {
@@ -31,7 +32,7 @@ export default async function PaystackCallbackPage({ searchParams }: Props) {
   }
 
   const result = await verify(reference);
-  const status = result?.data?.status;
+  const status = result?.data?.status || "unknown";
 
   return (
     <div style={{ padding: 24 }}>
@@ -41,7 +42,7 @@ export default async function PaystackCallbackPage({ searchParams }: Props) {
         <b>Reference:</b> {reference}
       </p>
       <p>
-        <b>Verification status:</b> {status || "unknown"}
+        <b>Verification status:</b> {status}
       </p>
 
       {status === "success" ? (
@@ -63,6 +64,9 @@ export default async function PaystackCallbackPage({ searchParams }: Props) {
         </>
       ) : (
         <>
+          {/* ✅ Mark Paystack order as failed/abandoned/unknown */}
+          <PaystackFailureClient reference={reference} status={status} />
+
           <h2>Payment Not Confirmed</h2>
           <p>
             We could not confirm payment yet. If you paid, please wait and
