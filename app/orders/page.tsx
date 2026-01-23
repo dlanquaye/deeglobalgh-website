@@ -63,8 +63,32 @@ function normalizeOrder(o: any): OrderRecord {
   } as OrderRecord;
 }
 
+const SESSION_KEY = "dg_orders_admin_session_v1";
+
+function isUnlocked() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(SESSION_KEY) === "unlocked";
+}
+
+function unlock() {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SESSION_KEY, "unlocked");
+}
+
+function lock() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SESSION_KEY);
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // PIN form
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  const expectedPin = process.env.NEXT_PUBLIC_ADMIN_ORDERS_PIN || "";
 
   const refresh = () => {
     const raw = loadOrders();
@@ -72,7 +96,12 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    refresh();
+    // Auto unlock if previously authenticated
+    if (isUnlocked()) {
+      setIsAdmin(true);
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalOrders = orders.length;
@@ -122,11 +151,86 @@ export default function OrdersPage() {
     refresh();
   };
 
+  // ✅ PIN Gate view
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-14">
+        <div className="card-brand p-6">
+          <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
+            Admin Access Required
+          </h1>
+          <p className="mt-2 text-sm text-[color:var(--text-muted)]">
+            Enter your 6-digit Admin PIN to view orders.
+          </p>
+
+          <div className="mt-6">
+            <label className="text-sm font-bold text-[color:var(--text-main)]">
+              Admin PIN
+            </label>
+            <input
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value);
+                setPinError(null);
+              }}
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="Enter 6-digit PIN"
+              className="input-brand mt-2 w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+            />
+
+            {pinError ? (
+              <div className="mt-2 text-sm font-semibold text-red-600">
+                {pinError}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!expectedPin || expectedPin.length < 6) {
+                  setPinError(
+                    "Admin PIN is not configured. Add NEXT_PUBLIC_ADMIN_ORDERS_PIN in env."
+                  );
+                  return;
+                }
+
+                if (pin.trim() !== expectedPin.trim()) {
+                  setPinError("Incorrect PIN. Try again.");
+                  return;
+                }
+
+                unlock();
+                setIsAdmin(true);
+                refresh();
+              }}
+              className="btn-primary mt-4 inline-flex w-full items-center justify-center px-5 py-3"
+            >
+              Unlock Orders
+            </button>
+
+            <Link
+              href="/"
+              className="btn-outline mt-3 inline-flex w-full items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
+            >
+              Go Home
+            </Link>
+          </div>
+
+          <div className="mt-6 text-xs text-[color:var(--text-muted)]">
+            Tip: Once unlocked, this device stays logged in until you lock it.
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ✅ Admin view
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
-          Orders Log
+          Orders Log (Admin)
         </h1>
 
         <div className="flex flex-wrap gap-2">
@@ -143,6 +247,19 @@ export default function OrdersPage() {
             className="btn-outline px-4 py-2 text-sm text-[color:var(--brand-blue)]"
           >
             Refresh
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              lock();
+              setIsAdmin(false);
+              setOrders([]);
+              setPin("");
+            }}
+            className="btn-outline px-4 py-2 text-sm text-[color:var(--brand-blue)]"
+          >
+            Lock
           </button>
 
           <button
@@ -177,7 +294,7 @@ export default function OrdersPage() {
             GH₵ {formatMoney(totalRevenue)}
           </div>
           <div className="mt-1 text-xs text-[color:var(--text-muted)]">
-            This is saved in local storage for now (MVP). It will not sync across devices yet.
+            Saved in local storage (MVP). Not synced across devices yet.
           </div>
         </div>
       </div>
@@ -268,7 +385,9 @@ export default function OrdersPage() {
                         Order Status
                         <select
                           value={o.orderStatus}
-                          onChange={(e) => setOrderStatus(o.id, e.target.value as OrderStatus)}
+                          onChange={(e) =>
+                            setOrderStatus(o.id, e.target.value as OrderStatus)
+                          }
                           className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm font-bold"
                         >
                           <option value="PENDING">Pending</option>
