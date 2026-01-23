@@ -167,6 +167,10 @@ export default function CheckoutPage() {
       })),
       subtotal,
       paymentMethod,
+
+      // ✅ NEW FIELDS (Order workflow)
+      orderStatus: "PENDING",
+      paymentStatus: paymentMethod === "PAYSTACK" ? "UNKNOWN" : "UNPAID",
     });
   };
 

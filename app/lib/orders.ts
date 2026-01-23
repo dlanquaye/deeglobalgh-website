@@ -15,15 +15,30 @@ export type CustomerDetails = {
 
 export type OrderPaymentMethod = "PAYSTACK" | "PAY_ON_DELIVERY";
 
+export type OrderStatus =
+  | "PENDING"
+  | "PAID"
+  | "PACKED"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED";
+
+export type PaymentStatus = "UNPAID" | "PAID" | "UNKNOWN";
+
 export type OrderRecord = {
   id: string; // DG-YYYYMMDD-XXXX
   createdAt: string;
+  updatedAt?: string;
 
   customer: CustomerDetails;
   items: OrderItem[];
   subtotal: number;
 
   paymentMethod: OrderPaymentMethod;
+
+  // ✅ Operations tracking
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus;
 
   // Paystack
   paystackReference?: string;
@@ -63,6 +78,22 @@ export function saveOrders(orders: OrderRecord[]) {
 export function addOrder(order: OrderRecord) {
   const existing = loadOrders();
   saveOrders([order, ...existing]); // newest first
+}
+
+export function updateOrderById(orderId: string, patch: Partial<OrderRecord>) {
+  const orders = loadOrders();
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return;
+
+  const updated: OrderRecord = {
+    ...orders[idx],
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const next = [...orders];
+  next[idx] = updated;
+  saveOrders(next);
 }
 
 export function clearOrders() {
