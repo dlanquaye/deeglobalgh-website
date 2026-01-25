@@ -100,8 +100,6 @@ export default function CheckoutPage() {
     if (!location.trim()) setLocation(saved.location || "");
     if (!notes.trim()) setNotes(saved.notes || "");
     if (saved.area) setArea(saved.area);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const canCheckout = useMemo(() => {
@@ -124,9 +122,10 @@ export default function CheckoutPage() {
     localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
   };
 
-  // ✅ Paystack snapshot for callback summary
-  const savePaystackSnapshot = () => {
+  // ✅ Paystack snapshot (now LINKED to orderId)
+  const savePaystackSnapshot = (orderId: string) => {
     const snapshot = {
+      orderId,
       customer: {
         fullName,
         phone,
@@ -144,13 +143,19 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
     };
 
-    localStorage.setItem(PAYSTACK_ORDER_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    localStorage.setItem(
+      PAYSTACK_ORDER_SNAPSHOT_KEY,
+      JSON.stringify(snapshot)
+    );
   };
 
-  // ✅ Save order record into Orders Log (local CRM)
-  const saveOrderRecord = (paymentMethod: "PAYSTACK" | "PAY_ON_DELIVERY") => {
+  // ✅ Save order record (single source of truth for orderId)
+  const saveOrderRecord = (
+    paymentMethod: "PAYSTACK" | "PAY_ON_DELIVERY",
+    orderId: string
+  ) => {
     addOrder({
-      id: generateOrderId(),
+      id: orderId,
       createdAt: new Date().toISOString(),
       customer: {
         fullName: fullName.trim(),
@@ -167,8 +172,6 @@ export default function CheckoutPage() {
       })),
       subtotal,
       paymentMethod,
-
-      // ✅ NEW FIELDS (Order workflow)
       orderStatus: "PENDING",
       paymentStatus: paymentMethod === "PAYSTACK" ? "UNKNOWN" : "UNPAID",
     });
@@ -178,7 +181,9 @@ export default function CheckoutPage() {
     if (!canCheckout) return;
 
     saveCustomerProfile();
-    saveOrderRecord("PAY_ON_DELIVERY");
+
+    const orderId = generateOrderId();
+    saveOrderRecord("PAY_ON_DELIVERY", orderId);
 
     const msg = buildWhatsAppMessage({
       name: fullName,
@@ -204,16 +209,17 @@ export default function CheckoutPage() {
     if (!canCheckout) return;
 
     saveCustomerProfile();
-    saveOrderRecord("PAYSTACK");
+
+    const orderId = generateOrderId();
+    saveOrderRecord("PAYSTACK", orderId);
 
     try {
       setPayError(null);
       setPayLoading(true);
 
-      // 1) Save snapshot for callback summary
-      savePaystackSnapshot();
+      // ✅ Snapshot linked to order
+      savePaystackSnapshot(orderId);
 
-      // 2) Initialize Paystack transaction
       const res = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,7 +227,7 @@ export default function CheckoutPage() {
           email: phone?.trim()
             ? `${phone.trim()}@shopdeeglobalgh.com`
             : "customer@shopdeeglobalgh.com",
-          amount: subtotal, // GHS
+          amount: subtotal,
         }),
       });
 
@@ -234,7 +240,6 @@ export default function CheckoutPage() {
         );
       }
 
-      // 3) Redirect user to Paystack checkout
       window.location.href = url;
     } catch (e: any) {
       setPayError(e?.message || "Something went wrong starting payment.");
@@ -258,14 +263,13 @@ export default function CheckoutPage() {
         </Link>
       </div>
 
-      {/* Trust */}
       <div className="mt-4 rounded-2xl border bg-white p-5">
         <div className="font-semibold text-[color:var(--text-main)]">
           Pay Before Delivery (Recommended)
         </div>
         <div className="mt-1 text-sm text-[color:var(--text-muted)]">
           Pay with MoMo or Card to confirm your order instantly. After payment,
-          WhatsApp will open for delivery confirmation in Kasoa and beyond.
+          WhatsApp will open for delivery confirmation.
         </div>
       </div>
 
@@ -278,21 +282,21 @@ export default function CheckoutPage() {
 
           <div className="mt-4 grid grid-cols-1 gap-3">
             <input
-              className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+              className="input-brand w-full px-4 py-3"
               placeholder="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
 
             <input
-              className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+              className="input-brand w-full px-4 py-3"
               placeholder="Phone Number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
 
             <select
-              className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+              className="input-brand w-full px-4 py-3"
               value={area}
               onChange={(e) => setArea(e.target.value)}
             >
@@ -303,14 +307,14 @@ export default function CheckoutPage() {
             </select>
 
             <input
-              className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
-              placeholder="Location / Landmark (e.g. Kasoa Nyanyano Road...)"
+              className="input-brand w-full px-4 py-3"
+              placeholder="Location / Landmark"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
 
             <textarea
-              className="input-brand w-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-900"
+              className="input-brand w-full px-4 py-3"
               placeholder="Extra notes (optional)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -326,87 +330,58 @@ export default function CheckoutPage() {
           </h2>
 
           <div className="mt-4 space-y-3">
-            {items.length ? (
-              items.map((x) => (
-                <div
-                  key={x.id}
-                  className="flex items-start justify-between gap-3 border-b pb-3"
-                >
-                  <div>
-                    <div className="font-semibold text-[color:var(--text-main)]">
-                      {x.name}
-                    </div>
-                    <div className="text-sm text-[color:var(--text-muted)]">
-                      Qty: {x.qty}
-                    </div>
-                  </div>
-
-                  <div className="font-extrabold text-[color:var(--brand-blue)]">
-                    GH₵ {formatMoney(x.price * x.qty)}
+            {items.map((x) => (
+              <div
+                key={x.id}
+                className="flex items-start justify-between gap-3 border-b pb-3"
+              >
+                <div>
+                  <div className="font-semibold">{x.name}</div>
+                  <div className="text-sm text-[color:var(--text-muted)]">
+                    Qty: {x.qty}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-[color:var(--text-muted)]">
-                Your cart is empty.
+                <div className="font-extrabold text-[color:var(--brand-blue)]">
+                  GH₵ {formatMoney(x.price * x.qty)}
+                </div>
               </div>
-            )}
+            ))}
 
-            <div className="flex items-center justify-between pt-2">
-              <div className="font-semibold text-[color:var(--text-main)]">
-                Subtotal
-              </div>
+            <div className="flex justify-between pt-2">
+              <div className="font-semibold">Subtotal</div>
               <div className="text-xl font-extrabold text-[color:var(--brand-blue)]">
                 GH₵ {formatMoney(subtotal)}
               </div>
             </div>
 
-            {/* ✅ Pay Now with Paystack (Recommended) */}
             <button
               type="button"
               onClick={payNowWithPaystack}
               disabled={!canCheckout || payLoading}
-              className={`mt-3 w-full rounded-2xl px-5 py-4 text-center text-base font-extrabold ${
-                !canCheckout || payLoading
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-yellow-500 text-black hover:opacity-90"
-              }`}
+              className="mt-3 w-full rounded-2xl bg-yellow-500 px-5 py-4 font-extrabold"
             >
-              {payLoading
-                ? "Starting Payment..."
-                : "Pay Now (MoMo/Card) — Paystack (Recommended)"}
+              {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
             </button>
 
-            {/* WhatsApp Order */}
             <button
               type="button"
               onClick={placeOrder}
               disabled={!canCheckout}
-              className={`mt-4 w-full rounded-2xl px-5 py-4 text-center text-base font-extrabold ${
-                canCheckout
-                  ? "bg-green-600 text-white hover:opacity-90"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
-              }`}
+              className="mt-4 w-full rounded-2xl bg-green-600 px-5 py-4 font-extrabold text-white"
             >
               Order on WhatsApp (Pay on Delivery)
             </button>
 
-            <p className="mt-2 text-center text-xs text-[color:var(--text-muted)]">
-              Pay with Paystack to confirm your order instantly and speed up
-              delivery.
-            </p>
-
-            {payError ? (
+            {payError && (
               <div className="mt-2 text-sm font-semibold text-red-600">
                 {payError}
               </div>
-            ) : null}
+            )}
 
-            {/* Clear cart */}
             <button
               type="button"
               onClick={clearCart}
-              className="btn-outline mt-3 w-full px-5 py-3 text-sm text-[color:var(--brand-blue)] hover:bg-gray-50"
+              className="btn-outline mt-3 w-full px-5 py-3 text-sm"
             >
               Clear cart
             </button>

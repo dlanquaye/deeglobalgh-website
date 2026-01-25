@@ -6,10 +6,12 @@ import {
   clearOrders,
   loadOrders,
   updateOrderById,
+  deleteOrderById,
   type OrderRecord,
   type OrderStatus,
   type PaymentStatus,
 } from "@/app/lib/orders";
+
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-GH", {
@@ -91,18 +93,17 @@ export default function OrdersPage() {
   const expectedPin = process.env.NEXT_PUBLIC_ADMIN_ORDERS_PIN || "";
 
   const refresh = () => {
-    const raw = loadOrders();
-    setOrders(raw.map(normalizeOrder));
-  };
+  const raw = loadOrders();
+  setOrders(raw);
+};
+
 
   useEffect(() => {
-    // Auto unlock if previously authenticated
-    if (isUnlocked()) {
-      setIsAdmin(true);
-      refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Always start locked (require PIN every time)
+  setIsAdmin(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
 
   const totalOrders = orders.length;
 

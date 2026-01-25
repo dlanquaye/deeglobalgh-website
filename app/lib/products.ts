@@ -34,8 +34,13 @@ export type Product = {
   categorySlug: string;
   levelSlugs: string[];
 
+  // ✅ Inventory (optional for safe rollout)
+  stockQty?: number; // how many items you have
+  lowStockThreshold?: number; // show warning when stock is low
+
   seo?: ProductSEO;
 };
+
 
 export const products: Product[] = [
   
@@ -43,7 +48,9 @@ export const products: Product[] = [
     id: "DG0001",
     name: "Wise Ant Chemistry – SHS 1–3 Combined Edition",
     slug: "wise-ant-chemistry-shs-1-3-combined-edition",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-chemistry-shs-1-3-combined-edition.webp",
       alt: "Wise Ant Chemistry textbook cover for SHS 1 to SHS 3 combined edition",
@@ -84,7 +91,9 @@ export const products: Product[] = [
     id: "DG0002",
     name: "Wise Ant Biology – SHS 1–3 Combined Edition",
     slug: "wise-ant-biology-shs-1-3-combined-edition",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-biology-shs-1-3-combined-edition.webp",
       alt: "Wise Ant Biology textbook cover for SHS 1 to SHS 3 combined edition",
@@ -125,7 +134,9 @@ export const products: Product[] = [
     id: "DG0003",
     name: "Wise Ant Additional Mathematics – SHS Year 1",
     slug: "wise-ant-additional-mathematics-shs-year-1",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-additional-mathematics-shs-year-1.webp",
       alt: "Wise Ant Additional Mathematics textbook cover for SHS 1",
@@ -163,7 +174,9 @@ export const products: Product[] = [
     id: "DG0004",
     name: "Wise Ant English for SHS",
     slug: "wise-ant-english-for-shs",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-english-shs-1-3-combined-edition.webp",
       alt: "Wise Ant English textbook cover for SHS 1 to SHS 3 combined edition",
@@ -204,7 +217,9 @@ export const products: Product[] = [
     id: "DG0005",
     name: "Wise Ant Mathematics for SHS",
     slug: "wise-ant-mathematics-for-shs",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-mathematics-shs-1-3-combined-edition.webp",
       alt: "Wise Ant Mathematics textbook cover for SHS 1 to SHS 3 combined edition",
@@ -245,7 +260,9 @@ export const products: Product[] = [
     id: "DG0006",
     name: "Wise Ant General Science for SHS",
     slug: "wise-ant-general-science-for-shs",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-general-science-shs-1-3-combined-edition.webp",
       alt: "Wise Ant General Science textbook cover for SHS 1 to SHS 3 combined edition",
@@ -286,7 +303,9 @@ export const products: Product[] = [
     id: "DG0007",
     name: "Wise Ant Physics for SHS",
     slug: "wise-ant-physics-for-shs",
-    price: 215,
+    price: 215,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-physics-shs-1-3-combined-edition.webp",
       alt: "Wise Ant Physics textbook cover for SHS 1 to SHS 3 combined edition",
@@ -327,7 +346,9 @@ export const products: Product[] = [
     id: "DG0008",
     name: "Wise Ant Social for SHS",
     slug: "wise-ant-social-for-shs",
-    price: 205,
+    price: 205,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/wise-ant-social-studies-shs-1-3-combined-edition.webp",
       alt: "Wise Ant Social Studies textbook cover for SHS 1 to SHS 3 combined edition",
@@ -368,7 +389,9 @@ export const products: Product[] = [
     id: "DG0010",
     name: "Excellence Mathematics Textbook Basic 1",
     slug: "excellence-mathematics-textbook-basic-1",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-1.webp",
       alt: "Excellence Mathematics Textbook Basic 1 cover",
@@ -406,7 +429,9 @@ export const products: Product[] = [
     id: "DG0011",
     name: "Excellence Mathematics Textbook Basic 2",
     slug: "excellence-mathematics-textbook-basic-2",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-2.webp",
       alt: "Excellence Mathematics Textbook Basic 2 cover",
@@ -444,7 +469,9 @@ export const products: Product[] = [
     id: "DG0012",
     name: "Excellence Mathematics Textbook Basic 3",
     slug: "excellence-mathematics-textbook-basic-3",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-3.webp",
       alt: "Excellence Mathematics Textbook Basic 3 cover",
@@ -482,7 +509,9 @@ export const products: Product[] = [
     id: "DG0013",
     name: "Excellence Mathematics Textbook Basic 4",
     slug: "excellence-mathematics-textbook-basic-4",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-4.webp",
       alt: "Excellence Mathematics Textbook Basic 4 cover",
@@ -520,7 +549,9 @@ export const products: Product[] = [
     id: "DG0014",
     name: "Excellence Mathematics Textbook Basic 5",
     slug: "excellence-mathematics-textbook-basic-5",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-5.webp",
       alt: "Excellence Mathematics Textbook Basic 5 cover",
@@ -558,7 +589,9 @@ export const products: Product[] = [
     id: "DG0015",
     name: "Excellence Mathematics Textbook Basic 6",
     slug: "excellence-mathematics-textbook-basic-6",
-    price: 70,
+    price: 70,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-basic-6.webp",
       alt: "Excellence Mathematics Textbook Basic 6 cover",
@@ -596,7 +629,9 @@ export const products: Product[] = [
     id: "DG0016",
     name: "Excellence Mathematics Textbook For JHS",
     slug: "excellence-mathematics-textbook-for-jhs",
-    price: 160,
+    price: 160,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/excellence-mathematics-textbook-jhs-1-3.webp",
       alt: "Excellence Mathematics textbook cover for JHS 1 to JHS 3 combined edition",
@@ -2091,7 +2126,9 @@ export const products: Product[] = [
     id: "DG-PQ-JHS-0002",
     name: "A+ Series Mathematics Past Questions for JHS",
     slug: "a-plus-series-mathematics-past-questions-for-jhs",
-    price: 65,
+    price: 65,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/A+-series-mathematics-past-questions-for-jhs.webp",
       alt: "A+ Series Mathematics Past Questions for JHS students in Ghana",
@@ -2128,7 +2165,9 @@ export const products: Product[] = [
     id: "DG-PQ-JHS-0003",
     name: "A+ English Past Questions for JHS",
     slug: "a-plus-english-past-questions-for-jhs",
-    price: 65,
+    price: 65,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-english-past-questions-for-jhs.webp",
       alt: "A+ English Past Questions for JHS students in Ghana",
@@ -2165,7 +2204,9 @@ export const products: Product[] = [
     id: "DG-PQ-JHS-0004",
     name: "A+ Series Science Past Questions for JHS",
     slug: "a-plus-series-science-past-questions-for-jhs",
-    price: 65,
+    price: 65,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-series-science-past-questions-for-jhs.webp",
       alt: "A+ Series Science Past Questions for JHS students in Ghana",
@@ -2202,7 +2243,9 @@ export const products: Product[] = [
     id: "DG-PQ-SHS-0002",
     name: "A+ Core Mathematics Past Question for SHS",
     slug: "a-plus-core-mathematics-past-question-for-shs",
-    price: 160,
+    price: 160,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-core-mathematics-past-question-for-shs.webp",
       alt: "A+ Core Mathematics Past Question for SHS students in Ghana",
@@ -2239,7 +2282,9 @@ export const products: Product[] = [
     id: "DG-PQ-SHS-0003",
     name: "A+ Series English Questions and Answers (SHS WASSCE Edition)",
     slug: "a-plus-series-english-questions-and-answers-shs-wassce-edition",
-    price: 160,
+    price: 160,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-series-english-questions-and-answers-shs-wassce-edition.webp",
       alt: "A+ Series English Questions and Answers for SHS WASSCE in Ghana",
@@ -2277,7 +2322,9 @@ export const products: Product[] = [
     id: "DG-PQ-SHS-0004",
     name: "A+ Integrated Science Past Question for SHS",
     slug: "a-plus-integrated-science-past-question-for-shs",
-    price: 160,
+    price: 160,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-integrated-science-past-question-for-shs.webp",
       alt: "A+ Integrated Science Past Question for SHS students in Ghana",
@@ -2315,7 +2362,9 @@ export const products: Product[] = [
     id: "DG-PQ-SHS-0005",
     name: "A+ Series Elective Mathematics Questions and Answers (SHS WASSCE Edition)",
     slug: "a-plus-series-elective-mathematics-questions-and-answers-shs-wassce-edition",
-    price: 160,
+    price: 160,    stockQty: 20,
+    lowStockThreshold: 3,
+
     image: {
       src: "/products/a+-series-elective-mathematics-questions-and-answers-shs-wassce-edition.webp",
       alt: "A+ Series Elective Mathematics Questions and Answers for SHS WASSCE in Ghana",
