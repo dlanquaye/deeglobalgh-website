@@ -59,22 +59,38 @@ function safeParse<T>(raw: string | null): T | null {
  * ✅ Backward compatibility (auto-fix older stored orders)
  */
 function normalizeOrder(o: any): OrderRecord {
-  const paymentMethod: OrderPaymentMethod =
+  const paymentMethod =
     o?.paymentMethod === "PAYSTACK" ? "PAYSTACK" : "PAY_ON_DELIVERY";
 
-  const orderStatus: OrderStatus = (o?.orderStatus as OrderStatus) || "PENDING";
+  let paymentStatus = o?.paymentStatus as any;
+  let orderStatus = o?.orderStatus as any;
 
-  const paymentStatus: PaymentStatus =
-    (o?.paymentStatus as PaymentStatus) ||
-    (paymentMethod === "PAYSTACK" ? "UNKNOWN" : "UNPAID");
+  // ✅ AUTO-FIX legacy Paystack success orders
+  if (
+    paymentMethod === "PAYSTACK" &&
+    o?.paystackStatus === "success"
+  ) {
+    paymentStatus = "PAID";
+    orderStatus = orderStatus || "PAID";
+  }
+
+  if (!paymentStatus) {
+    paymentStatus =
+      paymentMethod === "PAYSTACK" ? "UNKNOWN" : "UNPAID";
+  }
+
+  if (!orderStatus) {
+    orderStatus = "PENDING";
+  }
 
   return {
     ...o,
     paymentMethod,
-    orderStatus,
     paymentStatus,
+    orderStatus,
   } as OrderRecord;
 }
+
 
 /**
  * ✅ STEP 1: safer order ID generator (almost impossible to collide)
