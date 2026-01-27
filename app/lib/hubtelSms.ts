@@ -15,6 +15,11 @@ export async function sendOrderSMS({
 
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
+  console.log("📨 HUBTEL SMS ATTEMPT");
+  console.log("To:", phone);
+  console.log("From:", senderId);
+  console.log("Message:", message);
+
   const res = await fetch(HUBTEL_BASE_URL, {
     method: "POST",
     headers: {
@@ -28,10 +33,14 @@ export async function sendOrderSMS({
     }),
   });
 
+  const text = await res.text();
+
+  console.log("📩 HUBTEL RESPONSE STATUS:", res.status);
+  console.log("📩 HUBTEL RESPONSE BODY:", text);
+
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Hubtel SMS failed: ${error}`);
+    throw new Error(`Hubtel SMS failed: ${text}`);
   }
 
-  return res.json();
+  return text;
 }
