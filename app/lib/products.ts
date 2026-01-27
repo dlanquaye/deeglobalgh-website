@@ -7,20 +7,13 @@ export type ProductImage = {
 };
 
 export type ProductSEO = {
-  // Yoast-style SEO fields
   focusKeyphrase?: string;
   metaTitle?: string;
   metaDescription?: string;
-
-  // Social sharing
   socialTitle?: string;
   socialDescription?: string;
-
-  // Website content
   shortSummary?: string;
   fullDescription?: string;
-
-  // Extra ecommerce info
   tags?: string[];
   brand?: string;
 };
@@ -34,21 +27,22 @@ export type Product = {
   categorySlug: string;
   levelSlugs: string[];
 
-  // ✅ Inventory (optional for safe rollout)
-  stockQty?: number; // how many items you have
-  lowStockThreshold?: number; // show warning when stock is low
+  // ✅ Inventory (safe defaults handled in UI)
+  stockQty?: number;
+  lowStockThreshold?: number;
 
   seo?: ProductSEO;
 };
 
-
 export const products: Product[] = [
+
+
   
   {
     id: "DG0001",
     name: "Wise Ant Chemistry – SHS 1–3 Combined Edition",
     slug: "wise-ant-chemistry-shs-1-3-combined-edition",
-    price: 215,    stockQty: 20,
+    price: 215,    stockQty: 0,
     lowStockThreshold: 3,
 
     image: {

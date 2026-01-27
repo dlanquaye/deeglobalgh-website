@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { reduceStock } from "@/app/lib/inventory";
+import { initInventory } from "@/app/lib/inventory";
+
+
 import Link from "next/link";
 import {
   loadOrders,
@@ -35,16 +39,21 @@ export default function AdminOrdersPage() {
   const reload = () => setOrders(loadOrders());
 
   useEffect(() => {
-    const session =
-      typeof window !== "undefined"
-        ? localStorage.getItem("dg_orders_admin_session_v1")
-        : null;
+  const session =
+    typeof window !== "undefined"
+      ? localStorage.getItem("dg_orders_admin_session_v1")
+      : null;
 
-    if (session === "unlocked") {
-      setAuthorized(true);
+  if (session === "unlocked") {
+    setAuthorized(true);
+
+    // ✅ Initialize inventory once (safe)
+    initInventory().then(() => {
       reload();
-    }
-  }, []);
+    });
+  }
+}, []);
+
 
   // ---------- DASHBOARD METRICS ----------
   const metrics = useMemo(() => {
@@ -294,12 +303,26 @@ export default function AdminOrdersPage() {
                       {nextStatuses(order.orderStatus).map((next) => (
                         <button
                           key={next}
-                          onClick={() => {
-                            updateOrderById(order.id, {
-                              orderStatus: next,
-                            });
-                            reload();
-                          }}
+                         onClick={() => {
+  // ✅ Deduct stock once (safe)
+  if (!order.stockDeducted) {
+    order.items.forEach((item: any) => {
+      reduceStock(item.id, item.qty);
+    });
+
+    updateOrderById(order.id, {
+      orderStatus: next,
+      stockDeducted: true,
+    });
+  } else {
+    updateOrderById(order.id, {
+      orderStatus: next,
+    });
+  }
+
+  reload();
+}}
+
                           className="rounded-xl border px-4 py-2 text-sm font-bold hover:bg-gray-50"
                         >
                           Mark as {next}

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { Product } from "@/app/lib/products";
 
 export type CartItem = {
@@ -16,9 +22,9 @@ type CartContextValue = {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product, qty?: number) => void;
+  addToCart: (product: Product, qty?: number) => boolean;
   removeFromCart: (id: string) => void;
-  increaseQty: (id: string) => void;
+  increaseQty: (id: string) => boolean;
   decreaseQty: (id: string) => void;
   clearCart: () => void;
 };
@@ -38,23 +44,54 @@ function safeParse(json: string | null) {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  // ✅ Load from localStorage (once)
+  /* -------------------------------------------
+     LOAD FROM LOCAL STORAGE
+     ------------------------------------------- */
   useEffect(() => {
-    const raw = safeParse(typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null);
-    if (Array.isArray(raw)) setItems(raw);
+    if (typeof window === "undefined") return;
+
+    const raw = safeParse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(raw)) {
+      setItems(raw);
+    }
   }, []);
 
-  // ✅ Save to localStorage
+  /* -------------------------------------------
+     SAVE TO LOCAL STORAGE
+     ------------------------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (product: Product, qty: number = 1) => {
+  /* -------------------------------------------
+     ADD TO CART (STOCK ENFORCED)
+     ------------------------------------------- */
+  const addToCart = (product: Product, qty: number = 1): boolean => {
+    const stockQty = product.stockQty ?? 0;
+
+    if (stockQty <= 0) {
+      return false;
+    }
+
+    let added = false;
+
     setItems((prev) => {
-      const existing = prev.find((x) => x.id === product.id);
+      const existing = prev.find((item) => item.id === product.id);
+      const existingQty = existing?.qty ?? 0;
+
+      if (existingQty + qty > stockQty) {
+        return prev;
+      }
+
+      added = true;
+
       if (existing) {
-        return prev.map((x) => (x.id === product.id ? { ...x, qty: x.qty + qty } : x));
+        return prev.map((item) =>
+          item.id === product.id
+            ? { ...item, qty: item.qty + qty }
+            : item
+        );
       }
 
       return [
@@ -69,28 +106,54 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         },
       ];
     });
+
+    return added;
   };
 
-  const removeFromCart = (id: string) => {
-    setItems((prev) => prev.filter((x) => x.id !== id));
-  };
-
-  const increaseQty = (id: string) => {
-    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, qty: x.qty + 1 } : x)));
+  /* -------------------------------------------
+     INCREASE / DECREASE
+     ------------------------------------------- */
+  const increaseQty = (id: string): boolean => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, qty: item.qty + 1 } : item
+      )
+    );
+    return true;
   };
 
   const decreaseQty = (id: string) => {
     setItems((prev) =>
       prev
-        .map((x) => (x.id === id ? { ...x, qty: x.qty - 1 } : x))
-        .filter((x) => x.qty > 0)
+        .map((item) =>
+          item.id === id ? { ...item, qty: item.qty - 1 } : item
+        )
+        .filter((item) => item.qty > 0)
     );
+  };
+
+  const removeFromCart = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const clearCart = () => setItems([]);
 
-  const totalItems = useMemo(() => items.reduce((sum, x) => sum + x.qty, 0), [items]);
-  const subtotal = useMemo(() => items.reduce((sum, x) => sum + x.price * x.qty, 0), [items]);
+  /* -------------------------------------------
+     DERIVED VALUES
+     ------------------------------------------- */
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.qty, 0),
+    [items]
+  );
+
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.price * item.qty,
+        0
+      ),
+    [items]
+  );
 
   const value: CartContextValue = {
     items,
@@ -103,11 +166,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     clearCart,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used inside CartProvider");
+  if (!ctx) {
+    throw new Error("useCart must be used inside CartProvider");
+  }
   return ctx;
 }

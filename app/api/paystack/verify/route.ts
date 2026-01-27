@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 export async function GET(req: Request) {
   try {
@@ -36,6 +37,35 @@ export async function GET(req: Request) {
         { error: "Paystack verify error", details: data },
         { status: 500 }
       );
+    }
+
+    /* ===============================
+       PAYMENT SUCCESS → SEND SMS
+       =============================== */
+    if (data?.data?.status === "success") {
+      const amountGHS = data.data.amount / 100;
+
+      const phone =
+        data.data.customer?.phone ||
+        data.data.metadata?.phone ||
+        "";
+
+      if (phone) {
+        try {
+          await sendOrderSMS({
+            phone,
+            message: `DeeglobalGh: Payment confirmed ✅
+Order: ${reference}
+Amount: GHS ${amountGHS}
+
+Thank you for shopping with us.
+WhatsApp: 0246 011 773`,
+          });
+        } catch (smsError) {
+          console.error("SMS sending failed:", smsError);
+          // Do NOT block payment success because SMS failed
+        }
+      }
     }
 
     return NextResponse.json(data);

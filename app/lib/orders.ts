@@ -35,6 +35,10 @@ export type OrderRecord = {
   subtotal: number;
 
   paymentMethod: OrderPaymentMethod;
+  
+  // Inventory
+stockDeducted?: boolean;
+
 
   // ✅ Operations tracking
   orderStatus: OrderStatus;
@@ -154,4 +158,5 @@ export function deleteOrderById(orderId: string) {
 export function clearOrders() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ORDERS_KEY);
+  
 }
