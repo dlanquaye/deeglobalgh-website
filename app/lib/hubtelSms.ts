@@ -16,11 +16,7 @@ export async function sendOrderSMS({
 
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-  console.log("📨 HUBTEL SMS ATTEMPT");
-  console.log("To:", phone);
-  console.log("From:", senderId);
-  console.log("Message:", message);
-
+  
   const res = await fetch(HUBTEL_BASE_URL, {
     method: "POST",
     headers: {
