@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
-const HUBTEL_BASE_URL = "https://smsc.hubtel.com/v1/messages/send";
+const HUBTEL_BASE_URL = "https://sms.hubtel.com/v1/messages/send";
+
 
 export async function sendOrderSMS({
   phone,
