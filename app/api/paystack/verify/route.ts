@@ -1,6 +1,13 @@
 export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
+
+/**
+ * In-memory guard to prevent duplicate SMS per Paystack reference.
+ * Safe for now. Will be replaced by DB flag (smsSent) later.
+ */
+const sentSmsRefs = new Set<string>();
 
 export async function GET(req: Request) {
   try {
@@ -17,9 +24,15 @@ export async function GET(req: Request) {
     const reference = url.searchParams.get("reference");
 
     if (!reference) {
-      return NextResponse.json({ error: "Missing reference" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing reference" },
+        { status: 400 }
+      );
     }
 
+    /* ===============================
+       VERIFY PAYMENT WITH PAYSTACK
+       =============================== */
     const res = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
@@ -41,15 +54,18 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       PAYMENT SUCCESS → SEND SMS
+       STOP IF PAYMENT IS NOT SUCCESS
        =============================== */
-    if (data?.data?.status === "success") {
-      const amountGHS = data.data.amount / 100;
+    if (data?.data?.status !== "success") {
+      return NextResponse.json(data);
+    }
 
-      const phone =
-        data.data.customer?.phone ||
-        data.data.metadata?.phone ||
-        "";
+    /* ===============================
+       SEND SMS (ONCE PER REFERENCE)
+       =============================== */
+    if (!sentSmsRefs.has(reference)) {
+      const amountGHS = data.data.amount / 100;
+      const phone = data.data.metadata?.phone || "";
 
       if (phone) {
         try {
@@ -62,9 +78,12 @@ Amount: GHS ${amountGHS}
 Thank you for shopping with us.
 WhatsApp: 0246 011 773`,
           });
-        } catch (smsError) {
-          console.error("SMS sending failed:", smsError);
-          // Do NOT block payment success because SMS failed
+
+          // 🔐 Mark SMS as sent (idempotency)
+          sentSmsRefs.add(reference);
+        } catch {
+          // ❌ Never block payment because SMS failed
+          // Silent fail by design
         }
       }
     }
