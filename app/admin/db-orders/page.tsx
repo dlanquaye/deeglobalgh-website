@@ -64,7 +64,8 @@ export default function AdminDbOrdersPage() {
                   </td>
                   <td className="px-4 py-3">{o.phone}</td>
                   <td className="px-4 py-3 font-bold">
-                    {(o.amount / 100).toFixed(2)}
+                    {o.amount.toFixed(2)}
+
                   </td>
                   <td className="px-4 py-3">
                     <span
