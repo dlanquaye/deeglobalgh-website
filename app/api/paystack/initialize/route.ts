@@ -52,7 +52,8 @@ export async function POST(req: Request) {
       cache: "no-store",
       body: JSON.stringify({
         email,
-        amount: Number(amount) * 100,
+        amount: Number(amount) * 100, // Paystack expects pesewas
+
         currency: "GHS",
         callback_url: `${siteUrl}/paystack/callback`,
         metadata: {
