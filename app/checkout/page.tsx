@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { addOrder, generateOrderId } from "@/app/lib/orders";
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-GH", {
@@ -12,6 +11,7 @@ function formatMoney(amount: number) {
 }
 
 const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
+const SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
 
 type CustomerProfile = {
   fullName: string;
@@ -19,7 +19,7 @@ type CustomerProfile = {
   phone: string;
   area: string;
   location: string;
-  notes: string;
+  notes?: string;
 };
 
 function safeParse<T>(raw: string | null): T | null {
@@ -85,44 +85,58 @@ export default function CheckoutPage() {
     if (!canCheckout) return;
 
     saveCustomerProfile();
-
-    const orderId = generateOrderId();
-    addOrder({
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      customer: { fullName, phone, area, location },
-      items,
-      subtotal,
-      paymentMethod: "PAYSTACK",
-      orderStatus: "PENDING",
-      paymentStatus: "UNKNOWN",
-    });
+    setPayError(null);
+    setPayLoading(true);
 
     try {
-      setPayError(null);
-      setPayLoading(true);
+      /* ===============================
+         1. CREATE ORDER ON SERVER
+         =============================== */
+      const orderId = `DG-${Date.now()}`;
 
-      const res = await fetch("/api/paystack/initialize", {
+      const snapshot = {
+  orderId,
+  customer: { fullName, email, phone, area, location },
+  amount: subtotal, // ✅ REQUIRED BY API
+};
+
+
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+
+      const createRes = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(snapshot),
+      });
+
+      if (!createRes.ok) {
+        throw new Error("Failed to create order");
+      }
+
+      /* ===============================
+         2. START PAYSTACK PAYMENT
+         =============================== */
+      const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           phone,
           amount: subtotal,
+          orderId,
         }),
       });
 
-      const data = await res.json();
-      const url = data?.data?.authorization_url;
+      const payData = await payRes.json();
+      const url = payData?.data?.authorization_url;
 
-      if (!res.ok || !url) {
+      if (!payRes.ok || !url) {
         throw new Error("Failed to start payment");
       }
 
       window.location.href = url;
     } catch (err: any) {
       setPayError(err?.message || "Payment failed");
-    } finally {
       setPayLoading(false);
     }
   };
@@ -132,17 +146,7 @@ export default function CheckoutPage() {
 
     saveCustomerProfile();
 
-    const orderId = generateOrderId();
-    addOrder({
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      customer: { fullName, phone, area, location },
-      items,
-      subtotal,
-      paymentMethod: "PAY_ON_DELIVERY",
-      orderStatus: "PENDING",
-      paymentStatus: "UNPAID",
-    });
+    const orderId = `DG-${Date.now()}`;
 
     const message = `Hello DeeglobalGh,
 
@@ -166,130 +170,81 @@ Location / Landmark: ${location}
 Please confirm availability and delivery.
 Thank you.`;
 
-    const phoneNumber = "0246011773";
     window.open(
-      `https://wa.me/233${phoneNumber.substring(
-        1
-      )}?text=${encodeURIComponent(message)}`,
+      `https://wa.me/233246011773?text=${encodeURIComponent(message)}`,
       "_blank"
     );
   };
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
-
       <h1 className="text-3xl font-extrabold text-[color:var(--brand-blue)]">
         Checkout
       </h1>
 
       {/* Customer Details */}
       <section className="mt-8 rounded-2xl border bg-white p-10">
-
-        <h2 className="text-xl font-extrabold">
-          Customer Details
-        </h2>
-        <p className="mt-1 text-sm text-[color:var(--text-muted)]">
-          Enter your delivery information.
-        </p>
+        <h2 className="text-xl font-extrabold">Customer Details</h2>
 
         <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 max-w-3xl mx-auto">
+          <div className="sm:col-span-2">
+            <input
+              className="input-brand h-14 px-4 text-base w-full text-center"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
 
+          <div className="sm:col-span-2">
+            <input
+              type="email"
+              className="input-brand h-14 px-4 text-base w-full text-center"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
+          <input
+            className="input-brand h-14 px-4 text-base w-full text-center"
+            placeholder="Phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
 
-         <div className="sm:col-span-2 text-center">
-  <label className="mb-1 block text-sm font-semibold">
-    Full Name
-  </label>
-  <input
-    className="input-brand h-14 px-4 text-base w-full text-center"
-    value={fullName}
-    onChange={(e) => setFullName(e.target.value)}
-  />
-</div>
-
-
-          <div className="sm:col-span-2 text-center">
-  <label className="mb-1 block text-sm font-semibold">
-    Email Address
-  </label>
-  <input
-    type="email"
-    className="input-brand h-14 px-4 text-base w-full text-center"
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-  />
-</div>
-
-
-
-          <div className="text-center">
-  <label className="mb-1 block text-sm font-semibold">
-    Phone Number
-  </label>
-  <input
-    className="input-brand h-14 px-4 text-base w-full text-center"
-    value={phone}
-    onChange={(e) => setPhone(e.target.value)}
-  />
-</div>
-
-
-
-          <div className="text-center">
-  <label className="mb-1 block text-sm font-semibold">
-    Location / Landmark
-  </label>
-  <input
-    className="input-brand h-14 px-4 text-base w-full text-center"
-    value={location}
-    onChange={(e) => setLocation(e.target.value)}
-  />
-</div>
-
+          <input
+            className="input-brand h-14 px-4 text-base w-full text-center"
+            placeholder="Location / Landmark"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
         </div>
       </section>
 
       {/* Payment Options */}
       <section className="mt-8 rounded-2xl border bg-white p-8 space-y-6">
-        {/* Paystack */}
-        <div>
-          <button
-            onClick={payNowWithPaystack}
-            disabled={!canCheckout || payLoading}
-            className="w-full rounded-2xl bg-yellow-500 py-4 text-lg font-extrabold text-blue-950 hover:bg-yellow-400"
-          >
-            {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
-          </button>
+        <button
+          onClick={payNowWithPaystack}
+          disabled={!canCheckout || payLoading}
+          className="w-full rounded-2xl bg-yellow-500 py-4 text-lg font-extrabold text-blue-950"
+        >
+          {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
+        </button>
 
-          <p className="mt-2 text-center text-sm font-semibold text-green-700">
-            Recommended option • Guaranteed order
-          </p>
-
-          {payError && (
-            <p className="mt-2 text-sm font-semibold text-red-600 text-center">
-              {payError}
-            </p>
-          )}
-        </div>
+        {payError && (
+          <p className="text-sm font-semibold text-red-600">{payError}</p>
+        )}
 
         <hr />
 
-        {/* WhatsApp */}
-        <div>
-          <button
-            onClick={orderViaWhatsApp}
-            disabled={!canCheckout}
-            className="w-full rounded-2xl border-2 border-green-700 py-4 text-lg font-extrabold text-green-800 hover:bg-green-50"
-          >
-            Order via WhatsApp (Pay on Delivery)
-          </button>
-
-          <p className="mt-2 text-center text-sm text-[color:var(--text-muted)]">
-  Pay on delivery is available only within Kasoa and nearby areas.
-  For other locations, secure payment via Paystack is required.
-</p>
-
-        </div>
+        <button
+          onClick={orderViaWhatsApp}
+          disabled={!canCheckout}
+          className="w-full rounded-2xl border-2 border-green-700 py-4 text-lg font-extrabold text-green-800"
+        >
+          Order via WhatsApp (Pay on Delivery)
+        </button>
 
         <button
           onClick={clearCart}

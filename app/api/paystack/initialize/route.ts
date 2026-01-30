@@ -32,11 +32,11 @@ export async function POST(req: Request) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    const { email, amount, phone: rawPhone } = body;
+    const { email, amount, phone: rawPhone, orderId } = body;
 
-    if (!email || !amount || !rawPhone) {
+    if (!email || !amount || !rawPhone || !orderId) {
       return NextResponse.json(
-        { error: "Email, amount, and phone are required" },
+        { error: "Email, amount, phone, and orderId are required" },
         { status: 400 }
       );
     }
@@ -56,6 +56,7 @@ export async function POST(req: Request) {
         currency: "GHS",
         callback_url: `${siteUrl}/paystack/callback`,
         metadata: {
+          orderId,
           phone,
         },
       }),

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { updateOrderById } from "@/app/lib/orders";
 
 const SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
 
@@ -22,18 +21,8 @@ export default function PaystackSuccessClient({
       if (!raw) return;
 
       const snapshot = JSON.parse(raw);
-      const orderId = snapshot?.orderId;
-      if (!orderId) return;
 
-      // ✅ Ensure order is marked PAID (idempotent)
-      updateOrderById(orderId, {
-        paymentStatus: "PAID",
-        orderStatus: "PAID",
-        paystackReference: reference,
-        paystackStatus: "success",
-      });
-
-      // ✅ Build WhatsApp confirmation message
+      // ✅ Build WhatsApp confirmation message (NO database update here)
       const lines: string[] = [];
 
       lines.push("Hello DeeglobalGh, I have completed payment.");
@@ -72,8 +61,11 @@ export default function PaystackSuccessClient({
       )}`;
 
       setWhatsAppUrl(url);
+
+      // ✅ Clear snapshot after success to avoid duplicates
+      localStorage.removeItem(SNAPSHOT_KEY);
     } catch {
-      // silent fail — payment already verified
+      // Do nothing – payment already handled on server
     }
   }, [reference, status]);
 

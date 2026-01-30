@@ -14,81 +14,24 @@ type DbOrder = {
 };
 
 export default function AdminDbOrdersPage() {
-  const [pin, setPin] = useState("");
-  const [authorized, setAuthorized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<DbOrder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const correctPin = process.env.NEXT_PUBLIC_ADMIN_ORDERS_PIN;
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const res = await fetch("/api/admin/db-orders");
+        const data = await res.json();
+        setOrders(data.orders || []);
+      } catch {
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadOrders = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/db-orders");
-      const data = await res.json();
-      setOrders(data.orders || []);
-    } catch {
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!correctPin) {
-      setError("Admin PIN not configured.");
-      return;
-    }
-
-    if (pin === correctPin) {
-      setAuthorized(true);
-      setError(null);
-      loadOrders();
-    } else {
-      setError("Incorrect PIN.");
-    }
-  };
-
-  if (!authorized) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="text-2xl font-extrabold mb-4">
-          Database Orders (Admin)
-        </h1>
-
-        <p className="mb-6 text-sm text-gray-600">
-          Enter admin PIN to view database orders.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            inputMode="numeric"
-            className="w-full rounded-xl border px-4 py-3"
-            placeholder="Admin PIN"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-          />
-
-          {error && (
-            <div className="text-sm font-semibold text-red-600">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-black px-4 py-3 font-bold text-white"
-          >
-            Enter Admin
-          </button>
-        </form>
-      </main>
-    );
-  }
+    loadOrders();
+  }, []);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
