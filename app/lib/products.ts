@@ -42,7 +42,7 @@ export const products: Product[] = [
     id: "DG0001",
     name: "Wise Ant Chemistry – SHS 1–3 Combined Edition",
     slug: "wise-ant-chemistry-shs-1-3-combined-edition",
-    price: 215,    stockQty: 0,
+    price: 215,    stockQty: 10,
     lowStockThreshold: 3,
 
     image: {
@@ -666,7 +666,7 @@ export const products: Product[] = [
     "id": "DG0017",
     "slug": "golden-creative-arts-textbook-for-kg-1",
     "name": "Golden Creative Arts Textbook for KG 1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -698,7 +698,7 @@ export const products: Product[] = [
     "id": "DG0018",
     "slug": "golden-creative-arts-textbook-for-kg-2",
     "name": "Golden Creative Arts Textbook for KG 2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -730,7 +730,7 @@ export const products: Product[] = [
     "id": "DG0019",
     "slug": "golden-english-textbook-for-basic-1",
     "name": "Golden English Textbook for Basic 1",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-1"
@@ -762,7 +762,7 @@ export const products: Product[] = [
     "id": "DG0020",
     "slug": "golden-english-textbook-for-basic-2",
     "name": "Golden English Textbook for Basic 2",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-2"
@@ -794,7 +794,7 @@ export const products: Product[] = [
     "id": "DG0021",
     "slug": "golden-english-textbook-for-basic-3",
     "name": "Golden English Textbook for Basic 3",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-3"
@@ -826,7 +826,7 @@ export const products: Product[] = [
     "id": "DG0022",
     "slug": "golden-english-textbook-for-basic-4",
     "name": "Golden English Textbook for Basic 4",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-4"
@@ -858,7 +858,7 @@ export const products: Product[] = [
     "id": "DG0023",
     "slug": "golden-english-textbook-for-basic-5",
     "name": "Golden English Textbook for Basic 5",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-5"
@@ -890,7 +890,7 @@ export const products: Product[] = [
     "id": "DG0024",
     "slug": "golden-english-textbook-for-basic-6",
     "name": "Golden English Textbook for Basic 6",
-    "price": 75,
+    "price": 75,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-6"
@@ -922,7 +922,7 @@ export const products: Product[] = [
     "id": "DG0025",
     "slug": "golden-english-textbook-for-jhs",
     "name": "Golden English Textbook for JHS",
-    "price": 160,
+    "price": 160,    stockQty: 20,
     "categorySlug": "jhs-combined-edition-textbooks",
     "levelSlugs": [
       "jhs-1",
@@ -958,7 +958,7 @@ export const products: Product[] = [
     "id": "DG0026",
     "slug": "golden-english-textbook-for-kg-1",
     "name": "Golden English Textbook for KG 1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -990,7 +990,7 @@ export const products: Product[] = [
     "id": "DG0027",
     "slug": "golden-english-textbook-for-kg-2",
     "name": "Golden English Textbook for KG 2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1022,7 +1022,7 @@ export const products: Product[] = [
     "id": "DG0028",
     "slug": "golden-english-textbook-for-nursery-1",
     "name": "Golden English Textbook for Nursery 1",
-    "price": 50,
+    "price": 50,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1054,7 +1054,7 @@ export const products: Product[] = [
     "id": "DG0029",
     "slug": "golden-english-textbook-for-nursery-2",
     "name": "Golden English Textbook for Nursery 2",
-    "price": 50,
+    "price": 50,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1085,25 +1085,25 @@ export const products: Product[] = [
   {
     "id": "DG0030",
     "slug": "golden-hiatory-textbook-for-basic-1",
-    "name": "Golden Hiatory  Textbook for Basic 1",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 1",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-1"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-1.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 1 - Basic 1 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 1",
+      "alt": "Golden History  Textbook for Basic 1 - Basic 1 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 1",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 1 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 1 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 1 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 1 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 1 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 1 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 1 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 1 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 1 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 1 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 1 golden textbooks basic 1",
       "fullDescription": "",
       "tags": [
@@ -1117,25 +1117,25 @@ export const products: Product[] = [
   {
     "id": "DG0031",
     "slug": "golden-hiatory-textbook-for-basic-2",
-    "name": "Golden Hiatory  Textbook for Basic 2",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 2",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-2"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-2.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 2 - Basic 2 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 2",
+      "alt": "Golden History  Textbook for Basic 2 - Basic 2 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 2",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 2 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 2 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 2 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 2 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 2 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 2 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 2 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 2 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 2 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 2 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 2 golden textbooks basic 2",
       "fullDescription": "",
       "tags": [
@@ -1149,25 +1149,25 @@ export const products: Product[] = [
   {
     "id": "DG0032",
     "slug": "golden-hiatory-textbook-for-basic-3",
-    "name": "Golden Hiatory  Textbook for Basic 3",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 3",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-3"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-3.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 3 - Basic 3 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 3",
+      "alt": "Golden History  Textbook for Basic 3 - Basic 3 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 3",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 3 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 3 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 3 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 3 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 3 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 3 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 3 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 3 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 3 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 3 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 3 golden textbooks basic 3",
       "fullDescription": "",
       "tags": [
@@ -1181,25 +1181,25 @@ export const products: Product[] = [
   {
     "id": "DG0033",
     "slug": "golden-hiatory-textbook-for-basic-4",
-    "name": "Golden Hiatory  Textbook for Basic 4",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 4",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-4"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-4.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 4 - Basic 4 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 4",
+      "alt": "Golden History  Textbook for Basic 4 - Basic 4 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 4",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 4 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 4 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 4 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 4 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 4 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 4 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 4 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 4 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 4 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 4 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 4 golden textbooks basic 4",
       "fullDescription": "",
       "tags": [
@@ -1213,25 +1213,25 @@ export const products: Product[] = [
   {
     "id": "DG0034",
     "slug": "golden-hiatory-textbook-for-basic-5",
-    "name": "Golden Hiatory  Textbook for Basic 5",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 5",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-5"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-5.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 5 - Basic 5 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 5",
+      "alt": "Golden History  Textbook for Basic 5 - Basic 5 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 5",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 5 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 5 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 5 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 5 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 5 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 5 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 5 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 5 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 5 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 5 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 5 golden textbooks basic 5",
       "fullDescription": "",
       "tags": [
@@ -1245,25 +1245,25 @@ export const products: Product[] = [
   {
     "id": "DG0035",
     "slug": "golden-hiatory-textbook-for-basic-6",
-    "name": "Golden Hiatory  Textbook for Basic 6",
-    "price": 65,
+    "name": "Golden History  Textbook for Basic 6",
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-6"
     ],
     "image": {
       "src": "/products/golden-history-texbook-basic-6.webp",
-      "alt": "Golden Hiatory  Textbook for Basic 6 - Basic 6 | DeeGlobalGH",
-      "title": "Golden Hiatory  Textbook for Basic 6",
+      "alt": "Golden History  Textbook for Basic 6 - Basic 6 | DeeGlobalGH",
+      "title": "Golden History  Textbook for Basic 6",
       "caption": "",
       "description": ""
     },
     "seo": {
-      "focusKeyphrase": "Golden Hiatory  Textbook for Basic 6 in Ghana",
-      "metaTitle": "Golden Hiatory  Textbook for Basic 6 | DeeglobalGh",
-      "metaDescription": "Buy Golden Hiatory  Textbook for Basic 6 in Ghana from DeeglobalGh. Available for delivery.",
-      "socialTitle": "Golden Hiatory  Textbook for Basic 6 | DeeglobalGh",
-      "socialDescription": "Order Golden Hiatory  Textbook for Basic 6 online for delivery in Kasoa and nearby areas.",
+      "focusKeyphrase": "Golden History  Textbook for Basic 6 in Ghana",
+      "metaTitle": "Golden History  Textbook for Basic 6 | DeeglobalGh",
+      "metaDescription": "Buy Golden History  Textbook for Basic 6 in Ghana from DeeglobalGh. Available for delivery.",
+      "socialTitle": "Golden History  Textbook for Basic 6 | DeeglobalGh",
+      "socialDescription": "Order Golden History  Textbook for Basic 6 online for delivery in Kasoa and nearby areas.",
       "shortSummary": "golden hiatory textbook for basic 6 golden textbooks basic 6",
       "fullDescription": "",
       "tags": [
@@ -1278,7 +1278,7 @@ export const products: Product[] = [
     "id": "DG0036",
     "slug": "golden-mathematics-textbook-for-basic-1",
     "name": "Golden Mathematics  Textbook for Basic 1",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-1"
@@ -1310,7 +1310,7 @@ export const products: Product[] = [
     "id": "DG0037",
     "slug": "golden-mathematics-textbook-for-basic-2",
     "name": "Golden Mathematics  Textbook for Basic 2",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-2"
@@ -1342,7 +1342,7 @@ export const products: Product[] = [
     "id": "DG0038",
     "slug": "golden-mathematics-textbook-for-basic-3",
     "name": "Golden Mathematics  Textbook for Basic 3",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-3"
@@ -1374,7 +1374,7 @@ export const products: Product[] = [
     "id": "DG0039",
     "slug": "golden-mathematics-textbook-for-basic-4",
     "name": "Golden Mathematics  Textbook for Basic 4",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-4"
@@ -1406,7 +1406,7 @@ export const products: Product[] = [
     "id": "DG0040",
     "slug": "golden-mathematics-textbook-for-basic-5",
     "name": "Golden Mathematics  Textbook for Basic 5",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-5"
@@ -1438,7 +1438,7 @@ export const products: Product[] = [
     "id": "DG0041",
     "slug": "golden-mathematics-textbook-for-basic-6",
     "name": "Golden Mathematics  Textbook for Basic 6",
-    "price": 70,
+    "price": 70,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-6"
@@ -1470,7 +1470,7 @@ export const products: Product[] = [
     "id": "DG0042",
     "slug": "golden-mathematics-textbook-for-jhs",
     "name": "Golden Mathematics  Textbook for JHS",
-    "price": 160,
+    "price": 160,    stockQty: 20,
     "categorySlug": "jhs-combined-edition-textbooks",
     "levelSlugs": [
       "jhs-1",
@@ -1506,7 +1506,7 @@ export const products: Product[] = [
     "id": "DG0043",
     "slug": "golden-mathematics-textbook-for-kg-1",
     "name": "Golden Mathematics Textbook for KG 1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1538,7 +1538,7 @@ export const products: Product[] = [
     "id": "DG0044",
     "slug": "golden-mathematics-textbook-for-kg-2",
     "name": "Golden Mathematics Textbook for KG 2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1570,7 +1570,7 @@ export const products: Product[] = [
     "id": "DG0045",
     "slug": "golden-mathematics-textbook-for-nursery-1",
     "name": "Golden Mathematics Textbook for Nursery 1",
-    "price": 50,
+    "price": 50,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1602,7 +1602,7 @@ export const products: Product[] = [
     "id": "DG0046",
     "slug": "golden-mathematics-textbook-for-nursery-2",
     "name": "Golden Mathematics Textbook for Nursery 2",
-    "price": 50,
+    "price": 50,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1634,7 +1634,7 @@ export const products: Product[] = [
     "id": "DG0047",
     "slug": "golden-owop-textbook-for-kg1",
     "name": "Golden OWOP Textbook for KG1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1666,7 +1666,7 @@ export const products: Product[] = [
     "id": "DG0048",
     "slug": "golden-owop-textbook-for-kg2",
     "name": "Golden OWOP Textbook for KG2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "pre-school"
@@ -1698,7 +1698,7 @@ export const products: Product[] = [
     "id": "DG0049",
     "slug": "golden-rme-textbook-for-basic-1",
     "name": "Golden RME  Textbook for Basic 1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-1"
@@ -1730,7 +1730,7 @@ export const products: Product[] = [
     "id": "DG0050",
     "slug": "golden-rme-textbook-for-basic-2",
     "name": "Golden RME  Textbook for Basic 2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-2"
@@ -1762,7 +1762,7 @@ export const products: Product[] = [
     "id": "DG0051",
     "slug": "golden-rme-textbook-for-basic-3",
     "name": "Golden RME  Textbook for Basic 3",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-3"
@@ -1794,7 +1794,7 @@ export const products: Product[] = [
     "id": "DG0052",
     "slug": "golden-rme-textbook-for-basic-4",
     "name": "Golden RME  Textbook for Basic 4",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-4"
@@ -1826,7 +1826,7 @@ export const products: Product[] = [
     "id": "DG0053",
     "slug": "golden-rme-textbook-for-basic-5",
     "name": "Golden RME  Textbook for Basic 5",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-5"
@@ -1858,7 +1858,7 @@ export const products: Product[] = [
     "id": "DG0054",
     "slug": "golden-rme-textbook-for-basic-6",
     "name": "Golden RME  Textbook for Basic 6",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-6"
@@ -1890,7 +1890,7 @@ export const products: Product[] = [
     "id": "DG0055",
     "slug": "golden-science-textbook-for-basic-1",
     "name": "Golden Science  Textbook for Basic 1",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-1"
@@ -1922,7 +1922,7 @@ export const products: Product[] = [
     "id": "DG0056",
     "slug": "golden-science-textbook-for-basic-2",
     "name": "Golden Science  Textbook for Basic 2",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-2"
@@ -1954,7 +1954,7 @@ export const products: Product[] = [
     "id": "DG0057",
     "slug": "golden-science-textbook-for-basic-3",
     "name": "Golden Science  Textbook for Basic 3",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-3"
@@ -1986,7 +1986,7 @@ export const products: Product[] = [
     "id": "DG0058",
     "slug": "golden-science-textbook-for-basic-4",
     "name": "Golden Science  Textbook for Basic 4",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-4"
@@ -2018,7 +2018,7 @@ export const products: Product[] = [
     "id": "DG0059",
     "slug": "golden-science-textbook-for-basic-5",
     "name": "Golden Science  Textbook for Basic 5",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-5"
@@ -2050,7 +2050,7 @@ export const products: Product[] = [
     "id": "DG0060",
     "slug": "golden-science-textbook-for-basic-6",
     "name": "Golden Science  Textbook for Basic 6",
-    "price": 65,
+    "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
     "levelSlugs": [
       "basic-6"
@@ -2082,7 +2082,7 @@ export const products: Product[] = [
     "id": "DG0061",
     "slug": "golden-science-textbook-for-jhs",
     "name": "Golden Science  Textbook for JHS",
-    "price": 160,
+    "price": 160,    stockQty: 20,
     "categorySlug": "jhs-combined-edition-textbooks",
     "levelSlugs": [
       "jhs-1",

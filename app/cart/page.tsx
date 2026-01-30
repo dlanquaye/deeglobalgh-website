@@ -20,19 +20,20 @@ export default function CartPage() {
   } = useCart();
 
   return (
-    <main className="py-6">
-      <section className="card-brand p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <main className="py-10">
+      <section className="card-brand p-8">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
               Your Cart
             </h1>
-            <p className="mt-2 text-[color:var(--text-muted)]">
-              Review your items and proceed to checkout.
+            <p className="mt-1 text-[color:var(--text-muted)]">
+              Review your items before checkout.
             </p>
           </div>
 
-          {items.length > 0 ? (
+          {items.length > 0 && (
             <button
               type="button"
               onClick={clearCart}
@@ -40,41 +41,48 @@ export default function CartPage() {
             >
               Clear Cart
             </button>
-          ) : null}
+          )}
         </div>
 
+        {/* Empty cart */}
         {items.length === 0 ? (
-          <div className="mt-6 card-brand p-6">
-            <p className="text-[color:var(--text-muted)]">Your cart is empty.</p>
+          <div className="mt-10 text-center">
+            <p className="text-[color:var(--text-muted)]">
+              Your cart is currently empty.
+            </p>
 
             <Link
               href="/shop"
-              className="btn-primary mt-4 inline-flex items-center justify-center px-5 py-3"
+              className="btn-primary mt-6 inline-flex items-center justify-center px-6 py-3"
             >
               Go to Shop
             </Link>
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Items */}
-            <div className="lg:col-span-2 space-y-4">
+          <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Cart items */}
+            <div className="lg:col-span-2 space-y-5">
               {items.map((item) => {
-                const imgSrc = item.imageSrc || "/products/placeholder.webp";
+                const imgSrc =
+                  item.imageSrc || "/products/placeholder.webp";
 
                 return (
-                  <div key={item.id} className="card-brand p-4 flex gap-4">
-                    <div className="relative h-24 w-24 overflow-hidden rounded-2xl border bg-white shrink-0">
+                  <div
+                    key={item.id}
+                    className="card-brand p-5 flex gap-5"
+                  >
+                    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border bg-white">
                       <Image
                         src={imgSrc}
                         alt={item.name}
                         fill
-                        sizes="96px"
+                        sizes="112px"
                         className="object-contain p-2"
                       />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-[color:var(--brand-blue)] truncate">
+                      <div className="font-bold text-[color:var(--brand-blue)]">
                         {item.name}
                       </div>
 
@@ -85,8 +93,8 @@ export default function CartPage() {
                         </span>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        {/* Qty controls */}
+                      <div className="mt-4 flex flex-wrap items-center gap-4">
+                        {/* Quantity */}
                         <div className="inline-flex items-center gap-2 rounded-2xl border bg-white px-3 py-2">
                           <button
                             type="button"
@@ -97,7 +105,7 @@ export default function CartPage() {
                             −
                           </button>
 
-                          <div className="min-w-[32px] text-center font-extrabold text-[color:var(--text-main)]">
+                          <div className="min-w-[32px] text-center font-extrabold">
                             {item.qty}
                           </div>
 
@@ -120,7 +128,8 @@ export default function CartPage() {
                           Remove
                         </button>
 
-                        <div className="ml-auto text-sm font-extrabold text-[color:var(--brand-blue)]">
+                        {/* Line total */}
+                        <div className="ml-auto text-base font-extrabold text-[color:var(--brand-blue)]">
                           {formatMoney(item.price * item.qty)}
                         </div>
                       </div>
@@ -130,15 +139,15 @@ export default function CartPage() {
               })}
             </div>
 
-            {/* Summary */}
+            {/* Order summary */}
             <div className="card-brand p-6 h-fit">
-              <div className="text-lg font-extrabold text-[color:var(--brand-blue)]">
+              <h2 className="text-lg font-extrabold text-[color:var(--brand-blue)]">
                 Order Summary
-              </div>
+              </h2>
 
-              <div className="mt-4 space-y-2 text-sm text-[color:var(--text-muted)]">
+              <div className="mt-5 space-y-3 text-sm text-[color:var(--text-muted)]">
                 <div className="flex justify-between">
-                  <span>Items</span>
+                  <span>Total items</span>
                   <span className="font-bold text-[color:var(--text-main)]">
                     {totalItems}
                   </span>
@@ -151,24 +160,31 @@ export default function CartPage() {
                   </span>
                 </div>
 
-                <div className="pt-3 text-xs text-[color:var(--text-muted)]">
-                  Delivery fees depend on your location and will be confirmed at
-                  checkout.
+                <div className="pt-3 text-xs">
+                  Delivery fees depend on your location and will be confirmed
+                  during checkout.
                 </div>
               </div>
 
-              {/* ✅ Proceed to Checkout */}
+              {/* Trust copy */}
+      <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-[color:var(--text-muted)]">
+  Secure checkout • Paystack recommended • Pay on delivery available within
+  Kasoa and nearby areas only
+</div>
+
+
+
+              {/* Actions */}
               <Link
                 href="/checkout"
-                className="btn-primary mt-6 inline-flex w-full items-center justify-center px-5 py-3"
+                className="btn-primary mt-6 inline-flex w-full items-center justify-center px-6 py-4 text-base"
               >
                 Proceed to Checkout
               </Link>
 
-              {/* Continue Shopping */}
               <Link
                 href="/shop"
-                className="btn-outline mt-3 inline-flex w-full items-center justify-center px-5 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
+                className="btn-outline mt-3 inline-flex w-full items-center justify-center px-6 py-3 text-[color:var(--brand-blue)] hover:bg-gray-50"
               >
                 Continue Shopping
               </Link>

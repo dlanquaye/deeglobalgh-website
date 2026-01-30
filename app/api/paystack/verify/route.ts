@@ -1,13 +1,11 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import { PaymentStatus } from "@prisma/client";
+import { prisma } from "@/app/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
-/**
- * In-memory guard to prevent duplicate SMS per Paystack reference.
- * Safe for now. Will be replaced by DB flag (smsSent) later.
- */
-const sentSmsRefs = new Set<string>();
+const SUPPORT_WHATSAPP_LINK = "https://wa.me/233246011773";
 
 export async function GET(req: Request) {
   try {
@@ -54,41 +52,99 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       STOP IF PAYMENT IS NOT SUCCESS
+       TRANSLATE PAYSTACK STATUS
        =============================== */
-    if (data?.data?.status !== "success") {
-      return NextResponse.json(data);
+    let paymentStatus: PaymentStatus = PaymentStatus.PENDING;
+
+    if (data?.data?.status === "success") {
+      paymentStatus = PaymentStatus.PAID;
+    } else if (data?.data?.status === "failed") {
+      paymentStatus = PaymentStatus.FAILED;
+    }
+
+    const amount = data?.data?.amount ?? 0;
+    const email = data?.data?.customer?.email ?? "";
+    const phone = data?.data?.metadata?.phone ?? "";
+
+    /* ===============================
+       FIND OR CREATE ORDER
+       =============================== */
+    const existingOrder = await prisma.order.findUnique({
+      where: { reference },
+    });
+
+    const order =
+      existingOrder ??
+      (await prisma.order.create({
+        data: {
+          orderId: reference,
+          reference,
+          email,
+          phone,
+          amount,
+          paymentStatus,
+        },
+      }));
+
+    /* ===============================
+       UPDATE STATUS IF CHANGED
+       =============================== */
+    if (order.paymentStatus !== paymentStatus) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentStatus },
+      });
     }
 
     /* ===============================
-       SEND SMS (ONCE PER REFERENCE)
+       SEND SMS (ONCE PER PAYMENT)
        =============================== */
-    if (!sentSmsRefs.has(reference)) {
-      const amountGHS = data.data.amount / 100;
-      const phone = data.data.metadata?.phone || "";
+   
+if (
+  !order.smsSent &&
+  phone &&
+  (paymentStatus === PaymentStatus.PAID ||
+    paymentStatus === PaymentStatus.FAILED)
+) {
 
-      if (phone) {
-        try {
-          await sendOrderSMS({
-            phone,
-            message: `DeeglobalGh: Payment confirmed ✅
-Order: ${reference}
+      let message = "";
+
+      if (paymentStatus === PaymentStatus.PAID) {
+        const amountGHS = amount / 100;
+        message = `DeeglobalGh: Payment confirmed ✅
+Order Ref: ${reference}
 Amount: GHS ${amountGHS}
 
-Thank you for shopping with us.
-WhatsApp: 0246 011 773`,
-          });
+Thank you for shopping with us.`;
+      }
 
-          // 🔐 Mark SMS as sent (idempotency)
-          sentSmsRefs.add(reference);
+      if (paymentStatus === PaymentStatus.FAILED) {
+        message = `DeeglobalGh: Your payment was not successful ❌
+
+Please tap the link below to chat with our support team on WhatsApp for help:
+${SUPPORT_WHATSAPP_LINK}`;
+      }
+
+      if (message) {
+        try {
+          await sendOrderSMS({ phone, message });
+
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { smsSent: true },
+          });
         } catch {
-          // ❌ Never block payment because SMS failed
-          // Silent fail by design
+          // ❌ Never block payment flow because SMS failed
+          // SMS can be retried manually if needed
         }
       }
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ok: true,
+      reference,
+      paymentStatus,
+    });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Server error", details: err?.message || String(err) },

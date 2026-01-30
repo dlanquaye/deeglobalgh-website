@@ -5,24 +5,64 @@ import type { Product } from "@/app/lib/products";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function AddToCartButton({ product }: { product: Product }) {
+type Props = {
+  product: Product;
+  outOfStock?: boolean;
+};
+
+export default function AddToCartButton({
+  product,
+  outOfStock = false,
+}: Props) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleAddToCart = () => {
+    const success = addToCart(product, 1);
+
+    if (success) {
+      setAdded(true);
+      setMessage("Item added to cart.");
+
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
+    }
+  };
 
   return (
     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-      <button
-        type="button"
-        onClick={() => {
-          addToCart(product, 1);
-          setAdded(true);
-        }}
-        className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 font-extrabold text-white hover:opacity-90"
-      >
-        Add to cart
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={outOfStock}
+          onClick={handleAddToCart}
+          className={`inline-flex items-center justify-center rounded-xl px-5 py-3 font-extrabold ${
+            outOfStock
+              ? "cursor-not-allowed bg-gray-300 text-gray-600"
+              : "bg-blue-900 text-white hover:opacity-90"
+          }`}
+        >
+          {outOfStock ? "Out of Stock" : "Add to cart"}
+        </button>
 
-      {added ? (
+        {/* Success message (in stock only) */}
+        {message && (
+          <p className="text-sm font-semibold text-[color:var(--brand-blue)]">
+            {message}
+          </p>
+        )}
+
+        {/* Static out-of-stock message */}
+        {outOfStock && (
+          <p className="text-sm font-semibold text-red-600">
+            This item is currently out of stock.
+          </p>
+        )}
+      </div>
+
+      {added && !outOfStock ? (
         <Link
           href="/cart"
           className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-extrabold text-blue-900 hover:bg-gray-50"

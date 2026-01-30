@@ -9,6 +9,9 @@ import React, {
 } from "react";
 import type { Product } from "@/app/lib/products";
 
+/* -------------------------------------------
+   TYPES
+------------------------------------------- */
 export type CartItem = {
   id: string;
   name: string;
@@ -16,6 +19,7 @@ export type CartItem = {
   slug: string;
   imageSrc?: string;
   qty: number;
+  stockQty: number;
 };
 
 type CartContextValue = {
@@ -33,6 +37,9 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 const STORAGE_KEY = "dg_cart_v1";
 
+/* -------------------------------------------
+   HELPERS
+------------------------------------------- */
 function safeParse(json: string | null) {
   try {
     return json ? JSON.parse(json) : null;
@@ -41,12 +48,15 @@ function safeParse(json: string | null) {
   }
 }
 
+/* -------------------------------------------
+   PROVIDER
+------------------------------------------- */
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   /* -------------------------------------------
      LOAD FROM LOCAL STORAGE
-     ------------------------------------------- */
+  ------------------------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -58,7 +68,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   /* -------------------------------------------
      SAVE TO LOCAL STORAGE
-     ------------------------------------------- */
+  ------------------------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -66,34 +76,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   /* -------------------------------------------
      ADD TO CART (STOCK ENFORCED)
-     ------------------------------------------- */
+  ------------------------------------------- */
   const addToCart = (product: Product, qty: number = 1): boolean => {
     const stockQty = product.stockQty ?? 0;
 
+    // HARD BLOCK: out of stock
     if (stockQty <= 0) {
       return false;
     }
 
-    let added = false;
-
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
-      const existingQty = existing?.qty ?? 0;
 
-      if (existingQty + qty > stockQty) {
-        return prev;
-      }
-
-      added = true;
-
+      // Already in cart
       if (existing) {
+        const newQty = existing.qty + qty;
+
+        // Do not exceed available stock
+        if (newQty > existing.stockQty) {
+          return prev;
+        }
+
         return prev.map((item) =>
           item.id === product.id
-            ? { ...item, qty: item.qty + qty }
+            ? { ...item, qty: newQty }
             : item
         );
       }
 
+      // New item
       return [
         ...prev,
         {
@@ -102,24 +113,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           price: product.price,
           slug: product.slug,
           imageSrc: product.image?.src,
-          qty,
+          qty: Math.min(qty, stockQty),
+          stockQty: stockQty,
         },
       ];
     });
 
-    return added;
+    return true;
   };
 
   /* -------------------------------------------
-     INCREASE / DECREASE
-     ------------------------------------------- */
+     INCREASE / DECREASE (STOCK SAFE)
+  ------------------------------------------- */
   const increaseQty = (id: string): boolean => {
+    let allowed = true;
+
     setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
-      )
+      prev.map((item) => {
+        if (item.id !== id) return item;
+
+        if (item.qty + 1 > item.stockQty) {
+          allowed = false;
+          return item;
+        }
+
+        return { ...item, qty: item.qty + 1 };
+      })
     );
-    return true;
+
+    return allowed;
   };
 
   const decreaseQty = (id: string) => {
@@ -140,7 +162,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   /* -------------------------------------------
      DERIVED VALUES
-     ------------------------------------------- */
+  ------------------------------------------- */
   const totalItems = useMemo(
     () => items.reduce((sum, item) => sum + item.qty, 0),
     [items]
@@ -173,6 +195,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* -------------------------------------------
+   HOOK
+------------------------------------------- */
 export function useCart() {
   const ctx = useContext(CartContext);
   if (!ctx) {
