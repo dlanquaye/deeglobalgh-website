@@ -9,23 +9,31 @@ datasource db {
 
 model Order {
   id            String        @id @default(cuid())
-  orderId       String        @unique
+
+  // Public / human-readable order reference (e.g. DG-1700000000)
   reference     String?       @unique
+
+  // Internal legacy ID (kept for safety & indexing)
+  orderId       String        @unique
+
   email         String
   phone         String
+
+  // Stored in pesewas (matches Paystack amounts)
   amount        Int
 
-  deliveryFee   Int?          // 👈 NEW (stored in pesewas)
-  adminNotes    String?       // 👈 NEW
+  // Admin-managed fields
+  deliveryFee   Int?          // Stored in pesewas
+  adminNotes    String?
 
   paymentStatus PaymentStatus @default(PENDING)
   smsSent       Boolean       @default(false)
+
   createdAt     DateTime      @default(now())
 
   @@index([orderId])
   @@index([reference])
 }
-
 
 enum PaymentStatus {
   PENDING
