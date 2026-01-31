@@ -1,22 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { reduceStock } from "@/app/lib/inventory";
-import { initInventory } from "@/app/lib/inventory";
-
-
 import Link from "next/link";
+
+import { reduceStock, initInventory } from "@/app/lib/inventory";
 import {
   loadOrders,
   updateOrderById,
   OrderStatus,
 } from "@/app/lib/orders";
 
-type Filter =
-  | "ALL"
-  | "PAID"
-  | "PENDING"
-  | "PAY_ON_DELIVERY";
+type Filter = "ALL" | "PAID" | "PENDING" | "PAY_ON_DELIVERY";
 
 function nextStatuses(status: OrderStatus): OrderStatus[] {
   switch (status) {
@@ -32,30 +26,28 @@ function nextStatuses(status: OrderStatus): OrderStatus[] {
 }
 
 export default function AdminOrdersPage() {
-  const [authorized, setAuthorized] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [loading, setLoading] = useState(true);
+
+  /* ------------------------------------------------
+     INITIAL LOAD (NO CLIENT AUTH BLOCK)
+  ------------------------------------------------ */
+  useEffect(() => {
+    const init = async () => {
+      await initInventory();
+      setOrders(loadOrders());
+      setLoading(false);
+    };
+
+    init();
+  }, []);
 
   const reload = () => setOrders(loadOrders());
 
-  useEffect(() => {
-  const session =
-    typeof window !== "undefined"
-      ? localStorage.getItem("dg_orders_admin_session_v1")
-      : null;
-
-  if (session === "unlocked") {
-    setAuthorized(true);
-
-    // ✅ Initialize inventory once (safe)
-    initInventory().then(() => {
-      reload();
-    });
-  }
-}, []);
-
-
-  // ---------- DASHBOARD METRICS ----------
+  /* ------------------------------------------------
+     DASHBOARD METRICS
+  ------------------------------------------------ */
   const metrics = useMemo(() => {
     const totalOrders = orders.length;
     const paidOrders = orders.filter(
@@ -81,11 +73,12 @@ export default function AdminOrdersPage() {
     };
   }, [orders]);
 
-  // ---------- FILTERED LIST ----------
+  /* ------------------------------------------------
+     FILTERED ORDERS
+  ------------------------------------------------ */
   const filteredOrders = useMemo(() => {
     let list = [...orders];
 
-    // Sort: PAID first, newest first
     list.sort((a, b) => {
       if (a.paymentStatus === "PAID" && b.paymentStatus !== "PAID")
         return -1;
@@ -109,17 +102,9 @@ export default function AdminOrdersPage() {
     return list;
   }, [orders, filter]);
 
-  if (!authorized) {
-    return (
-      <main className="mx-auto max-w-4xl px-6 py-12">
-        <h1 className="text-2xl font-bold text-red-600">Access Denied</h1>
-        <p className="mt-2 text-gray-600">
-          You are not authorized to view admin orders.
-        </p>
-      </main>
-    );
-  }
-
+  /* ------------------------------------------------
+     RENDER
+  ------------------------------------------------ */
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       {/* Header */}
@@ -148,56 +133,29 @@ export default function AdminOrdersPage() {
 
         <Link
           href="/admin/products"
-          className="btn-outline px-4 py-2 text-sm"
+          className="rounded-xl border px-4 py-2 text-sm font-bold hover:bg-gray-50"
         >
           Manage Products
         </Link>
       </div>
 
-      {/* ---------- DASHBOARD SUMMARY ---------- */}
+      {/* Dashboard */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="text-xs text-gray-500">Total Orders</div>
-          <div className="mt-1 text-2xl font-extrabold">
-            {metrics.totalOrders}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="text-xs text-gray-500">Paid Orders</div>
-          <div className="mt-1 text-2xl font-extrabold text-green-700">
-            {metrics.paidCount}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="text-xs text-gray-500">Pending Orders</div>
-          <div className="mt-1 text-2xl font-extrabold text-yellow-700">
-            {metrics.pendingCount}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="text-xs text-gray-500">
-            Pay on Delivery
-          </div>
-          <div className="mt-1 text-2xl font-extrabold">
-            {metrics.podCount}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="text-xs text-gray-500">
-            Revenue (Paid)
-          </div>
-          <div className="mt-1 text-2xl font-extrabold text-[color:var(--brand-blue)]">
-            GH₵ {metrics.totalRevenue.toFixed(2)}
-          </div>
-        </div>
+        <Metric label="Total Orders" value={metrics.totalOrders} />
+        <Metric label="Paid Orders" value={metrics.paidCount} green />
+        <Metric label="Pending Orders" value={metrics.pendingCount} yellow />
+        <Metric label="Pay on Delivery" value={metrics.podCount} />
+        <Metric
+          label="Revenue (Paid)"
+          value={`GH₵ ${metrics.totalRevenue.toFixed(2)}`}
+          blue
+        />
       </div>
 
-      {/* ---------- ORDERS LIST ---------- */}
-      {filteredOrders.length === 0 ? (
+      {/* Orders */}
+      {loading ? (
+        <p>Loading orders…</p>
+      ) : filteredOrders.length === 0 ? (
         <p className="text-gray-600">No orders found.</p>
       ) : (
         <div className="space-y-4">
@@ -228,73 +186,26 @@ export default function AdminOrdersPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        order.paymentStatus === "PAID"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {order.paymentStatus}
-                    </span>
-
+                    <StatusBadge status={order.paymentStatus} />
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
                       {order.orderStatus}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <div className="text-sm font-semibold">Customer</div>
-                    <div className="text-sm">
-                      {order.customer.fullName}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {order.customer.phone}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {order.customer.area} — {order.customer.location}
-                    </div>
+                <div className="mt-4 border-t pt-3 flex justify-between items-center">
+                  <div className="font-extrabold text-[color:var(--brand-blue)]">
+                    GH₵ {order.subtotal.toFixed(2)}
                   </div>
 
-                  <div>
-                    <div className="text-sm font-semibold">Payment</div>
-                    <div className="text-sm">
-                      Method: {order.paymentMethod}
-                    </div>
-                    {order.paystackReference && (
-                      <div className="text-sm text-gray-600">
-                        Ref: {order.paystackReference}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-4 border-t pt-3">
-                  <div className="text-sm font-semibold mb-1">Items</div>
-                  <ul className="text-sm text-gray-700">
-                    {order.items.map((item: any) => (
-                      <li key={item.id}>
-                        {item.name} × {item.qty}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                    <div className="font-extrabold text-[color:var(--brand-blue)]">
-                      Subtotal: GH₵ {order.subtotal.toFixed(2)}
-                    </div>
-
-                    <a
-                      href={waUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:opacity-90"
-                    >
-                      WhatsApp Customer
-                    </a>
-                  </div>
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:opacity-90"
+                  >
+                    WhatsApp Customer
+                  </a>
                 </div>
 
                 {canProgress &&
@@ -303,26 +214,24 @@ export default function AdminOrdersPage() {
                       {nextStatuses(order.orderStatus).map((next) => (
                         <button
                           key={next}
-                         onClick={() => {
-  // ✅ Deduct stock once (safe)
-  if (!order.stockDeducted) {
-    order.items.forEach((item: any) => {
-      reduceStock(item.id, item.qty);
-    });
+                          onClick={() => {
+                            if (!order.stockDeducted) {
+                              order.items.forEach((item: any) => {
+                                reduceStock(item.id, item.qty);
+                              });
 
-    updateOrderById(order.id, {
-      orderStatus: next,
-      stockDeducted: true,
-    });
-  } else {
-    updateOrderById(order.id, {
-      orderStatus: next,
-    });
-  }
+                              updateOrderById(order.id, {
+                                orderStatus: next,
+                                stockDeducted: true,
+                              });
+                            } else {
+                              updateOrderById(order.id, {
+                                orderStatus: next,
+                              });
+                            }
 
-  reload();
-}}
-
+                            reload();
+                          }}
                           className="rounded-xl border px-4 py-2 text-sm font-bold hover:bg-gray-50"
                         >
                           Mark as {next}
@@ -336,5 +245,50 @@ export default function AdminOrdersPage() {
         </div>
       )}
     </main>
+  );
+}
+
+/* ------------------------------------------------
+   SMALL UI HELPERS
+------------------------------------------------ */
+function Metric({
+  label,
+  value,
+  green,
+  yellow,
+  blue,
+}: {
+  label: string;
+  value: any;
+  green?: boolean;
+  yellow?: boolean;
+  blue?: boolean;
+}) {
+  let color = "";
+  if (green) color = "text-green-700";
+  if (yellow) color = "text-yellow-700";
+  if (blue) color = "text-[color:var(--brand-blue)]";
+
+  return (
+    <div className="rounded-2xl border bg-white p-4">
+      <div className="text-xs text-gray-500">{label}</div>
+      <div className={`mt-1 text-2xl font-extrabold ${color}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-bold ${
+        status === "PAID"
+          ? "bg-green-100 text-green-700"
+          : "bg-yellow-100 text-yellow-700"
+      }`}
+    >
+      {status}
+    </span>
   );
 }
