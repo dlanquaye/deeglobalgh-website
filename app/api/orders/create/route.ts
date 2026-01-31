@@ -18,15 +18,18 @@ export async function POST(req: Request) {
 
     await prisma.order.create({
       data: {
-        orderId,
+        orderId,                // internal order ID
+        reference: orderId,     // 🔥 CRITICAL: Paystack reference
         email: customer.email,
         phone: customer.phone,
-        amount: amount,
+        amount: Math.round(amount), // ensure integer
       },
     });
 
     return NextResponse.json({ ok: true, orderId });
   } catch (err: any) {
+    console.error("❌ Order creation failed:", err);
+
     return NextResponse.json(
       { error: err?.message || "Server error" },
       { status: 500 }
