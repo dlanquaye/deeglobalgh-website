@@ -5,8 +5,24 @@ import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 export const runtime = "nodejs";
 
+/**
+ * Normalize Ghana phone number to 233XXXXXXXXX
+ */
+function normalizeGhanaPhone(phone: string) {
+  let p = phone.replace(/\s+/g, "").replace(/^\+/, "");
+
+  if (p.startsWith("0") && p.length === 10) {
+    return "233" + p.slice(1);
+  }
+
+  if (p.startsWith("233") && p.length === 12) {
+    return p;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
-  // 🔥 PROOF THAT WEBHOOK WAS HIT
   console.log("🔥 PAYSTACK WEBHOOK HIT");
 
   const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -42,24 +58,26 @@ export async function POST(req: NextRequest) {
   const event = JSON.parse(body);
 
   /* ------------------------------------------------
-     2️⃣ Only handle successful charge
+     2️⃣ Only handle successful payment
   ------------------------------------------------ */
   if (event.event !== "charge.success") {
     return NextResponse.json({ received: true });
   }
 
   const data = event.data;
-  const reference: string = data.reference;
+  const reference: string = data.reference; // THIS IS OUR orderId
+
+  console.log("✅ Payment success for:", reference);
 
   /* ------------------------------------------------
-     3️⃣ Fetch order from DB (SOURCE OF TRUTH)
+     3️⃣ Find order using orderId (SOURCE OF TRUTH)
   ------------------------------------------------ */
   const order = await prisma.order.findFirst({
-    where: { reference },
+    where: { orderId: reference },
   });
 
   if (!order) {
-    console.error("❌ Order not found for reference:", reference);
+    console.error("❌ Order not found for orderId:", reference);
     return NextResponse.json({ received: true });
   }
 
@@ -71,19 +89,23 @@ export async function POST(req: NextRequest) {
       where: { id: order.id },
       data: {
         paymentStatus: "PAID",
+        reference: reference, // store Paystack reference
       },
     });
   }
 
   /* ------------------------------------------------
-     5️⃣ Normalize phone & send SMS (ONLY ONCE)
+     5️⃣ Send SMS ONCE
   ------------------------------------------------ */
-  const customerPhone = order.phone
-    .replace(/\s+/g, "")
-    .replace(/^\+/, "");
+  const customerPhone = normalizeGhanaPhone(order.phone);
 
-  if (!order.smsSent && customerPhone.startsWith("233")) {
-    console.log("📞 Sending SMS to:", customerPhone);
+  if (!customerPhone) {
+    console.error("❌ Invalid phone number:", order.phone);
+    return NextResponse.json({ received: true });
+  }
+
+  if (!order.smsSent) {
+    console.log("📩 Sending SMS to:", customerPhone);
 
     const message = `DeeglobalGh: Payment received successfully for order ${reference}. Our team will contact you shortly to confirm delivery. Thank you.`;
 
@@ -97,11 +119,11 @@ export async function POST(req: NextRequest) {
         where: { id: order.id },
         data: { smsSent: true },
       });
+
+      console.log("✅ SMS sent successfully");
     } catch (err) {
       console.error("❌ SMS sending failed:", err);
     }
-  } else if (!customerPhone.startsWith("233")) {
-    console.error("❌ Invalid phone format for Hubtel:", customerPhone);
   }
 
   return NextResponse.json({ received: true });
