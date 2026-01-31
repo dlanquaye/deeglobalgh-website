@@ -1,83 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
+
 export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { PaymentStatus } from "@prisma/client";
-import { sendOrderSMS } from "@/app/lib/hubtelSms";
+// Allowed statuses (must match schema.prisma enum exactly)
+const ALLOWED_STATUSES = [
+  "PENDING",
+  "PAID",
+  "FAILED",
+  "DELIVERING",
+  "COMPLETED",
+] as const;
 
-export async function POST(req: Request) {
+type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orderId, status } = body;
+    const { reference, status } = await req.json();
 
-    if (!orderId || !status) {
+    if (!reference || typeof status !== "string") {
       return NextResponse.json(
-        { error: "Missing orderId or status" },
+        { error: "Invalid request payload" },
         { status: 400 }
       );
     }
 
-    const allowedStatuses: PaymentStatus[] = [
-      PaymentStatus.PENDING,
-      PaymentStatus.PAID,
-      PaymentStatus.DELIVERING,
-      PaymentStatus.COMPLETED,
-      PaymentStatus.FAILED,
-    ];
-
-    if (!allowedStatuses.includes(status)) {
+    if (!ALLOWED_STATUSES.includes(status as AllowedStatus)) {
       return NextResponse.json(
-        { error: "Invalid status" },
+        { error: "Invalid order status" },
         { status: 400 }
       );
     }
 
-    const order = await prisma.order.findUnique({
-      where: { orderId },
+    await prisma.order.update({
+      where: { reference },
+      data: {
+        paymentStatus: status as AllowedStatus,
+      },
     });
 
-    if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
-    }
-
-    // Only act if status is changing
-    if (order.paymentStatus !== status) {
-      await prisma.order.update({
-        where: { orderId },
-        data: { paymentStatus: status },
-      });
-
-      let message = "";
-
-      if (status === PaymentStatus.DELIVERING) {
-        message =
-          "DeeglobalGh: Your order is on the way 🚚. Thank you for shopping with us.";
-      }
-
-      if (status === PaymentStatus.COMPLETED) {
-        message =
-          "DeeglobalGh: Your order has been delivered successfully ✅. We appreciate your business.";
-      }
-
-      if (message && order.phone) {
-        try {
-          await sendOrderSMS({
-            phone: order.phone,
-            message,
-          });
-        } catch {
-          // Never block order updates because SMS failed
-        }
-      }
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err: any) {
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("❌ update-order-status error:", error);
     return NextResponse.json(
-      { error: err?.message || "Failed to update order" },
+      { error: "Failed to update order status" },
       { status: 500 }
     );
   }
