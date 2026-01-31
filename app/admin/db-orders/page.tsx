@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type DbOrder = {
   id: string;
+  orderId: string;
   reference: string | null;
   phone: string;
   email: string;
@@ -18,7 +19,7 @@ type DbOrder = {
 export default function AdminDbOrdersPage() {
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingRef, setSavingRef] = useState<string | null>(null);
+  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -33,34 +34,32 @@ export default function AdminDbOrdersPage() {
   }, []);
 
   const updateStatus = async (
-    reference: string,
+    orderId: string,
     status: DbOrder["paymentStatus"]
   ) => {
     await fetch("/api/admin/update-order-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference, status }),
+      body: JSON.stringify({ orderId, status }),
     });
 
     loadOrders();
   };
 
   const saveMeta = async (order: DbOrder) => {
-    if (!order.reference) return;
-
-    setSavingRef(order.reference);
+    setSavingOrderId(order.orderId);
 
     await fetch("/api/admin/update-order-meta", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        reference: order.reference,
+        orderId: order.orderId,
         deliveryFee: order.deliveryFee,
         adminNotes: order.adminNotes,
       }),
     });
 
-    setSavingRef(null);
+    setSavingOrderId(null);
     loadOrders();
   };
 
@@ -77,7 +76,7 @@ export default function AdminDbOrdersPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">Order Ref</th>
+                <th className="px-4 py-3 text-left">Order ID</th>
                 <th className="px-4 py-3 text-left">Phone</th>
                 <th className="px-4 py-3 text-left">Amount (GHS)</th>
                 <th className="px-4 py-3 text-left">Delivery Fee</th>
@@ -90,9 +89,7 @@ export default function AdminDbOrdersPage() {
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="border-t align-top">
-                  <td className="px-4 py-3 font-mono">
-                    {o.reference ?? "—"}
-                  </td>
+                  <td className="px-4 py-3 font-mono">{o.orderId}</td>
 
                   <td className="px-4 py-3">{o.phone}</td>
 
@@ -144,10 +141,10 @@ export default function AdminDbOrdersPage() {
                   </td>
 
                   <td className="px-4 py-3 space-y-2">
-                    {o.paymentStatus === "PAID" && o.reference && (
+                    {o.paymentStatus === "PAID" && (
                       <button
                         onClick={() =>
-                          updateStatus(o.reference!, "DELIVERING")
+                          updateStatus(o.orderId, "DELIVERING")
                         }
                         className="block rounded bg-blue-600 px-3 py-1 text-white"
                       >
@@ -155,10 +152,10 @@ export default function AdminDbOrdersPage() {
                       </button>
                     )}
 
-                    {o.paymentStatus === "DELIVERING" && o.reference && (
+                    {o.paymentStatus === "DELIVERING" && (
                       <button
                         onClick={() =>
-                          updateStatus(o.reference!, "COMPLETED")
+                          updateStatus(o.orderId, "COMPLETED")
                         }
                         className="block rounded bg-green-600 px-3 py-1 text-white"
                       >
@@ -168,10 +165,10 @@ export default function AdminDbOrdersPage() {
 
                     <button
                       onClick={() => saveMeta(o)}
-                      disabled={savingRef === o.reference}
+                      disabled={savingOrderId === o.orderId}
                       className="block rounded bg-gray-800 px-3 py-1 text-white"
                     >
-                      {savingRef === o.reference ? "Saving…" : "Save"}
+                      {savingOrderId === o.orderId ? "Saving…" : "Save"}
                     </button>
                   </td>
                 </tr>
