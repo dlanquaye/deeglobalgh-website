@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type DbOrder = {
   id: string;
@@ -17,10 +18,35 @@ type DbOrder = {
 };
 
 export default function AdminDbOrdersPage() {
+  /* ------------------------------------------------
+     🔐 ADMIN SECURITY (STEP 3)
+  ------------------------------------------------ */
+  const searchParams = useSearchParams();
+  const key = searchParams.get("key");
+
+  if (key !== process.env.NEXT_PUBLIC_ADMIN_SECRET) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-12">
+        <h1 className="text-2xl font-bold text-red-600">
+          Access Denied
+        </h1>
+        <p className="mt-2 text-gray-600">
+          You are not authorized to view admin orders.
+        </p>
+      </main>
+    );
+  }
+
+  /* ------------------------------------------------
+     STATE
+  ------------------------------------------------ */
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
 
+  /* ------------------------------------------------
+     LOAD ORDERS
+  ------------------------------------------------ */
   const loadOrders = async () => {
     setLoading(true);
     const res = await fetch("/api/admin/db-orders");
@@ -33,6 +59,9 @@ export default function AdminDbOrdersPage() {
     loadOrders();
   }, []);
 
+  /* ------------------------------------------------
+     ACTIONS
+  ------------------------------------------------ */
   const updateStatus = async (
     orderId: string,
     status: DbOrder["paymentStatus"]
@@ -63,6 +92,9 @@ export default function AdminDbOrdersPage() {
     loadOrders();
   };
 
+  /* ------------------------------------------------
+     RENDER
+  ------------------------------------------------ */
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <h1 className="mb-6 text-2xl font-extrabold">
@@ -90,9 +122,7 @@ export default function AdminDbOrdersPage() {
               {orders.map((o) => (
                 <tr key={o.id} className="border-t align-top">
                   <td className="px-4 py-3 font-mono">{o.orderId}</td>
-
                   <td className="px-4 py-3">{o.phone}</td>
-
                   <td className="px-4 py-3 font-bold">
                     {o.amount.toFixed(2)}
                   </td>
