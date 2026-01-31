@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
 function formatMoney(amount: number) {
@@ -31,7 +32,7 @@ function safeParse<T>(raw: string | null): T | null {
 }
 
 export default function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal } = useCart();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -89,17 +90,13 @@ export default function CheckoutPage() {
     setPayLoading(true);
 
     try {
-      /* ===============================
-         1. CREATE ORDER ON SERVER
-         =============================== */
       const orderId = `DG-${Date.now()}`;
 
       const snapshot = {
-  orderId,
-  customer: { fullName, email, phone, area, location },
-  amount: subtotal, // ✅ REQUIRED BY API
-};
-
+        orderId,
+        customer: { fullName, email, phone, area, location },
+        amount: subtotal,
+      };
 
       localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
 
@@ -113,9 +110,6 @@ export default function CheckoutPage() {
         throw new Error("Failed to create order");
       }
 
-      /* ===============================
-         2. START PAYSTACK PAYMENT
-         =============================== */
       const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,6 +226,10 @@ Thank you.`;
           {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
         </button>
 
+        <p className="text-sm font-medium text-gray-700">
+          🚚 We deliver across Kasoa and nearby areas. Our team will call to confirm delivery.
+        </p>
+
         {payError && (
           <p className="text-sm font-semibold text-red-600">{payError}</p>
         )}
@@ -246,12 +244,12 @@ Thank you.`;
           Order via WhatsApp (Pay on Delivery)
         </button>
 
-        <button
-          onClick={clearCart}
-          className="mt-2 w-full text-sm font-semibold text-red-600 hover:underline"
+        <Link
+          href="/cart"
+          className="block text-sm font-semibold text-[color:var(--brand-blue)] underline"
         >
-          Clear cart
-        </button>
+          Edit Order
+        </Link>
       </section>
     </main>
   );

@@ -14,6 +14,10 @@ model Order {
   email         String
   phone         String
   amount        Int
+
+  deliveryFee   Int?          // 👈 NEW (stored in pesewas)
+  adminNotes    String?       // 👈 NEW
+
   paymentStatus PaymentStatus @default(PENDING)
   smsSent       Boolean       @default(false)
   createdAt     DateTime      @default(now())
@@ -22,6 +26,7 @@ model Order {
   @@index([reference])
 }
 
+
 enum PaymentStatus {
   PENDING
   PAID
@@ -29,4 +34,3 @@ enum PaymentStatus {
   DELIVERING
   COMPLETED
 }
-
