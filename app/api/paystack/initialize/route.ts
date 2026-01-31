@@ -53,9 +53,15 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         email,
         amount: Number(amount) * 100, // Paystack expects pesewas
-
         currency: "GHS",
-        callback_url: `${siteUrl}/paystack/callback`,
+
+        // 🔑 CRITICAL FIX — USE YOUR ORDER ID AS PAYSTACK REFERENCE
+        reference: orderId,
+
+        // Redirect user after payment
+        callback_url: `${siteUrl}/payment-success`,
+
+        // Extra data for webhook & SMS
         metadata: {
           orderId,
           phone,
