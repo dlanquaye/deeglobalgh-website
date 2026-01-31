@@ -14,6 +14,8 @@ export async function GET() {
         phone: true,
         email: true,
         amount: true,
+        deliveryFee: true,
+        adminNotes: true,
         paymentStatus: true,
         smsSent: true,
         createdAt: true,
@@ -21,7 +23,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ orders });
-  } catch {
+  } catch (error) {
+    console.error("Failed to load orders:", error);
     return NextResponse.json(
       { error: "Failed to load orders" },
       { status: 500 }
