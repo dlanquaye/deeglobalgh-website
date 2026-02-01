@@ -3,36 +3,43 @@ import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { secret } = body;
 
-  const envSecret = process.env.ADMIN_SECRET;
+  const incoming = String(body?.secret ?? "").trim();
+  const envSecret = String(process.env.ADMIN_SECRET ?? "").trim();
 
-  console.log("🧪 ENTERED SECRET:", secret);
-  console.log("🧪 ENV SECRET:", envSecret);
-  console.log("🧪 ENV EXISTS:", !!envSecret);
+  console.log("🔐 ADMIN LOGIN ATTEMPT");
+  console.log("➡️ Incoming length:", incoming.length);
+  console.log("➡️ Env length:", envSecret.length);
+  console.log("➡️ Match:", incoming === envSecret);
 
   if (!envSecret) {
+    console.error("❌ ADMIN_SECRET NOT SET");
     return NextResponse.json(
-      { error: "ADMIN_SECRET missing on server" },
+      { error: "Admin not configured" },
       { status: 500 }
     );
   }
 
-  if (secret !== envSecret) {
+  if (incoming !== envSecret) {
+    console.error("❌ PIN MISMATCH");
     return NextResponse.json(
       { error: "Invalid admin secret" },
       { status: 401 }
     );
   }
 
+  // ✅ THIS IS THE FIX
   const cookieStore = await cookies();
+
   cookieStore.set("dg_admin", "authorized", {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8,
+    maxAge: 60 * 60 * 8, // 8 hours
   });
+
+  console.log("✅ ADMIN LOGIN SUCCESS");
 
   return NextResponse.json({ ok: true });
 }
