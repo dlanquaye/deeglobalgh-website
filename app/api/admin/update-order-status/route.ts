@@ -13,7 +13,10 @@ const ALLOWED_STATUSES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, status } = await req.json();
+    const body = await req.json();
+const id = body.id;
+const status = String(body.status).toUpperCase();
+
 
     if (!id || typeof status !== "string") {
       return NextResponse.json(
