@@ -14,9 +14,9 @@ const ALLOWED_STATUSES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { reference, status } = await req.json();
+    const { orderId, status } = await req.json();
 
-    if (!reference || typeof status !== "string") {
+    if (!orderId || typeof status !== "string") {
       return NextResponse.json(
         { error: "Invalid request payload" },
         { status: 400 }
@@ -30,15 +30,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔒 RAW SQL — bypass Prisma enum typing completely
     await prisma.$executeRawUnsafe(
       `
       UPDATE "Order"
       SET "paymentStatus" = $1
-      WHERE "reference" = $2
+      WHERE "orderId" = $2
       `,
       status,
-      reference
+      orderId
     );
 
     return NextResponse.json({ success: true });
