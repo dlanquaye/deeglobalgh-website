@@ -1,5 +1,6 @@
 import { prisma } from "@/app/lib/prisma";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,19 @@ export default async function OrderReceiptPage({
 }: {
   params: { id: string };
 }) {
+  /* ===============================
+     🔒 ADMIN AUTH CHECK
+     =============================== */
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("dg_admin");
+
+  if (!isAdmin) {
+    redirect("/admin/login");
+  }
+
+  /* ===============================
+     🔎 LOAD ORDER
+     =============================== */
   const order = await prisma.order.findUnique({
     where: { id: params.id },
   });
@@ -23,12 +37,11 @@ export default async function OrderReceiptPage({
     notFound();
   }
 
-  const total =
-    order.amount + (order.deliveryFee ?? 0);
+  const total = order.amount + (order.deliveryFee ?? 0);
 
   return (
     <main className="mx-auto max-w-2xl bg-white p-8 print:p-0">
-      <h1 className="text-2xl font-extrabold mb-6">
+      <h1 className="mb-6 text-2xl font-extrabold">
         Order Receipt
       </h1>
 
