@@ -1,38 +1,36 @@
 import { NextResponse } from "next/server";
-
-export const runtime = "nodejs";
+import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
-  const { secret } = await req.json();
+  const body = await req.json();
+  const { secret } = body;
 
-  console.log("🔐 ENTERED PIN:", secret);
-  console.log("🔐 ENV PIN:", process.env.ADMIN_SECRET);
+  const envSecret = process.env.ADMIN_SECRET;
 
-  if (!process.env.ADMIN_SECRET) {
-    console.error("❌ ADMIN_SECRET IS MISSING");
+  if (!envSecret) {
     return NextResponse.json(
-      { error: "Admin secret not set on server" },
+      { error: "ADMIN_SECRET not configured" },
       { status: 500 }
     );
   }
 
-  if (secret !== process.env.ADMIN_SECRET) {
-    console.error("❌ PIN MISMATCH");
+  if (secret !== envSecret) {
     return NextResponse.json(
       { error: "Invalid admin secret" },
       { status: 401 }
     );
   }
 
-  const res = NextResponse.json({ ok: true });
+  // ✅ cookies() MUST be awaited
+  const cookieStore = await cookies();
 
-  res.cookies.set("dg_admin", "authorized", {
+  cookieStore.set("dg_admin", "authorized", {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8,
+    maxAge: 60 * 60 * 8, // 8 hours
   });
 
-  return res;
+  return NextResponse.json({ ok: true });
 }
