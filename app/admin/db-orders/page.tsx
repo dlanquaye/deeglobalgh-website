@@ -20,6 +20,7 @@ export default function AdminDbOrdersPage() {
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -31,32 +32,34 @@ export default function AdminDbOrdersPage() {
     setLoading(false);
   };
 
- useEffect(() => {
-  const checkAuth = async () => {
-    const res = await fetch("/api/admin/me");
+  useEffect(() => {
+    const checkAuth = async () => {
+      const res = await fetch("/api/admin/me");
 
-    if (!res.ok) {
-      window.location.href = "/admin/login";
-      return;
-    }
+      if (!res.ok) {
+        window.location.href = "/admin/login";
+        return;
+      }
 
-    loadOrders();
-  };
+      loadOrders();
+    };
 
-  checkAuth();
-}, []);
-
+    checkAuth();
+  }, []);
 
   const updateStatus = async (
-    orderId: string,
+    id: string,
     status: DbOrder["paymentStatus"]
   ) => {
+    setUpdatingOrderId(id);
+
     await fetch("/api/admin/update-order-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, status }),
+      body: JSON.stringify({ id, status }),
     });
 
+    setUpdatingOrderId(null);
     loadOrders();
   };
 
@@ -157,23 +160,40 @@ export default function AdminDbOrdersPage() {
                   <td className="px-4 py-3 space-y-2">
                     {o.paymentStatus === "PAID" && (
                       <button
-                        onClick={() =>
-                          updateStatus(o.orderId, "DELIVERING")
-                        }
-                        className="block rounded bg-blue-600 px-3 py-1 text-white"
+                        onClick={() => updateStatus(o.id, "DELIVERING")}
+                        disabled={updatingOrderId === o.id}
+                        className={`block rounded px-3 py-1 text-white ${
+                          updatingOrderId === o.id
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600"
+                        }`}
                       >
-                        Start Delivery
+                        {updatingOrderId === o.id
+                          ? "Starting…"
+                          : "Start Delivery"}
                       </button>
                     )}
 
                     {o.paymentStatus === "DELIVERING" && (
                       <button
-                        onClick={() =>
-                          updateStatus(o.orderId, "COMPLETED")
-                        }
-                        className="block rounded bg-green-600 px-3 py-1 text-white"
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            "Are you sure you want to mark this order as COMPLETED?"
+                          );
+                          if (!confirmed) return;
+
+                          updateStatus(o.id, "COMPLETED");
+                        }}
+                        disabled={updatingOrderId === o.id}
+                        className={`block rounded px-3 py-1 text-white ${
+                          updatingOrderId === o.id
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-green-600"
+                        }`}
                       >
-                        Mark Completed
+                        {updatingOrderId === o.id
+                          ? "Completing…"
+                          : "Mark Completed"}
                       </button>
                     )}
 
