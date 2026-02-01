@@ -14,36 +14,29 @@ const ALLOWED_STATUSES = [
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-const id = body.id;
-const status = String(body.status).toUpperCase();
 
+    const id =
+      typeof body.id === "string"
+        ? body.id
+        : typeof body.orderId === "string"
+        ? body.orderId
+        : null;
 
-    if (!id || typeof status !== "string") {
+    const status = String(body.status || "").toUpperCase();
+
+    if (!id || !ALLOWED_STATUSES.includes(status as any)) {
       return NextResponse.json(
         { error: "Invalid request payload" },
         { status: 400 }
       );
     }
 
-    if (!ALLOWED_STATUSES.includes(status as any)) {
-      return NextResponse.json(
-        { error: "Invalid order status" },
-        { status: 400 }
-      );
-    }
-
-    const result = await prisma.order.updateMany({
-  where: { id },
-  data: {
-    paymentStatus: status as any,
-  },
-});
-
-return NextResponse.json({
-  success: true,
-  updatedCount: result.count,
-});
-
+    await prisma.order.update({
+      where: { id },
+      data: {
+        paymentStatus: status as any,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
