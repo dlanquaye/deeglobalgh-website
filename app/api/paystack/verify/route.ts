@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { PaymentStatus } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
+import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 export async function GET(req: Request) {
   try {
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       FIND EXISTING ORDER
+       FIND ORDER
        =============================== */
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -96,29 +97,28 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       ✅ CUSTOMER WHATSAPP MESSAGE
-       (ONLY ONCE, ONLY IF PAID)
+       ✅ SEND CUSTOMER SMS (ONCE)
        =============================== */
     if (
       paymentStatus === PaymentStatus.PAID &&
       !order.smsSent &&
       order.phone
     ) {
-      const message = `Hello ${order.email || "Customer"},
+      const message = `DeeGlobalGH:
 
-✅ Payment received successfully!
+Payment received successfully ✅
 
-Your order (${order.orderId}) has been confirmed.
-Our team will begin processing it shortly and contact you for delivery.
+Order ID: ${order.orderId}
+Amount: GHS ${order.amount.toFixed(2)}
 
-Thank you for shopping with DeeGlobalGH.`;
+We are processing your order and will contact you shortly for delivery.
 
-      const whatsappUrl =
-        `https://wa.me/233${order.phone.replace(/^0/, "")}` +
-        `?text=${encodeURIComponent(message)}`;
+Thank you for shopping with us.`;
 
-      // Fire-and-forget (no await needed)
-      fetch(whatsappUrl).catch(() => {});
+      await sendOrderSMS({
+        phone: order.phone,
+        message,
+      });
 
       await prisma.order.update({
         where: { orderId },
@@ -132,6 +132,7 @@ Thank you for shopping with DeeGlobalGH.`;
       paymentStatus,
     });
   } catch (err: any) {
+    console.error("❌ Paystack verify error:", err);
     return NextResponse.json(
       { error: err?.message || "Server error" },
       { status: 500 }
