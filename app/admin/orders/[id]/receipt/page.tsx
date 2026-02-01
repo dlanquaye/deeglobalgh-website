@@ -1,6 +1,7 @@
 import { prisma } from "@/app/lib/prisma";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import PrintButton from "./PrintButton";
 
 export const runtime = "nodejs";
 
@@ -68,8 +69,7 @@ export default async function OrderReceiptPage({
         <hr />
 
         <div>
-          <strong>Subtotal:</strong> GHS{" "}
-          {formatMoney(order.amount)}
+          <strong>Subtotal:</strong> GHS {formatMoney(order.amount)}
         </div>
 
         {order.deliveryFee !== null && (
@@ -100,12 +100,7 @@ export default async function OrderReceiptPage({
       </div>
 
       <div className="mt-8 flex gap-4 print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="rounded bg-blue-600 px-4 py-2 text-white"
-        >
-          Print / Save
-        </button>
+        <PrintButton />
 
         <a
           href="/admin/db-orders"
