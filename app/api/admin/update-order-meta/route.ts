@@ -1,32 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { reference, deliveryFee, adminNotes } = await req.json();
+    // 🔒 Admin authentication
+    const cookieStore = await cookies();
 
-    if (!reference) {
+    const isAdmin = cookieStore.get("dg_admin");
+
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: "Missing order reference" },
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+
+    const orderId =
+      typeof body.orderId === "string"
+        ? body.orderId
+        : typeof body.reference === "string"
+        ? body.reference
+        : null;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: "Missing order identifier" },
         { status: 400 }
       );
     }
 
-    // Use raw SQL to bypass Prisma Client type lag
-    await prisma.$executeRawUnsafe(
-      `
-      UPDATE "Order"
-      SET
-        "deliveryFee" = $1,
-        "adminNotes" = $2
-      WHERE "reference" = $3
-      `,
-      typeof deliveryFee === "number" ? deliveryFee : null,
-      typeof adminNotes === "string" ? adminNotes : null,
-      reference
-    );
+    // 🔒 Resolve to primary Prisma ID
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      select: { id: true },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    // 🔒 Sanitize inputs
+    const deliveryFee =
+      typeof body.deliveryFee === "number" && body.deliveryFee >= 0
+        ? body.deliveryFee
+        : null;
+
+    const adminNotes =
+      typeof body.adminNotes === "string"
+        ? body.adminNotes.trim()
+        : null;
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        deliveryFee,
+        adminNotes,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
