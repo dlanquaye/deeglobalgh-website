@@ -197,6 +197,12 @@ export default function AdminDbOrdersPage() {
                       </button>
                     )}
 
+                    {o.paymentStatus === "COMPLETED" && (
+                      <span className="text-xs font-semibold text-green-700">
+                        ✔ Completed
+                      </span>
+                    )}
+
                     <button
                       onClick={() => saveMeta(o)}
                       disabled={savingOrderId === o.orderId}
