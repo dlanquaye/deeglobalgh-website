@@ -18,14 +18,15 @@ export default async function OrderReceiptPage({
   params: { id: string };
 }) {
   /* ===============================
-     🔒 ADMIN AUTH CHECK
-     =============================== */
-  const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("dg_admin");
+   🔒 ADMIN AUTH CHECK
+   =============================== */
+const cookieStore = await cookies();
+const isAdmin = cookieStore.get("dg_admin")?.value;
 
-  if (!isAdmin) {
-    redirect("/admin/login");
-  }
+if (!isAdmin) {
+  redirect("/admin/login");
+}
+
 
   /* ===============================
      🔎 LOAD ORDER
