@@ -3,7 +3,6 @@ import { prisma } from "@/app/lib/prisma";
 
 export const runtime = "nodejs";
 
-// Allowed values must match DB enum exactly
 const ALLOWED_STATUSES = [
   "PENDING",
   "PAID",
@@ -14,9 +13,9 @@ const ALLOWED_STATUSES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, status } = await req.json();
+    const { id, status } = await req.json();
 
-    if (!orderId || typeof status !== "string") {
+    if (!id || typeof status !== "string") {
       return NextResponse.json(
         { error: "Invalid request payload" },
         { status: 400 }
@@ -30,15 +29,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await prisma.$executeRawUnsafe(
-      `
-      UPDATE "Order"
-      SET "paymentStatus" = $1
-      WHERE "orderId" = $2
-      `,
-      status,
-      orderId
-    );
+    await prisma.order.update({
+      where: { id },
+      data: {
+        paymentStatus: status as any,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
