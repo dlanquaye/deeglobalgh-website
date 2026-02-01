@@ -7,9 +7,13 @@ export async function POST(req: Request) {
 
   const envSecret = process.env.ADMIN_SECRET;
 
+  console.log("🧪 ENTERED SECRET:", secret);
+  console.log("🧪 ENV SECRET:", envSecret);
+  console.log("🧪 ENV EXISTS:", !!envSecret);
+
   if (!envSecret) {
     return NextResponse.json(
-      { error: "ADMIN_SECRET not configured" },
+      { error: "ADMIN_SECRET missing on server" },
       { status: 500 }
     );
   }
@@ -21,15 +25,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // ✅ cookies() MUST be awaited
   const cookieStore = await cookies();
-
   cookieStore.set("dg_admin", "authorized", {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: 60 * 60 * 8,
   });
 
   return NextResponse.json({ ok: true });
