@@ -10,24 +10,28 @@ datasource db {
 model Order {
   id            String        @id @default(cuid())
 
-  // Public / human-readable order reference (e.g. DG-1700000000)
+  // Public / human-readable order reference
   reference     String?       @unique
 
-  // Internal legacy ID (kept for safety & indexing)
+  // Internal legacy ID
   orderId       String        @unique
 
   email         String
   phone         String
 
-  // Stored in pesewas (matches Paystack amounts)
+  // Stored in pesewas
   amount        Int
 
   // Admin-managed fields
-  deliveryFee   Int?          // Stored in pesewas
+  deliveryFee   Int?
   adminNotes    String?
 
   paymentStatus PaymentStatus @default(PENDING)
-  smsSent       Boolean       @default(false)
+
+  // ✅ SMS tracking flags
+  smsSent           Boolean @default(false)
+  deliverySmsSent   Boolean @default(false)
+  completedSmsSent  Boolean @default(false)
 
   createdAt     DateTime      @default(now())
 

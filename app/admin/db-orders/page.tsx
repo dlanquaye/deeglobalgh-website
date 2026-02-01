@@ -210,6 +210,15 @@ export default function AdminDbOrdersPage() {
                     >
                       {savingOrderId === o.orderId ? "Saving…" : "Save"}
                     </button>
+
+                    {/* ✅ Read-only receipt */}
+                    <a
+                      href={`/admin/orders/${o.id}/receipt`}
+                      target="_blank"
+                      className="block text-xs font-semibold text-blue-700 underline"
+                    >
+                      View Receipt
+                    </a>
                   </td>
                 </tr>
               ))}
