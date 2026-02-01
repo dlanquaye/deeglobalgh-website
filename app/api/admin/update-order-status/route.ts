@@ -29,12 +29,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await prisma.order.update({
-      where: { id },
-      data: {
-        paymentStatus: status as any,
-      },
-    });
+    const result = await prisma.order.updateMany({
+  where: { id },
+  data: {
+    paymentStatus: status as any,
+  },
+});
+
+return NextResponse.json({
+  success: true,
+  updatedCount: result.count,
+});
+
 
     return NextResponse.json({ success: true });
   } catch (error) {
