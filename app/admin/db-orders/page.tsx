@@ -31,9 +31,21 @@ export default function AdminDbOrdersPage() {
     setLoading(false);
   };
 
-  useEffect(() => {
+ useEffect(() => {
+  const checkAuth = async () => {
+    const res = await fetch("/api/admin/me");
+
+    if (!res.ok) {
+      window.location.href = "/admin/login";
+      return;
+    }
+
     loadOrders();
-  }, []);
+  };
+
+  checkAuth();
+}, []);
+
 
   const updateStatus = async (
     orderId: string,
