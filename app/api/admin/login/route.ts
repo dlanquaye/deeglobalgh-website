@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -28,7 +30,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // ✅ THIS IS THE FIX
   const cookieStore = await cookies();
 
   cookieStore.set("dg_admin", "authorized", {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: 60 * 60 * 8,
   });
 
   console.log("✅ ADMIN LOGIN SUCCESS");
