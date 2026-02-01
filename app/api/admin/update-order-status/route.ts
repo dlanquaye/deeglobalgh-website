@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 
@@ -13,45 +14,60 @@ const ALLOWED_STATUSES = [
 
 export async function POST(req: NextRequest) {
   try {
+    // 🔒 Admin auth
+    const cookieStore = await cookies();
+    const isAdmin = cookieStore.get("dg_admin");
+
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
-
-    const orderId =
-      typeof body.id === "string"
-        ? body.id
-        : typeof body.orderId === "string"
-        ? body.orderId
-        : null;
-
     const status = String(body.status || "").toUpperCase();
 
-    if (!orderId || !ALLOWED_STATUSES.includes(status as any)) {
+    if (!ALLOWED_STATUSES.includes(status as any)) {
       return NextResponse.json(
-        { error: "Invalid request payload" },
+        { error: "Invalid status" },
         { status: 400 }
       );
     }
 
-    // 🔒 Resolve human orderId → internal Prisma id
-    const order = await prisma.order.findUnique({
-      where: { orderId },
-      select: { id: true },
-    });
+    // ✅ CASE 1: Prisma primary key sent (this is your current UI)
+    if (typeof body.id === "string") {
+      await prisma.order.update({
+        where: { id: body.id },
+        data: { paymentStatus: status as any },
+      });
 
-    if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: true });
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: status as any,
-      },
-    });
+    // ✅ CASE 2: orderId sent (fallback / legacy)
+    if (typeof body.orderId === "string") {
+      const order = await prisma.order.findUnique({
+        where: { orderId: body.orderId },
+        select: { id: true },
+      });
 
-    return NextResponse.json({ success: true });
+      if (!order) {
+        return NextResponse.json(
+          { error: "Order not found" },
+          { status: 404 }
+        );
+      }
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentStatus: status as any },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json(
+      { error: "Missing order identifier" },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("❌ update-order-status error:", error);
     return NextResponse.json(
