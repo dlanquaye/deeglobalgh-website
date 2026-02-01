@@ -83,15 +83,46 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       UPDATE ORDER (SAFE FIELDS ONLY)
+       UPDATE PAYMENT STATUS
        =============================== */
     if (order.paymentStatus !== paymentStatus) {
       await prisma.order.update({
         where: { orderId },
         data: {
           paymentStatus,
-          reference, // ✅ existing schema field
+          reference,
         },
+      });
+    }
+
+    /* ===============================
+       ✅ CUSTOMER WHATSAPP MESSAGE
+       (ONLY ONCE, ONLY IF PAID)
+       =============================== */
+    if (
+      paymentStatus === PaymentStatus.PAID &&
+      !order.smsSent &&
+      order.phone
+    ) {
+      const message = `Hello ${order.email || "Customer"},
+
+✅ Payment received successfully!
+
+Your order (${order.orderId}) has been confirmed.
+Our team will begin processing it shortly and contact you for delivery.
+
+Thank you for shopping with DeeGlobalGH.`;
+
+      const whatsappUrl =
+        `https://wa.me/233${order.phone.replace(/^0/, "")}` +
+        `?text=${encodeURIComponent(message)}`;
+
+      // Fire-and-forget (no await needed)
+      fetch(whatsappUrl).catch(() => {});
+
+      await prisma.order.update({
+        where: { orderId },
+        data: { smsSent: true },
       });
     }
 
