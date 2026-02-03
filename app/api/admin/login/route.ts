@@ -1,7 +1,6 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -30,17 +29,17 @@ export async function POST(req: Request) {
     );
   }
 
-  const cookieStore = await cookies();
+  const response = NextResponse.json({ ok: true });
 
-  cookieStore.set("dg_admin", "authorized", {
+  response.cookies.set("dg_admin", "authorized", {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8,
+    maxAge: 60 * 60 * 8, // 8 hours
   });
 
   console.log("✅ ADMIN LOGIN SUCCESS");
 
-  return NextResponse.json({ ok: true });
+  return response;
 }

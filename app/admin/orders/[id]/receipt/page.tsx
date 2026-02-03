@@ -12,27 +12,34 @@ function formatMoney(amount: number) {
   }).format(amount / 100);
 }
 
-export default async function OrderReceiptPage({
-  params,
-}: {
-  params: { id: string };
+export default async function OrderReceiptPage(props: {
+  params: Promise<{ id: string }>;
 }) {
   /* ===============================
-   🔒 ADMIN AUTH CHECK
-   =============================== */
-const cookieStore = await cookies();
-const isAdmin = cookieStore.get("dg_admin")?.value;
-
-if (!isAdmin) {
-  redirect("/admin/login");
-}
-
+     🔓 UNWRAP ASYNC PARAMS (NEXT 15)
+     =============================== */
+  const { id } = await props.params;
 
   /* ===============================
-     🔎 LOAD ORDER
+     🔒 ADMIN AUTH CHECK
      =============================== */
-  const order = await prisma.order.findUnique({
-    where: { id: params.id },
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("dg_admin")?.value;
+
+  if (!isAdmin) {
+    redirect("/admin/login");
+  }
+
+  /* ===============================
+     🔎 LOAD ORDER (DETERMINISTIC)
+     =============================== */
+  const order = await prisma.order.findFirst({
+    where: {
+      orderId: id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   if (!order) {
@@ -75,8 +82,8 @@ if (!isAdmin) {
 
         {order.deliveryFee !== null && (
           <div>
-            <strong>Delivery Fee:</strong> GHS{" "}
-            {formatMoney(order.deliveryFee)}
+            <strong>Delivery Fee:</strong>{" "}
+            GHS {formatMoney(order.deliveryFee)}
           </div>
         )}
 
