@@ -22,27 +22,32 @@ export default function PaystackSuccessClient({
 
       const snapshot = JSON.parse(raw);
 
-      // ✅ Build WhatsApp confirmation message (NO database update here)
+      /* ===============================
+         📲 BUILD WHATSAPP MESSAGE
+         (CONFIRMATION ONLY – NO DB WRITE)
+         =============================== */
       const lines: string[] = [];
 
-      lines.push("Hello DeeglobalGh, I have completed payment.");
+      lines.push("Hello DeeGlobalGH,");
+      lines.push("");
+      lines.push("I have completed payment successfully.");
       lines.push("");
       lines.push("PAYMENT DETAILS");
       lines.push(`Paystack Reference: ${reference}`);
-      lines.push("Payment Status: VERIFIED (SUCCESS)");
+      lines.push("Payment Status: VERIFIED");
       lines.push("");
       lines.push("CUSTOMER DETAILS");
       lines.push(`Name: ${snapshot.customer.fullName}`);
       lines.push(`Phone: ${snapshot.customer.phone}`);
       lines.push(`Delivery Area: ${snapshot.customer.area}`);
-      lines.push(`Location/Landmark: ${snapshot.customer.location}`);
+      lines.push(`Location / Landmark: ${snapshot.customer.location}`);
 
       if (snapshot.customer.notes) {
         lines.push(`Notes: ${snapshot.customer.notes}`);
       }
 
       lines.push("");
-      lines.push("ORDER ITEMS");
+      lines.push("ORDER SUMMARY");
 
       snapshot.items.forEach((x: any, idx: number) => {
         lines.push(
@@ -51,9 +56,11 @@ export default function PaystackSuccessClient({
       });
 
       lines.push("");
-      lines.push(`SUBTOTAL: GH₵ ${snapshot.subtotal.toFixed(2)}`);
+      lines.push(`Subtotal: GH₵ ${snapshot.subtotal.toFixed(2)}`);
       lines.push("");
-      lines.push("Please confirm delivery fee and delivery time. Thank you.");
+      lines.push(
+        "Please confirm delivery fee and delivery time when convenient. Thank you."
+      );
 
       const waNumber = "233246011773";
       const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(
@@ -62,10 +69,10 @@ export default function PaystackSuccessClient({
 
       setWhatsAppUrl(url);
 
-      // ✅ Clear snapshot after success to avoid duplicates
+      // ✅ Clear snapshot after success to prevent duplicate sends
       localStorage.removeItem(SNAPSHOT_KEY);
     } catch {
-      // Do nothing – payment already handled on server
+      // Silent fail – payment already verified server-side
     }
   }, [reference, status]);
 
@@ -73,17 +80,23 @@ export default function PaystackSuccessClient({
 
   return (
     <div className="mt-6 rounded-2xl border bg-green-50 p-5">
-      <div className="font-bold text-green-700 flex items-center gap-2">
-        Payment Confirmed ✅
+      <div className="flex items-center gap-2 font-bold text-green-700">
+        Payment Successful ✅
       </div>
 
       <p className="mt-2 text-sm text-green-800">
-        Your payment has been verified successfully.
+        Your payment has been received and verified successfully.
       </p>
 
       <p className="mt-3 text-sm text-gray-700">
-        To complete your order, please send your order and payment confirmation
-        on WhatsApp so we can confirm delivery details.
+        Our team will contact you shortly to confirm delivery details.
+        This confirmation shows your order summary. Item details will be
+        confirmed during delivery coordination.
+      </p>
+
+      <p className="mt-3 text-sm text-gray-700">
+        If you would like to speed things up, you can send your order and
+        payment confirmation on WhatsApp.
       </p>
 
       {whatsAppUrl && (
@@ -93,7 +106,7 @@ export default function PaystackSuccessClient({
           rel="noreferrer"
           className="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:opacity-90"
         >
-          Send Order & Payment Confirmation on WhatsApp
+          Chat on WhatsApp
         </a>
       )}
     </div>
