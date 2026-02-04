@@ -1,8 +1,9 @@
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { cookies } from "next/headers";
-
-export const runtime = "nodejs";
+import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 const ALLOWED_STATUSES = [
   "PENDING",
@@ -12,62 +13,117 @@ const ALLOWED_STATUSES = [
   "COMPLETED",
 ] as const;
 
+type Status = (typeof ALLOWED_STATUSES)[number];
+
+const VALID_TRANSITIONS: Record<Status, Status[]> = {
+  PENDING: ["PAID"],
+  PAID: ["DELIVERING"],
+  DELIVERING: ["COMPLETED"],
+  FAILED: [],
+  COMPLETED: [],
+};
+
 export async function POST(req: NextRequest) {
   try {
-    // 🔒 Admin auth
-    const cookieStore = await cookies();
+    /* ===============================
+       🔒 ADMIN AUTH
+       =============================== */
+    const cookieStore = await cookies(); // ✅ REQUIRED IN NEXT 15
     const isAdmin = cookieStore.get("dg_admin");
 
     if (!isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
-    const status = String(body.status || "").toUpperCase();
+    const nextStatus = String(body.status || "").toUpperCase() as Status;
 
-    if (!ALLOWED_STATUSES.includes(status as any)) {
+    if (!ALLOWED_STATUSES.includes(nextStatus)) {
       return NextResponse.json(
         { error: "Invalid status" },
         { status: 400 }
       );
     }
 
-    // ✅ CASE 1: Prisma primary key sent (this is your current UI)
+    /* ===============================
+       🔎 LOAD ORDER (ID OR ORDERID)
+       =============================== */
+    let order = null;
+
     if (typeof body.id === "string") {
-      await prisma.order.update({
+      order = await prisma.order.findUnique({
         where: { id: body.id },
-        data: { paymentStatus: status as any },
       });
-
-      return NextResponse.json({ success: true });
-    }
-
-    // ✅ CASE 2: orderId sent (fallback / legacy)
-    if (typeof body.orderId === "string") {
-      const order = await prisma.order.findUnique({
+    } else if (typeof body.orderId === "string") {
+      order = await prisma.order.findUnique({
         where: { orderId: body.orderId },
-        select: { id: true },
       });
-
-      if (!order) {
-        return NextResponse.json(
-          { error: "Order not found" },
-          { status: 404 }
-        );
-      }
-
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: status as any },
-      });
-
-      return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json(
-      { error: "Missing order identifier" },
-      { status: 400 }
-    );
+    if (!order) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    /* ===============================
+       🚦 VALIDATE STATUS TRANSITION
+       =============================== */
+    const allowedNext = VALID_TRANSITIONS[order.paymentStatus];
+
+    if (!allowedNext.includes(nextStatus)) {
+      return NextResponse.json(
+        {
+          error: `Invalid transition from ${order.paymentStatus} to ${nextStatus}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    /* ===============================
+       ✅ UPDATE STATUS
+       =============================== */
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: nextStatus },
+    });
+
+    /* ===============================
+       📲 DELIVERY STARTED SMS (ONCE)
+       =============================== */
+    if (
+      nextStatus === "DELIVERING" &&
+      !order.deliverySmsSent &&
+      order.phone
+    ) {
+      const message = `DeeGlobalGH:
+
+🚚 Your order ${order.orderId} is now out for delivery.
+
+Our rider will contact you shortly.
+Thank you for shopping with us.`;
+
+      try {
+        await sendOrderSMS({
+          phone: order.phone,
+          message,
+        });
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { deliverySmsSent: true },
+        });
+      } catch (err) {
+        console.error("❌ Delivery SMS failed:", err);
+        // SMS failure must NOT block status update
+      }
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("❌ update-order-status error:", error);
     return NextResponse.json(
