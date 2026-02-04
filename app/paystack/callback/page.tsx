@@ -8,7 +8,8 @@ type Props = {
 };
 
 async function verify(reference: string) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const res = await fetch(
     `${siteUrl}/api/paystack/verify?reference=${encodeURIComponent(reference)}`,
@@ -18,16 +19,26 @@ async function verify(reference: string) {
   return res.json();
 }
 
-export default async function PaystackCallbackPage({ searchParams }: Props) {
+export default async function PaystackCallbackPage({
+  searchParams,
+}: Props) {
   const { reference } = await searchParams;
 
   if (!reference) {
     return (
-      <div style={{ padding: 24 }}>
-        <h1>Payment Error</h1>
-        <p>Missing transaction reference.</p>
-        <Link href="/">Go Home</Link>
-      </div>
+      <main className="mx-auto max-w-xl p-6">
+        <h1 className="text-xl font-bold">Payment Error</h1>
+        <p className="mt-2 text-sm text-gray-700">
+          Missing transaction reference. No payment was processed.
+        </p>
+
+        <Link
+          href="/"
+          className="mt-4 inline-block rounded border px-4 py-2"
+        >
+          Back to Home
+        </Link>
+      </main>
     );
   }
 
@@ -35,49 +46,62 @@ export default async function PaystackCallbackPage({ searchParams }: Props) {
   const status = result?.data?.status || "unknown";
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Payment Callback</h1>
-
-      <p>
-        <b>Reference:</b> {reference}
-      </p>
-      <p>
-        <b>Verification status:</b> {status}
-      </p>
-
+    <main className="mx-auto max-w-2xl p-6">
       {status === "success" ? (
         <>
-          <PaystackSuccessClient reference={reference} status={status} />
+          {/* ✅ SINGLE SOURCE OF SUCCESS UX */}
+          <PaystackSuccessClient
+            reference={reference}
+            status={status}
+          />
 
-          {/* ✅ Order Summary */}
+          {/* ✅ ORDER SUMMARY (READ-ONLY) */}
           <OrderSummaryClient />
 
-          <h2 style={{ marginTop: 16 }}>Payment Confirmed ✅</h2>
-          <p>Your payment has been verified successfully.</p>
-          <p style={{ marginTop: 8 }}>
-            We are opening WhatsApp now so you can send your order confirmation.
-          </p>
-
-          <Link href="/" style={{ display: "inline-block", marginTop: 16 }}>
-            Continue shopping
-          </Link>
+          <div className="mt-6">
+            <Link
+              href="/"
+              className="inline-block rounded border px-4 py-2"
+            >
+              Continue Shopping
+            </Link>
+          </div>
         </>
       ) : (
         <>
-          {/* ✅ Mark Paystack order as failed/abandoned/unknown */}
-          <PaystackFailureClient reference={reference} status={status} />
+          {/* ❌ FAILURE / CANCELLED / UNKNOWN */}
+          <PaystackFailureClient
+            reference={reference}
+            status={status}
+          />
 
-          <h2>Payment Not Confirmed</h2>
-          <p>
-            We could not confirm payment yet. If you paid, please wait and
-            refresh.
+          <h2 className="mt-6 text-lg font-bold">
+            Payment Not Confirmed
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-700">
+            Your payment could not be confirmed at this time.
+            If you were debited, please wait a few minutes and
+            contact us on WhatsApp.
           </p>
 
-          <Link href="/" style={{ display: "inline-block", marginTop: 16 }}>
-            Go Home
-          </Link>
+          <div className="mt-4 flex gap-3">
+            <Link
+              href="/"
+              className="rounded border px-4 py-2"
+            >
+              Back to Home
+            </Link>
+
+            <Link
+              href="https://wa.me/233246011773"
+              className="rounded bg-green-600 px-4 py-2 text-white"
+            >
+              Contact WhatsApp
+            </Link>
+          </div>
         </>
       )}
-    </div>
+    </main>
   );
 }
