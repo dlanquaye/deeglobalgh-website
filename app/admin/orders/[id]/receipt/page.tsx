@@ -9,7 +9,7 @@ function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-GH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount / 100);
+  }).format(amount); // ✅ GHS already
 }
 
 export default async function OrderReceiptPage(props: {
@@ -31,15 +31,11 @@ export default async function OrderReceiptPage(props: {
   }
 
   /* ===============================
-     🔎 LOAD ORDER (DETERMINISTIC)
+     🔎 LOAD ORDER (BY PUBLIC ORDER ID)
      =============================== */
   const order = await prisma.order.findFirst({
-    where: {
-      orderId: id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+    where: { orderId: id },
+    orderBy: { createdAt: "desc" },
   });
 
   if (!order) {
@@ -82,8 +78,8 @@ export default async function OrderReceiptPage(props: {
 
         {order.deliveryFee !== null && (
           <div>
-            <strong>Delivery Fee:</strong>{" "}
-            GHS {formatMoney(order.deliveryFee)}
+            <strong>Delivery Fee:</strong> GHS{" "}
+            {formatMoney(order.deliveryFee)}
           </div>
         )}
 
