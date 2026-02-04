@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -48,6 +49,24 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        {/* ✅ Google Analytics 4 */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-2S4Q5JV5SP"
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-2S4Q5JV5SP', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+      </head>
+
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* ✅ Organization Schema JSON-LD */}
         <script
@@ -60,14 +79,12 @@ export default function RootLayout({
         {/* ✅ Providers */}
         <CartProvider>
           <CartDrawerProvider>
-            {/* Site Header (Shows on every page) */}
+            {/* Site Header */}
             <header className="sticky top-0 z-50 border-b bg-white">
-              {/* Small top accent line (Blue + Gold) */}
               <div className="h-1 w-full bg-gradient-to-r from-blue-900 via-blue-700 to-yellow-500" />
 
               <div className="mx-auto max-w-6xl px-4">
                 <div className="flex items-center justify-between gap-3 py-3">
-                  {/* Brand */}
                   <Link href="/" className="flex items-center gap-2 min-w-0">
                     <div className="text-lg font-extrabold tracking-tight text-blue-900 whitespace-nowrap">
                       DeeGlobalGH
@@ -78,9 +95,7 @@ export default function RootLayout({
                     </span>
                   </Link>
 
-                  {/* Navigation */}
                   <nav className="flex items-center gap-2 text-sm font-semibold shrink-0">
-                    {/* Desktop links */}
                     <div className="hidden sm:flex items-center gap-2">
                       <Link
                         href="/"
@@ -104,7 +119,6 @@ export default function RootLayout({
                       </Link>
                     </div>
 
-                    {/* Cart */}
                     <Link
                       href="/cart"
                       className="rounded-lg border border-blue-200 px-3 py-2 font-bold text-blue-900 hover:bg-blue-50"
@@ -114,8 +128,7 @@ export default function RootLayout({
                   </nav>
                 </div>
 
-                {/* Small helper line */}
-                <div className="pb-3 text-xs text-gray-600 break-words whitespace-normal">
+                <div className="pb-3 text-xs text-gray-600">
                   Fast delivery • Textbooks • Exam essentials • School supplies
                 </div>
               </div>
@@ -126,7 +139,7 @@ export default function RootLayout({
               <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
             </div>
 
-            {/* Floating WhatsApp Chat Button (site-wide) */}
+            {/* Floating WhatsApp Button */}
             <a
               href="https://wa.me/233246011773"
               target="_blank"
@@ -135,15 +148,13 @@ export default function RootLayout({
               title="Chat on WhatsApp"
               className="group fixed bottom-5 right-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-green-600 shadow-xl transition hover:opacity-95 hover:scale-105"
             >
-              {/* Tooltip */}
               <span className="pointer-events-none absolute right-16 top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-black px-4 py-2 text-xs font-bold text-white shadow-lg sm:block opacity-0 group-hover:opacity-100 transition">
                 Need help? Chat on WhatsApp
               </span>
 
-              {/* WhatsApp SVG Icon */}
-              <svg viewBox="0 0 32 32" className="h-7 w-7 fill-white" aria-hidden="true">
-                <path d="M19.11 17.56c-.27-.13-1.58-.78-1.82-.87-.24-.09-.42-.13-.6.13-.18.27-.69.87-.85 1.05-.16.18-.31.2-.58.07-.27-.13-1.13-.42-2.16-1.33-.8-.71-1.34-1.58-1.5-1.85-.16-.27-.02-.41.12-.54.12-.12.27-.31.4-.47.13-.16.18-.27.27-.44.09-.18.04-.33-.02-.47-.07-.13-.6-1.44-.82-1.98-.22-.53-.44-.46-.6-.47h-.51c-.18 0-.47.07-.71.33-.24.27-.93.91-.93 2.22 0 1.31.96 2.58 1.09 2.76.13.18 1.89 2.89 4.58 4.05.64.28 1.14.45 1.53.58.64.2 1.23.17 1.69.1.52-.08 1.58-.64 1.8-1.26.22-.62.22-1.16.16-1.26-.07-.11-.24-.18-.51-.31z" />
-                <path d="M16.04 3C9.4 3 4 8.3 4 14.83c0 2.31.7 4.45 1.9 6.24L4 29l8.14-1.86c1.72.94 3.7 1.48 5.9 1.48 6.64 0 12.04-5.3 12.04-11.83C30.08 8.3 22.68 3 16.04 3zm0 23.4c-2.03 0-3.9-.56-5.5-1.53l-.4-.24-4.83 1.1 1.12-4.64-.26-.42c-1.15-1.65-1.77-3.56-1.77-5.54 0-5.57 4.67-10.1 10.64-10.1 5.98 0 10.64 4.53 10.64 10.1 0 5.57-4.66 10.1-10.64 10.1z" />
+              <svg viewBox="0 0 32 32" className="h-7 w-7 fill-white">
+                <path d="M19.11 17.56c-.27-.13-1.58-.78-1.82-.87-.24-.09-.42-.13-.6.13-.18.27-.69.87-.85 1.05-.16.18-.31.2-.58.07-.27-.13-1.13-.42-2.16-1.33-.8-.71-1.34-1.58-1.5-1.85-.16-.27-.02-.41.12-.54.12-.12.27-.31.4-.47.13-.16.18-.27.27-.44.09-.18.04-.33-.02-.47-.07-.13-.6-1.44-.82-1.98-.22-.53-.44-.46-.6-.47h-.51c-.18 0-.47.07-.71.33-.24.27-.93.91-.93 2.22 0 1.31.96 2.58 1.09 2.76.13.18 1.89 2.89 4.58 4.05z" />
+                <path d="M16.04 3C9.4 3 4 8.3 4 14.83c0 2.31.7 4.45 1.9 6.24L4 29l8.14-1.86c1.72.94 3.7 1.48 5.9 1.48 6.64 0 12.04-5.3 12.04-11.83C30.08 8.3 22.68 3 16.04 3z" />
               </svg>
             </a>
 
@@ -188,14 +199,12 @@ export default function RootLayout({
                       <Link href="/shop" className="text-blue-900 hover:underline">
                         Shop All Products
                       </Link>
-
                       <Link
                         href="/category/textbooks"
                         className="text-blue-900 hover:underline"
                       >
                         Textbooks
                       </Link>
-
                       <a
                         href="https://wa.me/233246011773"
                         target="_blank"
@@ -204,13 +213,6 @@ export default function RootLayout({
                       >
                         WhatsApp Support
                       </a>
-
-                      <Link
-                        href="/admin/products"
-                        className="text-blue-900 hover:underline"
-                      >
-                        Admin • Products
-                      </Link>
                     </div>
                   </div>
                 </div>
