@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { cookies } from "next/headers";
-import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 const ALLOWED_STATUSES = [
   "PENDING",
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
     /* ===============================
        🔒 ADMIN AUTH
        =============================== */
-    const cookieStore = await cookies(); // ✅ REQUIRED IN NEXT 15
+    const cookieStore = await cookies();
     const isAdmin = cookieStore.get("dg_admin");
 
     if (!isAdmin) {
@@ -85,43 +84,12 @@ export async function POST(req: NextRequest) {
     }
 
     /* ===============================
-       ✅ UPDATE STATUS
+       ✅ UPDATE STATUS ONLY
        =============================== */
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: nextStatus },
     });
-
-    /* ===============================
-       📲 DELIVERY STARTED SMS (ONCE)
-       =============================== */
-    if (
-      nextStatus === "DELIVERING" &&
-      !order.deliverySmsSent &&
-      order.phone
-    ) {
-      const message = `DeeGlobalGH:
-
-🚚 Your order ${order.orderId} is now out for delivery.
-
-Our rider will contact you shortly.
-Thank you for shopping with us.`;
-
-      try {
-        await sendOrderSMS({
-          phone: order.phone,
-          message,
-        });
-
-        await prisma.order.update({
-          where: { id: order.id },
-          data: { deliverySmsSent: true },
-        });
-      } catch (err) {
-        console.error("❌ Delivery SMS failed:", err);
-        // SMS failure must NOT block status update
-      }
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
