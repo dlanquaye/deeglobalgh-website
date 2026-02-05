@@ -7,33 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////
+// EXISTING ORDER SYSTEM (UNCHANGED)
+//////////////////////////////////////
+
 model Order {
-  id            String        @id @default(cuid())
-
-  // Public / human-readable order reference
-  reference     String?       @unique
-
-  // Internal legacy ID
-  orderId       String        @unique
-
-  email         String
-  phone         String
-
-  // Stored in pesewas
-  amount        Int
-
-  // Admin-managed fields
-  deliveryFee   Int?
-  adminNotes    String?
-
-  paymentStatus PaymentStatus @default(PENDING)
-
-  // ✅ SMS tracking flags
-  smsSent           Boolean @default(false)
-  deliverySmsSent   Boolean @default(false)
-  completedSmsSent  Boolean @default(false)
-
-  createdAt     DateTime      @default(now())
+  id               String        @id @default(cuid())
+  orderId          String        @unique
+  reference        String?       @unique
+  email            String
+  phone            String
+  amount           Int
+  paymentStatus    PaymentStatus @default(PENDING)
+  smsSent          Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  adminNotes       String?
+  deliveryFee      Int?
+  completedSmsSent Boolean       @default(false)
+  deliverySmsSent  Boolean       @default(false)
 
   @@index([orderId])
   @@index([reference])
@@ -45,4 +36,110 @@ enum PaymentStatus {
   FAILED
   DELIVERING
   COMPLETED
+}
+
+//////////////////////////////////////
+// IMPORTATION SYSTEM (NEW — ADD ONLY)
+//////////////////////////////////////
+
+enum ImportShipmentStatus {
+  DRAFT
+  PAID
+  IN_TRANSIT
+  ARRIVED_GH
+  COMPLETED
+}
+
+enum ImportSourceApp {
+  ALIBABA
+  APP_1688
+  TAOBAO
+  WECHAT
+  OTHER
+}
+
+enum ShippingMode {
+  AIR
+  SEA
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  MOMO
+  ONLINE_CARD
+  OTHER
+}
+
+enum ImportCostType {
+  SUPPLIER
+  INTERNATIONAL_SHIPPING
+  CLEARING_FEES
+  FREIGHT_FORWARDER_FEES
+  LOCAL_TRANSPORT
+  OTHER
+}
+
+model ImportShipment {
+  id                         String   @id @default(cuid())
+  reference                  String
+  supplierName               String
+  sourceApp                  ImportSourceApp
+  sourceAppOther             String?
+
+  freightForwarderName       String
+  shippingMode               ShippingMode
+
+  supplierTrackingId         String?
+  supplierTrackingNotes      String?
+
+  paymentFinalizedDate       DateTime?
+  currency                   String
+  exchangeRateSnapshot       Decimal
+
+  status                     ImportShipmentStatus @default(DRAFT)
+
+  // Freight forwarder receipt confirmation gate
+  forwarderReceivedConfirmed Boolean  @default(false)
+  forwarderReceivedDate      DateTime?
+  forwarderReceivedNotes     String?
+
+  // CBM reconciliation gate
+  supplierDeclaredCbm        Decimal?
+  forwarderMeasuredCbm       Decimal?
+  agreedCbm                  Decimal?
+  cbmDiscrepancyFlag         Boolean  @default(false)
+  cbmConfirmedAt             DateTime?
+
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  costs                      ImportCost[]
+}
+
+model ImportCost {
+  id             String   @id @default(cuid())
+  shipmentId     String
+  shipment       ImportShipment @relation(fields: [shipmentId], references: [id])
+
+  costType       ImportCostType
+  description    String?
+  amountGhs      Decimal
+
+  paymentMethod  PaymentMethod
+  paymentDate    DateTime?
+
+  // Receipt / evidence (Cloudinary URL)
+  receiptUrl     String?
+
+  // Cash-specific controls
+  isPaid         Boolean  @default(false)
+  cashApproved   Boolean  @default(false)
+  cashApprovedAt DateTime?
+  cashNotes      String?
+
+  // Immutability
+  isLocked       Boolean  @default(false)
+
+  createdAt      DateTime @default(now())
 }
