@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { cookies } from "next/headers";
+import { Prisma } from "@prisma/client";
 
 /**
  * Admin authentication guard
@@ -89,8 +90,11 @@ export async function POST(req: Request) {
         freightForwarderName,
         shippingMode,
         currency,
-        exchangeRateSnapshot,
-        supplierDeclaredCbm,
+        exchangeRateSnapshot: new Prisma.Decimal(exchangeRateSnapshot),
+        supplierDeclaredCbm:
+          supplierDeclaredCbm !== undefined
+            ? new Prisma.Decimal(supplierDeclaredCbm)
+            : null,
         status: "DRAFT",
       },
     });
