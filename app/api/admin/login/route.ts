@@ -31,15 +31,16 @@ export async function POST(req: Request) {
 
   const response = NextResponse.json({ ok: true });
 
+  // ✅ Admin session with AUTO LOGOUT
   response.cookies.set("dg_admin", "authorized", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: 60 * 15, // ⏱️ 15 minutes auto logout
   });
 
-  console.log("✅ ADMIN LOGIN SUCCESS");
+  console.log("✅ ADMIN LOGIN SUCCESS (15 min session)");
 
   return response;
 }
