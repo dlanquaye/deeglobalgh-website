@@ -7,7 +7,14 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // ✅ enables Enter key submit
+
+    if (!secret.trim()) {
+      setError("Admin PIN is required");
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -38,13 +45,16 @@ export default function AdminLoginPage() {
         Admin Login
       </h1>
 
-      <div className="mt-8 space-y-4">
+      {/* ✅ FORM ENABLES ENTER KEY */}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <input
           type="password"
           placeholder="Enter Admin PIN"
           className="input-brand h-14 w-full text-center text-lg"
           value={secret}
           onChange={(e) => setSecret(e.target.value)}
+          disabled={loading}
+          autoFocus
         />
 
         {error && (
@@ -54,13 +64,13 @@ export default function AdminLoginPage() {
         )}
 
         <button
-          onClick={handleLogin}
+          type="submit" // ✅ important
           disabled={loading || !secret}
           className="btn-primary w-full py-4 text-lg font-extrabold"
         >
           {loading ? "Checking..." : "Login"}
         </button>
-      </div>
+      </form>
     </main>
   );
 }
