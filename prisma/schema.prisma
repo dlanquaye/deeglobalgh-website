@@ -143,3 +143,44 @@ model ImportCost {
 
   createdAt      DateTime @default(now())
 }
+model Product {
+  id                   String   @id @default(cuid())
+  sku                  String   @unique
+
+  name                 String
+  slug                 String   @unique
+
+  // Pricing
+  retailPrice          Float
+  wholesalePrice       Float?
+  distributorPrice     Float?
+
+  // Inventory
+  stockQty             Int      @default(0)
+  lowStockThreshold    Int      @default(3)
+
+  // Category & Levels
+  categorySlug         String
+  levelSlugs           String[]
+
+  // Image (flattened)
+  imageSrc             String
+  imageAlt             String
+  imageTitle           String?
+  imageCaption         String?
+  imageDescription     String?
+
+  // SEO (flattened)
+  focusKeyphrase       String?
+  metaTitle            String?
+  metaDescription      String?
+  socialTitle          String?
+  socialDescription    String?
+  shortSummary         String?
+  fullDescription      String?
+  brand                String?
+  tags                 String[]
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

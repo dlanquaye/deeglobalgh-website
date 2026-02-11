@@ -1084,7 +1084,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0030",
-    "slug": "golden-hiatory-textbook-for-basic-1",
+    "slug": "golden-history-textbook-for-basic-1",
     "name": "Golden History  Textbook for Basic 1",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1104,7 +1104,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 1 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 1 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 1 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 1 golden textbooks basic 1",
+      "shortSummary": "golden history textbook for basic 1 golden textbooks basic 1",
       "fullDescription": "",
       "tags": [
         "textbooks",
@@ -1116,7 +1116,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0031",
-    "slug": "golden-hiatory-textbook-for-basic-2",
+    "slug": "golden-history-textbook-for-basic-2",
     "name": "Golden History  Textbook for Basic 2",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1136,7 +1136,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 2 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 2 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 2 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 2 golden textbooks basic 2",
+      "shortSummary": "golden history textbook for basic 2 golden textbooks basic 2",
       "fullDescription": "",
       "tags": [
         "textbooks",
@@ -1148,7 +1148,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0032",
-    "slug": "golden-hiatory-textbook-for-basic-3",
+    "slug": "golden-history-textbook-for-basic-3",
     "name": "Golden History  Textbook for Basic 3",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1168,7 +1168,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 3 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 3 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 3 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 3 golden textbooks basic 3",
+      "shortSummary": "golden history textbook for basic 3 golden textbooks basic 3",
       "fullDescription": "",
       "tags": [
         "textbooks",
@@ -1180,7 +1180,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0033",
-    "slug": "golden-hiatory-textbook-for-basic-4",
+    "slug": "golden-history-textbook-for-basic-4",
     "name": "Golden History  Textbook for Basic 4",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1200,7 +1200,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 4 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 4 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 4 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 4 golden textbooks basic 4",
+      "shortSummary": "golden history textbook for basic 4 golden textbooks basic 4",
       "fullDescription": "",
       "tags": [
         "textbooks",
@@ -1212,7 +1212,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0034",
-    "slug": "golden-hiatory-textbook-for-basic-5",
+    "slug": "golden-history-textbook-for-basic-5",
     "name": "Golden History  Textbook for Basic 5",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1232,7 +1232,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 5 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 5 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 5 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 5 golden textbooks basic 5",
+      "shortSummary": "golden history textbook for basic 5 golden textbooks basic 5",
       "fullDescription": "",
       "tags": [
         "textbooks",
@@ -1244,7 +1244,7 @@ export const products: Product[] = [
   },
   {
     "id": "DG0035",
-    "slug": "golden-hiatory-textbook-for-basic-6",
+    "slug": "golden-history-textbook-for-basic-6",
     "name": "Golden History  Textbook for Basic 6",
     "price": 65,    stockQty: 20,
     "categorySlug": "textbooks",
@@ -1264,7 +1264,7 @@ export const products: Product[] = [
       "metaDescription": "Buy Golden History  Textbook for Basic 6 in Ghana from DeeglobalGh. Available for delivery.",
       "socialTitle": "Golden History  Textbook for Basic 6 | DeeglobalGh",
       "socialDescription": "Order Golden History  Textbook for Basic 6 online for delivery in Kasoa and nearby areas.",
-      "shortSummary": "golden hiatory textbook for basic 6 golden textbooks basic 6",
+      "shortSummary": "golden history textbook for basic 6 golden textbooks basic 6",
       "fullDescription": "",
       "tags": [
         "textbooks",
