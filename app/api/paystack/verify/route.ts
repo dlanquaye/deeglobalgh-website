@@ -109,6 +109,8 @@ export async function GET(req: Request) {
       =============================== */
       await prisma.$transaction(async (tx) => {
         for (const item of order.orderItems) {
+          console.log("DEDUCTING STOCK FOR:", item.productId);
+
           const product = await tx.product.findUnique({
             where: { id: item.productId },
           });
