@@ -24,21 +24,20 @@ export async function POST(req: Request) {
       );
     }
 
-   const skus = items.map((i: any) => i.productId);
+    /* ===============================
+       🔎 LOAD PRODUCTS BY DATABASE ID
+    =============================== */
+    const ids = items.map((i: any) => i.productId);
 
-const products = await prisma.product.findMany({
-  where: { sku: { in: skus } }
-});
-
-
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } },
+    });
 
     /* ===============================
        🔒 STOCK VALIDATION
     =============================== */
     for (const item of items) {
-      const product = products.find(p => p.sku === item.productId);
-
-
+      const product = products.find((p) => p.id === item.productId);
 
       if (!product) {
         return NextResponse.json(
@@ -61,8 +60,9 @@ const products = await prisma.product.findMany({
     let totalAmount = 0;
 
     const preparedItems = items.map((item: any) => {
-      const product = products.find(p => p.sku === item.productId)!;
-
+      const product = products.find(
+        (p) => p.id === item.productId
+      )!;
 
       const unitPrice = product.retailPrice;
       const totalPrice = unitPrice * item.quantity;
