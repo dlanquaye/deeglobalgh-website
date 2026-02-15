@@ -109,9 +109,14 @@ export default function ShopClient({ products }: any) {
                     }
 
                     const success = addToCart(
-                      { ...p, price: p.retailPrice },
-                      1
-                    );
+  {
+    ...p,
+    retailPrice: p.retailPrice,
+    stockQty: p.stockQty,
+  },
+  1
+);
+
 
                     if (!success) {
                       setMessageMap((prev) => ({
