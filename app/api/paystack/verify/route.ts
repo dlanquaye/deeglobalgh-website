@@ -65,8 +65,6 @@ export async function GET(req: Request) {
       where: { orderId },
       include: { orderItems: true },
     });
-    console.log("VERIFY ORDER ITEMS:", order?.orderItems);
-
 
     if (!order) {
       return NextResponse.json(
@@ -104,15 +102,10 @@ export async function GET(req: Request) {
     });
 
     if (!existingMovement) {
-      /* ===============================
-         ATOMIC DEDUCTION
-      =============================== */
       await prisma.$transaction(async (tx) => {
         for (const item of order.orderItems) {
-          console.log("DEDUCTING STOCK FOR:", item.productId);
-
           const product = await tx.product.findUnique({
-            where: { id: item.productId },
+            where: { sku: item.productId }, // SKU lookup
           });
 
           if (!product || product.stockQty < item.quantity) {
@@ -122,7 +115,7 @@ export async function GET(req: Request) {
           }
 
           await tx.product.update({
-            where: { id: item.productId },
+            where: { sku: item.productId },
             data: {
               stockQty: { decrement: item.quantity },
             },
@@ -130,7 +123,7 @@ export async function GET(req: Request) {
 
           await tx.inventoryMovement.create({
             data: {
-              productId: item.productId,
+              productId: product.id, // CORRECT internal ID
               type: InventoryMovementType.SALE,
               quantity: -item.quantity,
               note: `Online Order ${order.orderId}`,
@@ -145,6 +138,15 @@ export async function GET(req: Request) {
             reference,
           },
         });
+      });
+    } else {
+      // Ensure order is marked paid even if movement already exists
+      await prisma.order.update({
+        where: { orderId },
+        data: {
+          paymentStatus: PaymentStatus.PAID,
+          reference,
+        },
       });
     }
 
