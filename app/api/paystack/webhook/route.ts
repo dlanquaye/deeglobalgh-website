@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/app/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
+import { InventoryMovementType } from "@prisma/client";
 
 export const runtime = "nodejs";
 
-/**
- * Normalize Ghana phone number to 233XXXXXXXXX
- */
 function normalizeGhanaPhone(phone: string) {
   let p = phone.replace(/\s+/g, "").replace(/^\+/, "");
 
@@ -23,23 +21,14 @@ function normalizeGhanaPhone(phone: string) {
 }
 
 export async function POST(req: NextRequest) {
-  console.log("🔥 PAYSTACK WEBHOOK HIT");
-
   const secret = process.env.PAYSTACK_SECRET_KEY;
 
   if (!secret) {
-    console.error("❌ Missing PAYSTACK_SECRET_KEY");
-    return NextResponse.json(
-      { error: "Server misconfigured" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   const body = await req.text();
 
-  /* ------------------------------------------------
-     1️⃣ Verify Paystack signature
-  ------------------------------------------------ */
   const computedSignature = crypto
     .createHmac("sha512", secret)
     .update(body)
@@ -48,82 +37,86 @@ export async function POST(req: NextRequest) {
   const paystackSignature = req.headers.get("x-paystack-signature");
 
   if (computedSignature !== paystackSignature) {
-    console.error("❌ Invalid Paystack signature");
-    return NextResponse.json(
-      { error: "Invalid Paystack signature" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const event = JSON.parse(body);
 
-  /* ------------------------------------------------
-     2️⃣ Only handle successful payment
-  ------------------------------------------------ */
   if (event.event !== "charge.success") {
     return NextResponse.json({ received: true });
   }
 
   const data = event.data;
-  const reference: string = data.reference; // THIS IS OUR orderId
+  const reference: string = data.reference;
 
-  console.log("✅ Payment success for:", reference);
-
-  /* ------------------------------------------------
-     3️⃣ Find order using orderId (SOURCE OF TRUTH)
-  ------------------------------------------------ */
   const order = await prisma.order.findFirst({
     where: { orderId: reference },
+    include: { orderItems: true },
   });
 
   if (!order) {
-    console.error("❌ Order not found for orderId:", reference);
     return NextResponse.json({ received: true });
   }
 
-  /* ------------------------------------------------
-     4️⃣ Mark order as PAID (idempotent)
-  ------------------------------------------------ */
-  if (order.paymentStatus !== "PAID") {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "PAID",
-        reference: reference, // store Paystack reference
-      },
+  // Prevent double deduction
+  const existingMovement = await prisma.inventoryMovement.findFirst({
+    where: {
+      note: `Online Order ${order.orderId}`,
+    },
+  });
+
+  if (!existingMovement) {
+    await prisma.$transaction(async (tx) => {
+      for (const item of order.orderItems) {
+        const product = await tx.product.findUnique({
+          where: { sku: item.productId },
+        });
+
+        if (!product || product.stockQty < item.quantity) {
+          throw new Error("Stock inconsistency");
+        }
+
+        await tx.product.update({
+          where: { sku: item.productId },
+          data: {
+            stockQty: { decrement: item.quantity },
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: product.id,
+            type: InventoryMovementType.SALE,
+            quantity: -item.quantity,
+            note: `Online Order ${order.orderId}`,
+          },
+        });
+      }
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "PAID",
+          reference: reference,
+        },
+      });
     });
   }
 
-  /* ------------------------------------------------
-     5️⃣ Send SMS ONCE
-  ------------------------------------------------ */
   const customerPhone = normalizeGhanaPhone(order.phone);
 
-  if (!customerPhone) {
-    console.error("❌ Invalid phone number:", order.phone);
-    return NextResponse.json({ received: true });
-  }
-
-  if (!order.smsSent) {
-    console.log("📩 Sending SMS to:", customerPhone);
-
+  if (customerPhone && !order.smsSent) {
     const message = `DeeglobalGh: Payment received successfully for order ${reference}. Our team will contact you shortly to confirm delivery. Thank you.`;
 
-    try {
-      await sendOrderSMS({
-        phone: customerPhone,
-        message,
-      });
+    await sendOrderSMS({
+      phone: customerPhone,
+      message,
+    });
 
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { smsSent: true },
-      });
-
-      console.log("✅ SMS sent successfully");
-    } catch (err) {
-      console.error("❌ SMS sending failed:", err);
-    }
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { smsSent: true },
+    });
   }
 
   return NextResponse.json({ received: true });
