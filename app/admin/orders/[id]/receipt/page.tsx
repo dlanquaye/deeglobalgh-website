@@ -95,6 +95,12 @@ export default async function OrderReceiptPage(props: {
 
         {order.adminNotes && (
           <div>
+            {order.reference && (
+  <div>
+    <strong>Reference:</strong> {order.reference}
+  </div>
+)}
+
             <strong>Admin Notes:</strong>
             <div className="mt-1 whitespace-pre-wrap">
               {order.adminNotes}
