@@ -35,10 +35,10 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const STORAGE_KEY = "dg_cart_v1";
+const STORAGE_KEY = "dg_cart_v2";
 
 /* -------------------------------------------
-   HELPERS
+   SAFE PARSE
 ------------------------------------------- */
 function safeParse(json: string | null) {
   try {
@@ -55,7 +55,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   /* -------------------------------------------
-     LOAD FROM LOCAL STORAGE
+     LOAD FROM STORAGE
   ------------------------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -67,7 +67,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /* -------------------------------------------
-     SAVE TO LOCAL STORAGE
+     SAVE TO STORAGE
   ------------------------------------------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -75,25 +75,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   /* -------------------------------------------
-     ADD TO CART (STOCK ENFORCED)
+     ADD TO CART (STRICT STOCK SAFE)
   ------------------------------------------- */
   const addToCart = (product: Product, qty: number = 1): boolean => {
     const stockQty = product.stockQty ?? 0;
 
-    // HARD BLOCK: out of stock
     if (stockQty <= 0) {
       return false;
     }
 
+    let allowed = true;
+
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
 
-      // Already in cart
       if (existing) {
         const newQty = existing.qty + qty;
 
-        // Do not exceed available stock
         if (newQty > existing.stockQty) {
+          allowed = false;
           return prev;
         }
 
@@ -104,26 +104,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      // New item
+      if (qty > stockQty) {
+        allowed = false;
+        return prev;
+      }
+
       return [
         ...prev,
         {
           id: product.id,
           name: product.name,
-          price: product.price,
+          price:
+            (product as any).price ??
+            (product as any).retailPrice ??
+            0,
           slug: product.slug,
-          imageSrc: product.image?.src,
-          qty: Math.min(qty, stockQty),
+          imageSrc:
+            (product as any).image?.src ??
+            (product as any).imageSrc,
+          qty: qty,
           stockQty: stockQty,
         },
       ];
     });
 
-    return true;
+    return allowed;
   };
 
   /* -------------------------------------------
-     INCREASE / DECREASE (STOCK SAFE)
+     INCREASE QTY
   ------------------------------------------- */
   const increaseQty = (id: string): boolean => {
     let allowed = true;
@@ -144,11 +153,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return allowed;
   };
 
+  /* -------------------------------------------
+     DECREASE QTY
+  ------------------------------------------- */
   const decreaseQty = (id: string) => {
     setItems((prev) =>
       prev
         .map((item) =>
-          item.id === id ? { ...item, qty: item.qty - 1 } : item
+          item.id === id
+            ? { ...item, qty: item.qty - 1 }
+            : item
         )
         .filter((item) => item.qty > 0)
     );
