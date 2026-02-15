@@ -12,7 +12,6 @@ function formatMoney(amount: number) {
 }
 
 const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
-const SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
 
 type CustomerProfile = {
   fullName: string;
@@ -20,7 +19,6 @@ type CustomerProfile = {
   phone: string;
   area: string;
   location: string;
-  notes?: string;
 };
 
 function safeParse<T>(raw: string | null): T | null {
@@ -82,6 +80,9 @@ export default function CheckoutPage() {
     );
   };
 
+  /* =====================================================
+     PAYSTACK FLOW (FIXED — NOW SENDS ITEMS)
+  ===================================================== */
   const payNowWithPaystack = async () => {
     if (!canCheckout) return;
 
@@ -92,31 +93,43 @@ export default function CheckoutPage() {
     try {
       const orderId = `DG-${Date.now()}`;
 
-      const snapshot = {
+      /* 🔐 CORRECT SNAPSHOT STRUCTURE */
+      const payload = {
         orderId,
-        customer: { fullName, email, phone, area, location },
-        amount: subtotal,
+        customer: {
+          fullName,
+          email,
+          phone,
+          area,
+          location,
+        },
+        items: items.map((i) => ({
+          productId: i.id,
+          quantity: i.qty,
+        })),
       };
 
-      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-
+      /* 1️⃣ CREATE ORDER */
       const createRes = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(snapshot),
+        body: JSON.stringify(payload),
       });
 
+      const createData = await createRes.json();
+
       if (!createRes.ok) {
-        throw new Error("Failed to create order");
+        throw new Error(createData?.error || "Failed to create order");
       }
 
+      /* 2️⃣ INITIALIZE PAYSTACK */
       const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           phone,
-          amount: subtotal,
+          amount: createData.amount, // use server-calculated amount
           orderId,
         }),
       });
@@ -135,40 +148,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const orderViaWhatsApp = () => {
-    if (!canCheckout) return;
-
-    saveCustomerProfile();
-
-    const orderId = `DG-${Date.now()}`;
-
-    const message = `Hello DeeglobalGh,
-
-I want to place an order via WhatsApp.
-
-Order ID: ${orderId}
-
-Items:
-${items
-  .map(
-    (i) =>
-      `- ${i.name} × ${i.qty} — GHS ${formatMoney(i.price * i.qty)}`
-  )
-  .join("\n")}
-
-Subtotal: GHS ${formatMoney(subtotal)}
-
-Delivery Area: ${area}
-Location / Landmark: ${location}
-
-Please confirm availability and delivery.
-Thank you.`;
-
-    window.open(
-      `https://wa.me/233246011773?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
-  };
+  /* ===================================================== */
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
@@ -176,7 +156,6 @@ Thank you.`;
         Checkout
       </h1>
 
-      {/* Customer Details */}
       <section className="mt-8 rounded-2xl border bg-white p-10">
         <h2 className="text-xl font-extrabold">Customer Details</h2>
 
@@ -216,7 +195,6 @@ Thank you.`;
         </div>
       </section>
 
-      {/* Payment Options */}
       <section className="mt-8 rounded-2xl border bg-white p-8 space-y-6">
         <button
           onClick={payNowWithPaystack}
@@ -235,14 +213,6 @@ Thank you.`;
         )}
 
         <hr />
-
-        <button
-          onClick={orderViaWhatsApp}
-          disabled={!canCheckout}
-          className="w-full rounded-2xl border-2 border-green-700 py-4 text-lg font-extrabold text-green-800"
-        >
-          Order via WhatsApp (Pay on Delivery)
-        </button>
 
         <Link
           href="/cart"

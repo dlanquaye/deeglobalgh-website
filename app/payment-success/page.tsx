@@ -1,4 +1,21 @@
+"use client";
+
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+
 export default function PaymentSuccessPage() {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+
+    if (reference) {
+      fetch(`/api/paystack/verify?reference=${reference}`, {
+        cache: "no-store",
+      });
+    }
+  }, [searchParams]);
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-16 text-center">
       <h1 className="text-3xl font-extrabold text-green-700">

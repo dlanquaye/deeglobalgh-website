@@ -2,31 +2,116 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { PaymentStatus } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { orderId, customer, amount } = body;
+    const { orderId, customer, items } = body;
 
-    if (!orderId || !customer || typeof amount !== "number") {
+    if (
+      !orderId ||
+      !customer ||
+      !customer.email ||
+      !customer.phone ||
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
       return NextResponse.json(
         { error: "Invalid order data" },
         { status: 400 }
       );
     }
 
-    await prisma.order.create({
-      data: {
-        orderId,                // internal order ID
-        reference: orderId,     // 🔥 CRITICAL: Paystack reference
-        email: customer.email,
-        phone: customer.phone,
-        amount: Math.round(amount), // ensure integer
-      },
+   const skus = items.map((i: any) => i.productId);
+
+const products = await prisma.product.findMany({
+  where: { sku: { in: skus } }
+});
+
+
+
+    /* ===============================
+       🔒 STOCK VALIDATION
+    =============================== */
+    for (const item of items) {
+      const product = products.find(p => p.sku === item.productId);
+
+
+
+      if (!product) {
+        return NextResponse.json(
+          { error: "Product not found" },
+          { status: 404 }
+        );
+      }
+
+      if (product.stockQty < item.quantity) {
+        return NextResponse.json(
+          { error: `Insufficient stock for ${product.name}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    /* ===============================
+       💰 CALCULATE TOTAL FROM DB
+    =============================== */
+    let totalAmount = 0;
+
+    const preparedItems = items.map((item: any) => {
+      const product = products.find(p => p.sku === item.productId)!;
+
+
+      const unitPrice = product.retailPrice;
+      const totalPrice = unitPrice * item.quantity;
+
+      totalAmount += totalPrice;
+
+      return {
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice,
+      };
     });
 
-    return NextResponse.json({ ok: true, orderId });
+    /* ===============================
+       🔐 ATOMIC TRANSACTION
+    =============================== */
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          orderId,
+          reference: orderId,
+          email: customer.email,
+          phone: customer.phone,
+          amount: Math.round(totalAmount),
+          paymentStatus: PaymentStatus.PENDING,
+        },
+      });
+
+      for (const item of preparedItems) {
+        await tx.orderItem.create({
+          data: {
+            orderId: order.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+          },
+        });
+      }
+
+      return order;
+    });
+
+    return NextResponse.json({
+      ok: true,
+      orderId: result.orderId,
+      amount: result.amount,
+    });
   } catch (err: any) {
     console.error("❌ Order creation failed:", err);
 

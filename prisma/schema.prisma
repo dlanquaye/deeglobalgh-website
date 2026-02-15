@@ -8,7 +8,7 @@ datasource db {
 }
 
 //////////////////////////////////////
-// EXISTING ORDER SYSTEM (UNCHANGED)
+// ORDER SYSTEM
 //////////////////////////////////////
 
 model Order {
@@ -26,6 +26,8 @@ model Order {
   completedSmsSent Boolean       @default(false)
   deliverySmsSent  Boolean       @default(false)
 
+  orderItems OrderItem[]
+
   @@index([orderId])
   @@index([reference])
 }
@@ -36,10 +38,31 @@ enum PaymentStatus {
   FAILED
   DELIVERING
   COMPLETED
+  CANCELLED
+
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 //////////////////////////////////////
-// IMPORTATION SYSTEM (NEW — ADD ONLY)
+// IMPORTATION SYSTEM
 //////////////////////////////////////
 
 enum ImportShipmentStatus {
@@ -81,106 +104,132 @@ enum ImportCostType {
 }
 
 model ImportShipment {
-  id                         String   @id @default(cuid())
-  reference                  String
-  supplierName               String
-  sourceApp                  ImportSourceApp
-  sourceAppOther             String?
+  id             String          @id @default(cuid())
+  reference      String
+  supplierName   String
+  sourceApp      ImportSourceApp
+  sourceAppOther String?
 
-  freightForwarderName       String
-  shippingMode               ShippingMode
+  freightForwarderName String
+  shippingMode         ShippingMode
 
-  supplierTrackingId         String?
-  supplierTrackingNotes      String?
+  supplierTrackingId    String?
+  supplierTrackingNotes String?
 
-  paymentFinalizedDate       DateTime?
-  currency                   String
-  exchangeRateSnapshot       Decimal
+  paymentFinalizedDate DateTime?
+  currency             String
+  exchangeRateSnapshot Decimal
 
-  status                     ImportShipmentStatus @default(DRAFT)
+  status ImportShipmentStatus @default(DRAFT)
 
-  // Freight forwarder receipt confirmation gate
-  forwarderReceivedConfirmed Boolean  @default(false)
+  forwarderReceivedConfirmed Boolean   @default(false)
   forwarderReceivedDate      DateTime?
   forwarderReceivedNotes     String?
 
-  // CBM reconciliation gate
-  supplierDeclaredCbm        Decimal?
-  forwarderMeasuredCbm       Decimal?
-  agreedCbm                  Decimal?
-  cbmDiscrepancyFlag         Boolean  @default(false)
-  cbmConfirmedAt             DateTime?
+  supplierDeclaredCbm  Decimal?
+  forwarderMeasuredCbm Decimal?
+  agreedCbm            Decimal?
+  cbmDiscrepancyFlag   Boolean   @default(false)
+  cbmConfirmedAt       DateTime?
 
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  costs                      ImportCost[]
+  costs ImportCost[]
 }
 
 model ImportCost {
-  id             String   @id @default(cuid())
-  shipmentId     String
-  shipment       ImportShipment @relation(fields: [shipmentId], references: [id])
+  id         String         @id @default(cuid())
+  shipmentId String
+  shipment   ImportShipment @relation(fields: [shipmentId], references: [id])
 
-  costType       ImportCostType
-  description    String?
-  amountGhs      Decimal
+  costType    ImportCostType
+  description String?
+  amountGhs   Decimal
 
-  paymentMethod  PaymentMethod
-  paymentDate    DateTime?
+  paymentMethod PaymentMethod
+  paymentDate   DateTime?
 
-  // Receipt / evidence (Cloudinary URL)
-  receiptUrl     String?
+  receiptUrl String?
 
-  // Cash-specific controls
-  isPaid         Boolean  @default(false)
-  cashApproved   Boolean  @default(false)
+  isPaid         Boolean   @default(false)
+  cashApproved   Boolean   @default(false)
   cashApprovedAt DateTime?
   cashNotes      String?
 
-  // Immutability
-  isLocked       Boolean  @default(false)
+  isLocked Boolean @default(false)
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 }
+
+//////////////////////////////////////
+// PRODUCT SYSTEM
+//////////////////////////////////////
+
 model Product {
-  id                   String   @id @default(cuid())
-  sku                  String   @unique
+  id  String @id @default(cuid())
+  sku String @unique
 
-  name                 String
-  slug                 String   @unique
+  name String
+  slug String @unique
 
-  // Pricing
-  retailPrice          Float
-  wholesalePrice       Float?
-  distributorPrice     Float?
+  retailPrice      Float
+  wholesalePrice   Float?
+  distributorPrice Float?
 
-  // Inventory
-  stockQty             Int      @default(0)
-  lowStockThreshold    Int      @default(3)
+  stockQty          Int @default(0)
+  lowStockThreshold Int @default(3)
 
-  // Category & Levels
-  categorySlug         String
-  levelSlugs           String[]
+  categorySlug String
+  levelSlugs   String[]
 
-  // Image (flattened)
-  imageSrc             String
-  imageAlt             String
-  imageTitle           String?
-  imageCaption         String?
-  imageDescription     String?
+  imageSrc         String
+  imageAlt         String
+  imageTitle       String?
+  imageCaption     String?
+  imageDescription String?
 
-  // SEO (flattened)
-  focusKeyphrase       String?
-  metaTitle            String?
-  metaDescription      String?
-  socialTitle          String?
-  socialDescription    String?
-  shortSummary         String?
-  fullDescription      String?
-  brand                String?
-  tags                 String[]
+  focusKeyphrase    String?
+  metaTitle         String?
+  metaDescription   String?
+  socialTitle       String?
+  socialDescription String?
+  shortSummary      String?
+  fullDescription   String?
+  brand             String?
+  tags              String[]
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+}
+
+//////////////////////////////////////
+// INVENTORY LEDGER SYSTEM
+//////////////////////////////////////
+
+enum InventoryMovementType {
+  SALE
+  ADMIN_ADJUSTMENT
+  RESTOCK
+  IMPORT_ALLOCATION
+  RETURN
+  DAMAGE
+}
+
+model InventoryMovement {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type     InventoryMovementType
+  quantity Int
+  note     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
 }

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { cookies } from "next/headers";
+import { PaymentStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    // 🔒 Admin authentication
+    /* ===============================
+       🔒 ADMIN AUTH
+       =============================== */
     const cookieStore = await cookies();
-
     const isAdmin = cookieStore.get("dg_admin");
 
     if (!isAdmin) {
@@ -34,10 +36,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔒 Resolve to primary Prisma ID
+    /* ===============================
+       🔎 LOAD ORDER WITH STATUS
+       =============================== */
     const order = await prisma.order.findUnique({
       where: { orderId },
-      select: { id: true },
+      select: {
+        id: true,
+        paymentStatus: true,
+      },
     });
 
     if (!order) {
@@ -47,28 +54,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔒 Sanitize inputs
-    const deliveryFee =
-      typeof body.deliveryFee === "number" && body.deliveryFee >= 0
-        ? body.deliveryFee
-        : null;
+    /* ===============================
+       🔒 LOCK FINANCIAL FIELDS
+       =============================== */
+    const isFinanciallyLocked =
+      order.paymentStatus === PaymentStatus.PAID ||
+      order.paymentStatus === PaymentStatus.DELIVERING ||
+      order.paymentStatus === PaymentStatus.COMPLETED;
 
-    const adminNotes =
-      typeof body.adminNotes === "string"
-        ? body.adminNotes.trim()
-        : null;
+    const updateData: {
+      deliveryFee?: number | null;
+      adminNotes?: string | null;
+    } = {};
+
+    // ✅ Admin notes always allowed
+    if (typeof body.adminNotes === "string") {
+      updateData.adminNotes = body.adminNotes.trim();
+    }
+
+    // ❌ deliveryFee blocked if locked
+    if (!isFinanciallyLocked) {
+      if (
+        typeof body.deliveryFee === "number" &&
+        body.deliveryFee >= 0
+      ) {
+        updateData.deliveryFee = body.deliveryFee;
+      }
+    } else {
+      if (typeof body.deliveryFee === "number") {
+        return NextResponse.json(
+          {
+            error:
+              "Delivery fee cannot be modified after payment is confirmed",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     await prisma.order.update({
       where: { id: order.id },
-      data: {
-        deliveryFee,
-        adminNotes,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error("❌ update-order-meta error:", error);
+
     return NextResponse.json(
       { error: "Failed to update order meta" },
       { status: 500 }

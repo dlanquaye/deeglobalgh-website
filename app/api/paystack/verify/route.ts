@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, InventoryMovementType } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
     /* ===============================
        VERIFY PAYMENT WITH PAYSTACK
-       =============================== */
+    =============================== */
     const res = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
@@ -59,11 +59,14 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       FIND ORDER
-       =============================== */
+       FIND ORDER + ITEMS
+    =============================== */
     const order = await prisma.order.findUnique({
       where: { orderId },
+      include: { orderItems: true },
     });
+    console.log("VERIFY ORDER ITEMS:", order?.orderItems);
+
 
     if (!order) {
       return NextResponse.json(
@@ -73,37 +76,80 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       TRANSLATE PAYMENT STATUS
-       =============================== */
-    let paymentStatus: PaymentStatus = PaymentStatus.PENDING;
-
-    if (paystackData.status === "success") {
-      paymentStatus = PaymentStatus.PAID;
-    } else if (paystackData.status === "failed") {
-      paymentStatus = PaymentStatus.FAILED;
-    }
-
-    /* ===============================
-       UPDATE PAYMENT STATUS
-       =============================== */
-    if (order.paymentStatus !== paymentStatus) {
+       CHECK PAYMENT STATUS
+    =============================== */
+    if (paystackData.status !== "success") {
       await prisma.order.update({
         where: { orderId },
         data: {
-          paymentStatus,
+          paymentStatus: PaymentStatus.FAILED,
           reference,
         },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        orderId,
+        paymentStatus: PaymentStatus.FAILED,
       });
     }
 
     /* ===============================
-       ✅ SEND CUSTOMER SMS (ONCE)
-       =============================== */
-    if (
-      paymentStatus === PaymentStatus.PAID &&
-      !order.smsSent &&
-      order.phone
-    ) {
+       CHECK IF STOCK ALREADY DEDUCTED
+    =============================== */
+    const existingMovement = await prisma.inventoryMovement.findFirst({
+      where: {
+        note: `Online Order ${order.orderId}`,
+      },
+    });
+
+    if (!existingMovement) {
+      /* ===============================
+         ATOMIC DEDUCTION
+      =============================== */
+      await prisma.$transaction(async (tx) => {
+        for (const item of order.orderItems) {
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+          });
+
+          if (!product || product.stockQty < item.quantity) {
+            throw new Error(
+              `Stock inconsistency detected for product ${item.productId}`
+            );
+          }
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQty: { decrement: item.quantity },
+            },
+          });
+
+          await tx.inventoryMovement.create({
+            data: {
+              productId: item.productId,
+              type: InventoryMovementType.SALE,
+              quantity: -item.quantity,
+              note: `Online Order ${order.orderId}`,
+            },
+          });
+        }
+
+        await tx.order.update({
+          where: { orderId },
+          data: {
+            paymentStatus: PaymentStatus.PAID,
+            reference,
+          },
+        });
+      });
+    }
+
+    /* ===============================
+       SEND SMS (ONCE)
+    =============================== */
+    if (!order.smsSent && order.phone) {
       const message = `DeeGlobalGH:
 
 Payment received successfully ✅
@@ -129,10 +175,12 @@ Thank you for shopping with us.`;
     return NextResponse.json({
       ok: true,
       orderId,
-      paymentStatus,
+      paymentStatus: PaymentStatus.PAID,
     });
+
   } catch (err: any) {
     console.error("❌ Paystack verify error:", err);
+
     return NextResponse.json(
       { error: err?.message || "Server error" },
       { status: 500 }
