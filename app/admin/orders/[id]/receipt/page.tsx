@@ -92,6 +92,12 @@ export default async function OrderReceiptPage(props: {
         <div>
           <strong>Status:</strong> {order.paymentStatus}
         </div>
+        {order.reference && (
+  <div>
+    <strong>Payment Reference:</strong> {order.reference}
+  </div>
+)}
+
 
         {order.adminNotes && (
           <div>
