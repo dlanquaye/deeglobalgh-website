@@ -7,17 +7,30 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import type { Product } from "@/app/lib/products";
 
 /* -------------------------------------------
    TYPES
 ------------------------------------------- */
+
+/**
+ * Minimal product shape required by cart.
+ * Decoupled from Prisma and static product types.
+ */
+export type CartProductInput = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+  imageSrc?: string | null;
+  stockQty: number;
+};
+
 export type CartItem = {
   id: string;
   name: string;
-  price: number;
+  retailPrice: number;
   slug: string;
-  imageSrc?: string;
+  imageSrc?: string | null;
   qty: number;
   stockQty: number;
 };
@@ -26,7 +39,7 @@ type CartContextValue = {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product, qty?: number) => boolean;
+  addToCart: (product: CartProductInput, qty?: number) => boolean;
   removeFromCart: (id: string) => void;
   increaseQty: (id: string) => boolean;
   decreaseQty: (id: string) => void;
@@ -35,7 +48,7 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const STORAGE_KEY = "dg_cart_v1";
+const STORAGE_KEY = "dg_cart_v2";
 
 /* -------------------------------------------
    HELPERS
@@ -75,25 +88,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   /* -------------------------------------------
-     ADD TO CART (STOCK ENFORCED)
+     ADD TO CART (STRICT STOCK ENFORCEMENT)
   ------------------------------------------- */
-  const addToCart = (product: Product, qty: number = 1): boolean => {
+  const addToCart = (
+    product: CartProductInput,
+    qty: number = 1
+  ): boolean => {
     const stockQty = product.stockQty ?? 0;
 
-    // HARD BLOCK: out of stock
+    // Hard block if no stock
     if (stockQty <= 0) {
       return false;
     }
 
+    let allowed = true;
+
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
 
-      // Already in cart
+      // If already in cart
       if (existing) {
         const newQty = existing.qty + qty;
 
-        // Do not exceed available stock
         if (newQty > existing.stockQty) {
+          allowed = false;
           return prev;
         }
 
@@ -110,16 +128,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         {
           id: product.id,
           name: product.name,
-          price: product.price,
+          retailPrice: product.retailPrice,
           slug: product.slug,
-          imageSrc: product.image?.src,
+          imageSrc: product.imageSrc ?? null,
           qty: Math.min(qty, stockQty),
           stockQty: stockQty,
         },
       ];
     });
 
-    return true;
+    return allowed;
   };
 
   /* -------------------------------------------
@@ -148,7 +166,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) =>
       prev
         .map((item) =>
-          item.id === id ? { ...item, qty: item.qty - 1 } : item
+          item.id === id
+            ? { ...item, qty: item.qty - 1 }
+            : item
         )
         .filter((item) => item.qty > 0)
     );
@@ -171,7 +191,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const subtotal = useMemo(
     () =>
       items.reduce(
-        (sum, item) => sum + item.price * item.qty,
+        (sum, item) => sum + item.retailPrice * item.qty,
         0
       ),
     [items]

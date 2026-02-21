@@ -1,12 +1,25 @@
 "use client";
 
 import { useCart } from "@/app/context/CartContext";
-import type { Product } from "@/app/lib/products";
 import Link from "next/link";
 import { useState } from "react";
 
+/**
+ * This defines ONLY what the cart needs.
+ * It is intentionally NOT tied to Prisma Product type
+ * to avoid coupling and future breakage.
+ */
+type CartProductInput = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+  imageSrc?: string | null;
+  stockQty: number;
+};
+
 type Props = {
-  product: Product;
+  product: CartProductInput;
   outOfStock?: boolean;
 };
 
@@ -47,14 +60,12 @@ export default function AddToCartButton({
           {outOfStock ? "Out of Stock" : "Add to cart"}
         </button>
 
-        {/* Success message (in stock only) */}
         {message && (
           <p className="text-sm font-semibold text-[color:var(--brand-blue)]">
             {message}
           </p>
         )}
 
-        {/* Static out-of-stock message */}
         {outOfStock && (
           <p className="text-sm font-semibold text-red-600">
             This item is currently out of stock.
@@ -62,14 +73,14 @@ export default function AddToCartButton({
         )}
       </div>
 
-      {added && !outOfStock ? (
+      {added && !outOfStock && (
         <Link
           href="/cart"
           className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-extrabold text-blue-900 hover:bg-gray-50"
         >
           View Cart
         </Link>
-      ) : null}
+      )}
     </div>
   );
 }
