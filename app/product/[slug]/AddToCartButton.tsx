@@ -1,14 +1,23 @@
 "use client";
 
 import { useCart } from "@/app/context/CartContext";
-import type { Product } from "@/app/lib/products";
+type CartProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+  imageSrc?: string | null;
+  stockQty?: number;
+};
+
 import Link from "next/link";
 import { useState } from "react";
 
 type Props = {
-  product: Product;
+  product: CartProduct;
   outOfStock?: boolean;
 };
+
 
 export default function AddToCartButton({
   product,
@@ -19,7 +28,18 @@ export default function AddToCartButton({
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAddToCart = () => {
-    const success = addToCart(product, 1);
+    const success = addToCart(
+  {
+    id: product.id,
+    name: product.name,
+    retailPrice: product.retailPrice,
+    slug: product.slug,
+    imageSrc: product.image?.src,
+    stockQty: product.stockQty ?? 0,
+  },
+  1
+);
+
 
     if (success) {
       setAdded(true);

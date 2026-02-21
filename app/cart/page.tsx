@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useCart } from "@/app/context/CartContext";
 
 function formatMoney(amount: number) {
-  return `GH₵ ${amount.toFixed(0)}`;
+  const safeAmount = Number(amount) || 0;
+  return `GH₵ ${safeAmount.toFixed(0)}`;
 }
 
 export default function CartPage() {
@@ -63,8 +64,13 @@ export default function CartPage() {
             {/* Cart items */}
             <div className="lg:col-span-2 space-y-5">
               {items.map((item) => {
+  console.log("DEBUG stockQty:", item.stockQty);
+
                 const imgSrc =
                   item.imageSrc || "/products/placeholder.webp";
+
+                const lineTotal =
+                  Number(item.retailPrice) * Number(item.quantity);
 
                 return (
                   <div
@@ -89,7 +95,7 @@ export default function CartPage() {
                       <div className="mt-1 text-sm text-[color:var(--text-muted)]">
                         Unit price:{" "}
                         <span className="font-semibold text-[color:var(--text-main)]">
-                          GH₵ {item.price}
+                          {formatMoney(item.retailPrice)}
                         </span>
                       </div>
 
@@ -106,7 +112,7 @@ export default function CartPage() {
                           </button>
 
                           <div className="min-w-[32px] text-center font-extrabold">
-                            {item.qty}
+                            {item.quantity}
                           </div>
 
                           <button
@@ -130,7 +136,7 @@ export default function CartPage() {
 
                         {/* Line total */}
                         <div className="ml-auto text-base font-extrabold text-[color:var(--brand-blue)]">
-                          {formatMoney(item.price * item.qty)}
+                          {formatMoney(lineTotal)}
                         </div>
                       </div>
                     </div>
@@ -149,7 +155,7 @@ export default function CartPage() {
                 <div className="flex justify-between">
                   <span>Total items</span>
                   <span className="font-bold text-[color:var(--text-main)]">
-                    {totalItems}
+                    {Number(totalItems) || 0}
                   </span>
                 </div>
 
@@ -166,15 +172,11 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Trust copy */}
-      <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-[color:var(--text-muted)]">
-  Secure checkout • Paystack recommended • Pay on delivery available within
-  Kasoa and nearby areas only
-</div>
+              <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-[color:var(--text-muted)]">
+                Secure checkout • Paystack recommended • Pay on delivery
+                available within Kasoa and nearby areas only
+              </div>
 
-
-
-              {/* Actions */}
               <Link
                 href="/checkout"
                 className="btn-primary mt-6 inline-flex w-full items-center justify-center px-6 py-4 text-base"

@@ -26,10 +26,11 @@ export async function GET(req: Request) {
       );
     }
 
-    /* ===============================
-       VERIFY PAYMENT WITH PAYSTACK
-    =============================== */
-    const res = await fetch(
+    /* =====================================================
+       1️⃣ VERIFY TRANSACTION WITH PAYSTACK
+    ===================================================== */
+
+    const verifyRes = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
         headers: {
@@ -39,43 +40,47 @@ export async function GET(req: Request) {
       }
     );
 
-    const result = await res.json();
+    const verifyData = await verifyRes.json();
 
-    if (!res.ok || !result?.data) {
+    if (!verifyRes.ok || !verifyData?.data) {
       return NextResponse.json(
-        { error: "Paystack verification failed" },
+        { error: "Paystack verification failed." },
         { status: 500 }
       );
     }
 
-    const paystackData = result.data;
+    const paystackData = verifyData.data;
     const orderId = paystackData?.metadata?.orderId;
 
     if (!orderId) {
       return NextResponse.json(
-        { error: "Order ID missing from metadata" },
+        { error: "Order ID missing from metadata." },
         { status: 400 }
       );
     }
 
-    /* ===============================
-       FIND ORDER + ITEMS
-    =============================== */
+    /* =====================================================
+       2️⃣ FIND ORDER + ITEMS
+    ===================================================== */
+
     const order = await prisma.order.findUnique({
       where: { orderId },
       include: { orderItems: true },
     });
+    console.log("ORDER ITEMS:", order?.orderItems);
+
 
     if (!order) {
       return NextResponse.json(
-        { error: "Order not found" },
+        { error: "Order not found." },
         { status: 404 }
       );
     }
 
-    /* ===============================
-       CHECK PAYMENT STATUS
-    =============================== */
+    /* =====================================================
+       3️⃣ HANDLE FAILED PAYMENT
+    ===================================================== */
+
     if (paystackData.status !== "success") {
       await prisma.order.update({
         where: { orderId },
@@ -92,101 +97,85 @@ export async function GET(req: Request) {
       });
     }
 
-    /* ===============================
-       CHECK IF STOCK ALREADY DEDUCTED
-    =============================== */
-    const existingMovement = await prisma.inventoryMovement.findFirst({
-      where: {
-        note: `Online Order ${order.orderId}`,
-      },
-    });
+    /* =====================================================
+       4️⃣ IDEMPOTENCY CHECK
+       Prevent double deduction if webhook retries
+    ===================================================== */
 
-    if (!existingMovement) {
-      await prisma.$transaction(async (tx) => {
-        for (const item of order.orderItems) {
-          const product = await tx.product.findUnique({
-            where: { sku: item.productId }, // SKU lookup
-          });
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return NextResponse.json({
+        ok: true,
+        orderId,
+        paymentStatus: PaymentStatus.PAID,
+      });
+    }
 
-          if (!product || product.stockQty < item.quantity) {
-            throw new Error(
-              `Stock inconsistency detected for product ${item.productId}`
-            );
-          }
+    /* =====================================================
+       5️⃣ ATOMIC STOCK DEDUCTION (RACE-CONDITION SAFE)
+    ===================================================== */
 
-          await tx.product.update({
-            where: { sku: item.productId },
-            data: {
-              stockQty: { decrement: item.quantity },
+    await prisma.$transaction(async (tx) => {
+      for (const item of order.orderItems) {
+        /**
+         * 🔒 Enterprise-level stock lock:
+         * Update only if stockQty >= requested quantity
+         * If zero rows updated → stock already insufficient
+         */
+        const updateResult = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            stockQty: {
+              gte: item.quantity,
             },
-          });
-
-          await tx.inventoryMovement.create({
-            data: {
-              productId: product.id, // CORRECT internal ID
-              type: InventoryMovementType.SALE,
-              quantity: -item.quantity,
-              note: `Online Order ${order.orderId}`,
-            },
-          });
-        }
-
-        await tx.order.update({
-          where: { orderId },
+          },
           data: {
-            paymentStatus: PaymentStatus.PAID,
-            reference,
+            stockQty: {
+              decrement: item.quantity,
+            },
           },
         });
-      });
-    } else {
-      // Ensure order is marked paid even if movement already exists
-      await prisma.order.update({
+
+        if (updateResult.count === 0) {
+          throw new Error(
+            `Stock unavailable for product ${item.productId}`
+          );
+        }
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            type: InventoryMovementType.SALE,
+            quantity: -item.quantity,
+            note: `Online Order ${order.orderId}`,
+          },
+        });
+      }
+
+      await tx.order.update({
         where: { orderId },
         data: {
           paymentStatus: PaymentStatus.PAID,
           reference,
         },
       });
-    }
-
-    /* ===============================
-       SEND SMS (ONCE)
-    =============================== */
-    if (!order.smsSent && order.phone) {
-      const message = `DeeGlobalGH:
-
-Payment received successfully ✅
-
-Order ID: ${order.orderId}
-Amount: GHS ${order.amount.toFixed(2)}
-
-We are processing your order and will contact you shortly for delivery.
-
-Thank you for shopping with us.`;
-
-      await sendOrderSMS({
-        phone: order.phone,
-        message,
-      });
-
-      await prisma.order.update({
-        where: { orderId },
-        data: { smsSent: true },
-      });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      orderId,
-      paymentStatus: PaymentStatus.PAID,
     });
+
+    /* =====================================================
+       6️⃣ SEND SMS (ONLY ONCE)
+    ===================================================== */
+
+    
+
+    return NextResponse.redirect(
+  `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success?orderId=${orderId}`
+);
+
 
   } catch (err: any) {
     console.error("❌ Paystack verify error:", err);
 
     return NextResponse.json(
-      { error: err?.message || "Server error" },
+      { error: err?.message || "Server error." },
       { status: 500 }
     );
   }

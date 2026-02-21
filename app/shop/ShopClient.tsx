@@ -5,16 +5,33 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/app/context/CartContext";
 
-export default function ShopClient({ products }: any) {
+type ShopProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+  imageSrc?: string | null;
+  imageAlt?: string | null;
+  stockQty?: number;
+  lowStockThreshold?: number | null;
+};
+
+export default function ShopClient({
+  products,
+}: {
+  products: ShopProduct[];
+}) {
   const { addToCart } = useCart();
 
   const [query, setQuery] = useState("");
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
-  const [messageMap, setMessageMap] = useState<Record<string, string | null>>({});
+  const [messageMap, setMessageMap] = useState<
+    Record<string, string | null>
+  >({});
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return products.filter((p: any) =>
+    return products.filter((p) =>
       p.name.toLowerCase().includes(q)
     );
   }, [query, products]);
@@ -34,16 +51,17 @@ export default function ShopClient({ products }: any) {
         />
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((p: any) => {
+          {filteredProducts.map((p) => {
             const pid = p.id;
             const stockQty = p.stockQty ?? 0;
             const lowThreshold = p.lowStockThreshold ?? 3;
 
             const outOfStock = stockQty <= 0;
-            const lowStock = stockQty > 0 && stockQty <= lowThreshold;
+            const lowStock =
+              stockQty > 0 && stockQty <= lowThreshold;
 
             const imageSrc =
-              p.imageSrc || "/products/placeholder.webp";
+              p.imageSrc ?? "/products/placeholder.webp";
 
             return (
               <Link
@@ -70,7 +88,7 @@ export default function ShopClient({ products }: any) {
                 <div className="flex h-44 items-center justify-center overflow-hidden rounded-xl border bg-white">
                   <Image
                     src={imageSrc}
-                    alt={p.imageAlt || p.name}
+                    alt={p.imageAlt ?? p.name}
                     width={400}
                     height={400}
                     className="h-full w-auto object-contain p-2"
@@ -109,19 +127,22 @@ export default function ShopClient({ products }: any) {
                     }
 
                     const success = addToCart(
-  {
-    ...p,
-    retailPrice: p.retailPrice,
-    stockQty: p.stockQty,
-  },
-  1
-);
-
+                      {
+                        id: p.id,
+                        name: p.name,
+                        slug: p.slug,
+                        retailPrice: p.retailPrice,
+                        imageSrc: p.imageSrc ?? undefined,
+                        stockQty: p.stockQty ?? 0,
+                      },
+                      1
+                    );
 
                     if (!success) {
                       setMessageMap((prev) => ({
                         ...prev,
-                        [pid]: "Cannot add more than available stock.",
+                        [pid]:
+                          "Cannot add more than available stock.",
                       }));
                       return;
                     }

@@ -1,141 +1,81 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
 import Image from "next/image";
-import type { Product } from "@/app/lib/products";
+import { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 
-type Props = {
-  product: Product;
-};
-
-export default function ProductCard({ product }: Props) {
+export default function ProductCard({ product }: any) {
   const { addToCart } = useCart();
-
   const [message, setMessage] = useState<string | null>(null);
 
-  /* -------------------------------------------
-     MESSAGE LIFECYCLE
-     ------------------------------------------- */
-  useLayoutEffect(() => {
-    if (!message) return;
-
-    const timer = setTimeout(() => {
-      setMessage(null);
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [message]);
-
-  /* -------------------------------------------
-     STOCK STATES (FROM DATABASE)
-     ------------------------------------------- */
-  const stockQty = product.stockQty ?? 0;
-  const lowThreshold = product.lowStockThreshold ?? 0;
-
-  const outOfStock = stockQty <= 0;
-  const lowStock = stockQty > 0 && stockQty <= lowThreshold;
-
-  /* -------------------------------------------
-     IMAGE FALLBACKS
-     ------------------------------------------- */
   const imageSrc =
-    product.image?.src || "/products/placeholder.webp";
+    product?.imageSrc ||
+    product?.image?.src ||
+    "/products/placeholder.webp";
 
-  const imageAlt =
-    product.image?.alt ||
-    product.name ||
-    "DeeglobalGh product";
-
-  const imageTitle =
-    product.image?.title ||
-    product.name ||
-    "Product image";
-
-  /* -------------------------------------------
-     ADD TO CART HANDLER
-     ------------------------------------------- */
   const handleAddToCart = () => {
-    if (outOfStock) {
-      setMessage("This item is currently out of stock.");
-      return;
-    }
-
-    const success = addToCart(product, 1);
+    const success = addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        retailPrice: product.retailPrice,
+        slug: product.slug,
+        imageSrc: imageSrc,
+        stockQty: product.stockQty,
+      },
+      1
+    );
 
     if (!success) {
-      setMessage("Unable to add item to cart.");
+      setMessage("Maximum stock reached.");
       return;
     }
 
     setMessage("Added to cart.");
+
+    setTimeout(() => {
+      setMessage(null);
+    }, 2000);
   };
 
-  /* -------------------------------------------
-     RENDER
-     ------------------------------------------- */
+  const outOfStock = product.stockQty <= 0;
+
   return (
-    <div className="card-brand relative overflow-hidden bg-white">
-      {/* STOCK BADGE */}
-      <div className="absolute left-3 top-3 z-10">
-        {outOfStock && (
-          <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
-            Out of Stock
-          </span>
-        )}
-
-        {!outOfStock && lowStock && (
-          <span className="rounded-full bg-yellow-500 px-3 py-1 text-xs font-bold text-black">
-            Low Stock
-          </span>
-        )}
+    <div className="card-brand p-4">
+      <div className="flex h-44 items-center justify-center bg-white">
+        <Image
+          src={imageSrc}
+          alt={product.name}
+          width={400}
+          height={400}
+          className="h-full w-auto object-contain"
+        />
       </div>
 
-      {/* IMAGE */}
-      <div className="bg-white">
-        <div className="flex h-44 items-center justify-center bg-[color:var(--bg-soft)] overflow-hidden">
-          <Image
-            src={imageSrc}
-            alt={imageAlt}
-            title={imageTitle}
-            width={400}
-            height={400}
-            className="h-full w-auto object-contain"
-          />
-        </div>
+      <div className="mt-4 font-semibold">
+        {product.name}
       </div>
 
-      {/* CONTENT */}
-      <div className="p-4">
-        <div className="text-sm font-semibold text-[color:var(--text-main)]">
-          {product.name}
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="whitespace-nowrap text-base font-bold text-[color:var(--brand-blue)]">
-            GH₵ {product.price}
-          </div>
-
-          <button
-            type="button"
-            disabled={outOfStock}
-            onClick={handleAddToCart}
-            className={`rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap ${
-              outOfStock
-                ? "cursor-not-allowed bg-gray-200 text-gray-500"
-                : "btn-primary"
-            }`}
-          >
-            {outOfStock ? "Out of Stock" : "Add to cart"}
-          </button>
-        </div>
-
-        {message && (
-          <p className="mt-2 text-xs font-semibold text-green-700">
-            {message}
-          </p>
-        )}
+      <div className="mt-1 font-extrabold text-lg text-[color:var(--brand-blue)]">
+        GH₵ {product.retailPrice}
       </div>
+
+      <button
+        type="button"
+        disabled={outOfStock}
+        onClick={handleAddToCart}
+        className={`btn-primary mt-4 w-full px-4 py-3 ${
+          outOfStock ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+      >
+        {outOfStock ? "Out of Stock" : "Add to cart"}
+      </button>
+
+      {message && (
+        <p className="mt-2 text-xs font-semibold text-green-700">
+          {message}
+        </p>
+      )}
     </div>
   );
 }

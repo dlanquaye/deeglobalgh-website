@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat("en-GH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
 
 type CustomerProfile = {
@@ -30,7 +23,7 @@ function safeParse<T>(raw: string | null): T | null {
 }
 
 export default function CheckoutPage() {
-  const { items, subtotal } = useCart();
+  const { items } = useCart();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -80,20 +73,16 @@ export default function CheckoutPage() {
     );
   };
 
-  /* =====================================================
-     PAYSTACK FLOW (FIXED — NOW SENDS ITEMS)
-  ===================================================== */
   const payNowWithPaystack = async () => {
     if (!canCheckout) return;
 
-    saveCustomerProfile();
     setPayError(null);
     setPayLoading(true);
+    saveCustomerProfile();
 
     try {
       const orderId = `DG-${Date.now()}`;
 
-      /* 🔐 CORRECT SNAPSHOT STRUCTURE */
       const payload = {
         orderId,
         customer: {
@@ -105,50 +94,69 @@ export default function CheckoutPage() {
         },
         items: items.map((i) => ({
           productId: i.id,
-          quantity: i.qty,
+          quantity: i.quantity,
         })),
       };
 
-      /* 1️⃣ CREATE ORDER */
+      /* ===============================
+         1️⃣ CREATE ORDER
+      =============================== */
+
       const createRes = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const createData = await createRes.json();
+      let createData: any = null;
 
-      if (!createRes.ok) {
-        throw new Error(createData?.error || "Failed to create order");
+      try {
+        createData = await createRes.json();
+      } catch {
+        createData = null;
       }
 
-      /* 2️⃣ INITIALIZE PAYSTACK */
+      if (!createRes.ok) {
+        setPayError(createData?.error || "Stock unavailable.");
+        setPayLoading(false);
+        return;
+      }
+
+      /* ===============================
+         2️⃣ INITIALIZE PAYSTACK
+      =============================== */
+
       const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           phone,
-          amount: createData.amount, // use server-calculated amount
+          amount: createData.amount,
           orderId,
         }),
       });
 
-      const payData = await payRes.json();
-      const url = payData?.data?.authorization_url;
+      let payData: any = null;
 
-      if (!payRes.ok || !url) {
-        throw new Error("Failed to start payment");
+      try {
+        payData = await payRes.json();
+      } catch {
+        payData = null;
       }
 
-      window.location.href = url;
+      if (!payRes.ok || !payData?.data?.authorization_url) {
+        setPayError("Failed to start payment.");
+        setPayLoading(false);
+        return;
+      }
+
+      window.location.href = payData.data.authorization_url;
     } catch (err: any) {
-      setPayError(err?.message || "Payment failed");
+      setPayError(err?.message || "Payment failed.");
       setPayLoading(false);
     }
   };
-
-  /* ===================================================== */
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
@@ -199,20 +207,16 @@ export default function CheckoutPage() {
         <button
           onClick={payNowWithPaystack}
           disabled={!canCheckout || payLoading}
-          className="w-full rounded-2xl bg-yellow-500 py-4 text-lg font-extrabold text-blue-950"
+          className="w-full rounded-2xl bg-yellow-500 py-4 text-lg font-extrabold text-blue-950 disabled:opacity-60"
         >
           {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
         </button>
 
-        <p className="text-sm font-medium text-gray-700">
-          🚚 We deliver across Kasoa and nearby areas. Our team will call to confirm delivery.
-        </p>
-
         {payError && (
-          <p className="text-sm font-semibold text-red-600">{payError}</p>
+          <div className="rounded-xl bg-red-50 border border-red-300 p-4 text-red-700 font-semibold">
+            {payError}
+          </div>
         )}
-
-        <hr />
 
         <Link
           href="/cart"
