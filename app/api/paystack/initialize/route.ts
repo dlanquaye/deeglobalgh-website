@@ -59,7 +59,8 @@ export async function POST(req: Request) {
         reference: orderId,
 
         // Redirect user after payment
-        callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/paystack/verify`,
+        callback_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success`,
+
 
 
         // Extra data for webhook & SMS
