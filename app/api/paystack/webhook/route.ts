@@ -29,10 +29,7 @@ export async function POST(req: NextRequest) {
 
   if (!secret) {
     console.error("❌ Missing PAYSTACK_SECRET_KEY");
-    return NextResponse.json(
-      { error: "Server misconfigured" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   const body = await req.text();
@@ -49,10 +46,7 @@ export async function POST(req: NextRequest) {
 
   if (computedSignature !== paystackSignature) {
     console.error("❌ Invalid Paystack signature");
-    return NextResponse.json(
-      { error: "Invalid Paystack signature" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const event = JSON.parse(body);
@@ -64,34 +58,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  const data = event.data;
-  const reference: string = data.reference; // THIS IS OUR orderId
+  const reference: string = event.data.reference;
 
   console.log("✅ Payment success for:", reference);
 
   /* ------------------------------------------------
-     3️⃣ Find order using orderId (SOURCE OF TRUTH)
+     3️⃣ Find order
   ------------------------------------------------ */
   const order = await prisma.order.findFirst({
     where: { orderId: reference },
+    include: { orderItems: true },
   });
 
   if (!order) {
-    console.error("❌ Order not found for orderId:", reference);
+    console.error("❌ Order not found:", reference);
     return NextResponse.json({ received: true });
   }
 
   /* ------------------------------------------------
-     4️⃣ Mark order as PAID (idempotent)
+     4️⃣ Transaction: mark paid + reduce stock (IDEMPOTENT)
   ------------------------------------------------ */
-  if (order.paymentStatus !== "PAID") {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "PAID",
-        reference: reference, // store Paystack reference
-      },
+  if (!order.stockReduced) {
+    await prisma.$transaction(async (tx) => {
+      // Mark paid
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "PAID",
+          reference: reference,
+        },
+      });
+
+      // Reduce stock + create movement
+      for (const item of order.orderItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQty: {
+              decrement: item.quantity,
+            },
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            orderId: order.id,
+            type: "SALE",
+            quantity: item.quantity,
+            note: `Sale for order ${reference}`,
+          },
+        });
+      }
+
+      // Mark stock reduced (CRITICAL)
+      await tx.order.update({
+        where: { id: order.id },
+        data: { stockReduced: true },
+      });
     });
+
+    console.log("📦 Stock reduced successfully");
+  } else {
+    console.log("⚠️ Stock already reduced, skipping");
   }
 
   /* ------------------------------------------------
@@ -99,20 +128,11 @@ export async function POST(req: NextRequest) {
   ------------------------------------------------ */
   const customerPhone = normalizeGhanaPhone(order.phone);
 
-  if (!customerPhone) {
-    console.error("❌ Invalid phone number:", order.phone);
-    return NextResponse.json({ received: true });
-  }
-
-  if (!order.smsSent) {
-    console.log("📩 Sending SMS to:", customerPhone);
-
-    const message = `DeeglobalGh: Payment received successfully for order ${reference}. Our team will contact you shortly to confirm delivery. Thank you.`;
-
+  if (customerPhone && !order.smsSent) {
     try {
       await sendOrderSMS({
         phone: customerPhone,
-        message,
+        message: `DeeglobalGh: Payment received for order ${reference}. We will contact you shortly.`,
       });
 
       await prisma.order.update({
@@ -120,9 +140,9 @@ export async function POST(req: NextRequest) {
         data: { smsSent: true },
       });
 
-      console.log("✅ SMS sent successfully");
+      console.log("📩 SMS sent");
     } catch (err) {
-      console.error("❌ SMS sending failed:", err);
+      console.error("❌ SMS failed:", err);
     }
   }
 
