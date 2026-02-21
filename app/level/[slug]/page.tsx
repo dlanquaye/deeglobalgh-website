@@ -1,16 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { products } from "../../lib/products";
+import { prisma } from "@/app/lib/prisma";
+
+const SITE_URL = "https://shopdeeglobalgh.com";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }): Promise<Metadata> {
-  const { slug } = await params;
-
-  const SITE_URL = "https://shopdeeglobalgh.com";
+  const { slug } = params;
 
   const pretty = slug
     .replace(/-/g, " ")
@@ -24,9 +24,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title,
       description,
@@ -43,15 +41,24 @@ export async function generateMetadata({
 export default async function LevelPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const { slug } = await params;
+  const { slug } = params;
 
   const pretty = slug
     .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const filtered = products.filter((p) => p.levelSlugs.includes(slug));
+  const products = await prisma.product.findMany({
+    where: {
+      levelSlugs: {
+        has: slug,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -71,16 +78,16 @@ export default async function LevelPage({
       </div>
 
       <p className="mt-2 text-sm text-gray-600">
-        Found <span className="font-semibold">{filtered.length}</span> product
-        {filtered.length === 1 ? "" : "s"} in this level.
+        Found{" "}
+        <span className="font-semibold">{products.length}</span>{" "}
+        product{products.length === 1 ? "" : "s"} in this level.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length > 0 ? (
-          filtered.map((p) => {
-            const imageSrc = p?.image?.src || "/products/placeholder.webp";
-            const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-            const imageTitle = p?.image?.title || p?.name || "Product image";
+        {products.length > 0 ? (
+          products.map((p) => {
+            const imageSrc =
+              p.imageSrc || "/products/placeholder.webp";
 
             return (
               <Link
@@ -90,9 +97,9 @@ export default async function LevelPage({
               >
                 <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
                   <Image
-                    src={imageSrc}
-                    alt={imageAlt}
-                    title={imageTitle}
+                    src={imageSrc.startsWith("/") ? imageSrc : `/${imageSrc}`}
+                    alt={p.imageAlt || p.name}
+                    title={p.imageTitle || p.name}
                     width={500}
                     height={500}
                     className="h-48 w-auto object-contain"
@@ -100,10 +107,12 @@ export default async function LevelPage({
                 </div>
 
                 <div className="mt-3 font-semibold">{p.name}</div>
-                <div className="mt-1 font-bold text-lg">GH₵ {p.price}</div>
+                <div className="mt-1 font-bold text-lg">
+                  GH₵ {p.retailPrice}
+                </div>
 
                 <div className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-center font-semibold text-white">
-                  Add to cart
+                  View Product
                 </div>
               </Link>
             );

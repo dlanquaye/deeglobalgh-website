@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
-type CartProduct = {
+
+type ProductForCart = {
   id: string;
   name: string;
   slug: string;
@@ -10,14 +13,10 @@ type CartProduct = {
   stockQty?: number;
 };
 
-import Link from "next/link";
-import { useState } from "react";
-
 type Props = {
-  product: CartProduct;
+  product: ProductForCart;
   outOfStock?: boolean;
 };
-
 
 export default function AddToCartButton({
   product,
@@ -28,18 +27,19 @@ export default function AddToCartButton({
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAddToCart = () => {
-    const success = addToCart(
-  {
-    id: product.id,
-    name: product.name,
-    retailPrice: product.retailPrice,
-    slug: product.slug,
-    imageSrc: product.image?.src,
-    stockQty: product.stockQty ?? 0,
-  },
-  1
-);
+    if (outOfStock) return;
 
+    const success = addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        retailPrice: product.retailPrice,
+        imageSrc: product.imageSrc ?? undefined,
+        stockQty: product.stockQty ?? 0,
+      },
+      1
+    );
 
     if (success) {
       setAdded(true);
@@ -67,14 +67,12 @@ export default function AddToCartButton({
           {outOfStock ? "Out of Stock" : "Add to cart"}
         </button>
 
-        {/* Success message (in stock only) */}
         {message && (
           <p className="text-sm font-semibold text-[color:var(--brand-blue)]">
             {message}
           </p>
         )}
 
-        {/* Static out-of-stock message */}
         {outOfStock && (
           <p className="text-sm font-semibold text-red-600">
             This item is currently out of stock.
@@ -82,14 +80,14 @@ export default function AddToCartButton({
         )}
       </div>
 
-      {added && !outOfStock ? (
+      {added && !outOfStock && (
         <Link
           href="/cart"
           className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-extrabold text-blue-900 hover:bg-gray-50"
         >
           View Cart
         </Link>
-      ) : null}
+      )}
     </div>
   );
 }

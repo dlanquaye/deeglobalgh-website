@@ -83,11 +83,12 @@ export default function CartDrawer({
                   {lastItem.name}
                 </div>
                 <div className="mt-1 text-sm text-gray-600">
-                  Qty: <span className="font-bold text-gray-900">{lastItem.qty}</span>
+                  Qty: <span className="font-bold text-gray-900">{lastItem.quantity}</span>
                 </div>
 
                 <div className="mt-1 text-sm text-gray-600">
-                  Unit: <span className="font-bold text-gray-900">GH₵ {lastItem.price}</span>
+                  Unit: <span className="font-bold text-gray-900">GH₵ {lastItem.retailPrice}
+</span>
                 </div>
               </div>
             </div>
