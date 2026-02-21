@@ -2,45 +2,40 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import Image from "next/image";
-import type { Product } from "@/app/lib/products";
 import { useCart } from "@/app/context/CartContext";
-import { initInventory } from "@/app/lib/inventory";
+
+/* -------------------------------------------
+   TYPES (Prisma-aligned shape)
+------------------------------------------- */
+type ProductCardProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+  imageSrc: string;
+  stockQty: number;
+};
 
 type Props = {
-  product: Product;
+  product: ProductCardProduct;
 };
 
 export default function ProductCard({ product }: Props) {
   const { addToCart } = useCart();
 
-  const [stockQty, setStockQty] = useState<number>(0);
-  const [lowThreshold, setLowThreshold] = useState<number>(0);
+  const [stockQty, setStockQty] = useState<number>(product.stockQty);
   const [message, setMessage] = useState<string | null>(null);
 
   /* -------------------------------------------
-     INVENTORY INITIALISATION
-     ------------------------------------------- */
+     Sync stock if product changes
+  ------------------------------------------- */
   useEffect(() => {
-    let mounted = true;
-
-    const loadInventory = async () => {
-      await initInventory();
-      if (!mounted) return;
-
-      setStockQty(product.stockQty ?? 0);
-      setLowThreshold(product.lowStockThreshold ?? 0);
-    };
-
-    loadInventory();
-
-    return () => {
-      mounted = false;
-    };
-  }, [product.stockQty, product.lowStockThreshold]);
+    setStockQty(product.stockQty);
+  }, [product.stockQty]);
 
   /* -------------------------------------------
-     MESSAGE LIFECYCLE (PAINT-SAFE)
-     ------------------------------------------- */
+     Auto-clear message
+  ------------------------------------------- */
   useLayoutEffect(() => {
     if (!message) return;
 
@@ -53,82 +48,71 @@ export default function ProductCard({ product }: Props) {
 
   /* -------------------------------------------
      STOCK STATES
-     ------------------------------------------- */
+  ------------------------------------------- */
   const outOfStock = stockQty <= 0;
-  const lowStock = stockQty > 0 && stockQty <= lowThreshold;
 
   /* -------------------------------------------
-     IMAGE FALLBACKS
-     ------------------------------------------- */
+     IMAGE
+  ------------------------------------------- */
   const imageSrc =
-    product.image?.src || "/products/placeholder.webp";
-
-  const imageAlt =
-    product.image?.alt ||
-    product.name ||
-    "DeeglobalGh product";
-
-  const imageTitle =
-    product.image?.title ||
-    product.name ||
-    "Product image";
+    product.imageSrc || "/products/placeholder.webp";
 
   /* -------------------------------------------
-     ADD TO CART HANDLER (RENDER-SAFE)
-     ------------------------------------------- */
+     ADD TO CART
+  ------------------------------------------- */
   const handleAddToCart = () => {
     if (outOfStock) {
       setMessage("This item is currently out of stock.");
       return;
     }
 
-    // Allow message to paint before cart context update
-    setMessage("Added to cart.");
-
     requestAnimationFrame(() => {
-      const success = addToCart(product, 1);
+      const success = addToCart(
+        {
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+          retailPrice: product.retailPrice,
+          imageSrc: product.imageSrc,
+          stockQty: product.stockQty,
+        },
+        1
+      );
 
       if (!success) {
         setMessage("Unable to add item to cart. Please refresh.");
+      } else {
+        setMessage("Added to cart.");
       }
     });
   };
 
   /* -------------------------------------------
      RENDER
-     ------------------------------------------- */
+  ------------------------------------------- */
   return (
     <div className="card-brand relative overflow-hidden bg-white">
-      {/* STOCK BADGE */}
-      <div className="absolute left-3 top-3 z-10">
-        {outOfStock && (
+      {/* Stock badge */}
+      {outOfStock && (
+        <div className="absolute left-3 top-3 z-10">
           <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
             Out of Stock
           </span>
-        )}
-
-        {!outOfStock && lowStock && (
-          <span className="rounded-full bg-yellow-500 px-3 py-1 text-xs font-bold text-black">
-            Low Stock
-          </span>
-        )}
-      </div>
-
-      {/* IMAGE */}
-      <div className="bg-white">
-        <div className="flex h-44 items-center justify-center bg-[color:var(--bg-soft)] overflow-hidden">
-          <Image
-            src={imageSrc}
-            alt={imageAlt}
-            title={imageTitle}
-            width={400}
-            height={400}
-            className="h-full w-auto object-contain"
-          />
         </div>
+      )}
+
+      {/* Image */}
+      <div className="flex h-44 items-center justify-center overflow-hidden bg-[color:var(--bg-soft)]">
+        <Image
+          src={imageSrc}
+          alt={product.name}
+          width={400}
+          height={400}
+          className="h-full w-auto object-contain"
+        />
       </div>
 
-      {/* CONTENT */}
+      {/* Content */}
       <div className="p-4">
         <div className="text-sm font-semibold text-[color:var(--text-main)]">
           {product.name}
@@ -136,7 +120,7 @@ export default function ProductCard({ product }: Props) {
 
         <div className="mt-2 flex items-center justify-between gap-3">
           <div className="whitespace-nowrap text-base font-bold text-[color:var(--brand-blue)]">
-            GH₵ {product.price}
+            GH₵ {product.retailPrice}
           </div>
 
           <button
@@ -153,7 +137,6 @@ export default function ProductCard({ product }: Props) {
           </button>
         </div>
 
-        {/* USER FEEDBACK */}
         {message && (
           <p className="mt-2 text-xs font-semibold text-green-700">
             {message}

@@ -89,7 +89,7 @@ export default function CartPage() {
                       <div className="mt-1 text-sm text-[color:var(--text-muted)]">
                         Unit price:{" "}
                         <span className="font-semibold text-[color:var(--text-main)]">
-                          GH₵ {item.price}
+                          GH₵ {item.retailPrice}
                         </span>
                       </div>
 
@@ -130,7 +130,7 @@ export default function CartPage() {
 
                         {/* Line total */}
                         <div className="ml-auto text-base font-extrabold text-[color:var(--brand-blue)]">
-                          {formatMoney(item.price * item.qty)}
+                          {formatMoney(item.retailPrice * item.qty)}
                         </div>
                       </div>
                     </div>
