@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/context/CartContext";
 
@@ -36,7 +36,6 @@ export default function HomeClient({
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
   const [pauseAuto, setPauseAuto] = useState(false);
 
-  /* ---------------- Featured Shuffle ---------------- */
   useEffect(() => {
     if (!Array.isArray(products)) return;
     const shuffled = [...products].sort(() => Math.random() - 0.5);
@@ -52,14 +51,12 @@ export default function HomeClient({
     el.scrollBy({ left: amount, behavior: "smooth" });
   }, []);
 
-  /* ---------------- Auto Scroll ---------------- */
   useEffect(() => {
     if (featured.length < 6 || pauseAuto) return;
     const id = setInterval(() => scroll("right"), 5000);
     return () => clearInterval(id);
   }, [featured, pauseAuto, scroll]);
 
-  /* ---------------- Categories ---------------- */
   const categories = [
     "Textbooks",
     "Exam Materials",
@@ -69,6 +66,8 @@ export default function HomeClient({
     "Drawing & Technical",
     "Bags & Lunch Packs",
     "Calculators",
+    "JHS Combined Textbooks",
+    "SHS Combined Textbooks",
   ];
 
   const levels = [
@@ -90,7 +89,52 @@ export default function HomeClient({
   return (
     <main className="min-h-screen bg-white">
 
-      {/* ---------------- HERO ---------------- */}
+      {/* ================= SEARCH + SEO LINKS ================= */}
+      <section className="mx-auto max-w-6xl px-4 py-6">
+        <div className="rounded-2xl border bg-white p-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search books, stationery, dorm items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && search.trim()) {
+                  router.push(`/shop?search=${encodeURIComponent(search)}`);
+                }
+              }}
+              className="flex-1 rounded-xl border px-5 py-4 text-lg outline-none focus:ring-2 focus:ring-blue-900"
+            />
+            <button
+              onClick={() => {
+                if (search.trim()) {
+                  router.push(`/shop?search=${encodeURIComponent(search)}`);
+                }
+              }}
+              className="rounded-xl bg-blue-900 px-6 py-4 font-bold text-white"
+            >
+              Search
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/kasoa" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
+              Kasoa
+            </Link>
+            <Link href="/textbooks-in-kasoa" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
+              Textbooks in Kasoa
+            </Link>
+            <Link href="/stationery-in-kasoa" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
+              Stationery in Kasoa
+            </Link>
+            <Link href="/cart" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
+              Cart ({totalItems})
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= HERO ================= */}
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl border bg-gray-50 p-6">
           <h1 className="text-2xl font-bold">
@@ -101,8 +145,11 @@ export default function HomeClient({
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/shop" className="btn-primary px-5 py-3">
-              Shop All Products
+            <Link href="/shop" className="rounded-xl bg-blue-900 px-5 py-3 font-bold text-white">
+              Shop All
+            </Link>
+            <Link href="/kasoa" className="rounded-xl border px-5 py-3 font-bold">
+              Shop in Kasoa
             </Link>
             <a
               href="https://wa.me/233246011773"
@@ -115,7 +162,7 @@ export default function HomeClient({
         </div>
       </section>
 
-      {/* ---------------- CATEGORIES ---------------- */}
+      {/* ================= SHOP BY CATEGORY ================= */}
       <section className="mx-auto max-w-6xl px-4 pb-10">
         <h2 className="text-xl font-bold">Shop by Category</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -131,14 +178,17 @@ export default function HomeClient({
         </div>
       </section>
 
-      {/* ---------------- FEATURED ---------------- */}
+      {/* ================= FEATURED ================= */}
       <section className="mx-auto max-w-6xl px-4 pb-14">
-        <h2 className="text-xl font-bold">Featured Products</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Featured Products</h2>
+          <Link href="/shop" className="text-sm font-semibold text-blue-900">
+            View all →
+          </Link>
+        </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <button onClick={() => scroll("left")} className="border px-3 py-2">
-            ←
-          </button>
+          <button onClick={() => scroll("left")} className="border px-3 py-2">←</button>
 
           <div
             ref={featuredRef}
@@ -150,10 +200,7 @@ export default function HomeClient({
               const out = p.stockQty <= 0;
 
               return (
-                <div
-                  key={p.id}
-                  className="min-w-[280px] rounded-2xl border bg-white p-4"
-                >
+                <div key={p.id} className="min-w-[280px] rounded-2xl border bg-white p-4">
                   <Link href={`/product/${p.slug}`}>
                     <div className="relative h-52 bg-gray-50">
                       <Image
@@ -163,7 +210,6 @@ export default function HomeClient({
                         className="object-contain p-3"
                       />
                     </div>
-
                     <div className="mt-3 font-semibold">{p.name}</div>
                     <div className="mt-1 font-bold text-blue-900">
                       GH₵ {p.retailPrice}
@@ -187,16 +233,9 @@ export default function HomeClient({
                       );
 
                       if (success) {
-                        setAddedMap((prev) => ({
-                          ...prev,
-                          [p.id]: true,
-                        }));
-
+                        setAddedMap((prev) => ({ ...prev, [p.id]: true }));
                         setTimeout(() => {
-                          setAddedMap((prev) => ({
-                            ...prev,
-                            [p.id]: false,
-                          }));
+                          setAddedMap((prev) => ({ ...prev, [p.id]: false }));
                         }, 2000);
                       }
                     }}
@@ -217,13 +256,11 @@ export default function HomeClient({
             })}
           </div>
 
-          <button onClick={() => scroll("right")} className="border px-3 py-2">
-            →
-          </button>
+          <button onClick={() => scroll("right")} className="border px-3 py-2">→</button>
         </div>
       </section>
 
-      {/* ---------------- LEVELS ---------------- */}
+      {/* ================= SCHOOL LEVELS ================= */}
       <section className="mx-auto max-w-6xl px-4 pb-14">
         <h2 className="text-xl font-bold">Shop by School Level</h2>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -231,114 +268,14 @@ export default function HomeClient({
             <Link
               key={level}
               href={`/shop?level=${slugify(level)}`}
-              className="rounded-full border px-4 py-2"
+              className="rounded-full border px-4 py-2 hover:bg-gray-50"
             >
               {level}
             </Link>
           ))}
         </div>
       </section>
-{/* ================= TRUST SECTION ================= */}
-<section className="border-t bg-gray-50">
-  <div className="mx-auto max-w-6xl px-4 py-10">
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="rounded-2xl border bg-white p-5">
-        <div className="font-semibold">Fast Delivery</div>
-        <div className="mt-1 text-sm text-gray-600">
-          Delivery across Kasoa, Accra and beyond.
-        </div>
-      </div>
 
-      <div className="rounded-2xl border bg-white p-5">
-        <div className="font-semibold">Secure Checkout</div>
-        <div className="mt-1 text-sm text-gray-600">
-          Pay with MoMo or card securely.
-        </div>
-      </div>
-
-      <div className="rounded-2xl border bg-white p-5">
-        <div className="font-semibold">WhatsApp Support</div>
-        <div className="mt-1 text-sm text-gray-600">
-          Ask questions before you buy.
-        </div>
-      </div>
-
-      <div className="rounded-2xl border bg-white p-5">
-        <div className="font-semibold">Trusted Shop</div>
-        <div className="mt-1 text-sm text-gray-600">
-          Genuine items and reliable service.
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{/* ================= FOOTER ================= */}
-<footer className="border-t bg-white">
-  <div className="mx-auto max-w-6xl px-4 py-10">
-    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-
-      <div>
-        <div className="font-bold text-blue-900 text-lg">
-          DeeGlobalGH
-        </div>
-        <p className="mt-2 text-sm text-gray-600">
-          Smart Deals, Everyday Needs.
-        </p>
-      </div>
-
-      <div>
-        <div className="font-semibold text-blue-900">
-          Delivery
-        </div>
-        <p className="mt-2 text-sm text-gray-600">
-          Order online and we deliver across Kasoa, Accra, and beyond.
-        </p>
-      </div>
-
-      <div>
-        <div className="font-semibold text-blue-900">
-          Contact
-        </div>
-        <div className="mt-2 text-sm text-gray-600">
-          WhatsApp: <strong>0246 011 773</strong>
-        </div>
-        <div className="text-sm text-gray-600">
-          Call: <strong>054 113 1111</strong>
-        </div>
-        <div className="text-sm text-gray-600">
-          Call: <strong>030 398 2358</strong>
-        </div>
-      </div>
-
-      <div>
-        <div className="font-semibold text-blue-900">
-          Quick Links
-        </div>
-        <div className="mt-2 space-y-1 text-sm text-gray-600">
-          <Link href="/shop" className="block hover:underline">
-            Shop All Products
-          </Link>
-          <Link href="/textbooks" className="block hover:underline">
-            Textbooks
-          </Link>
-          <a
-            href="https://wa.me/233246011773"
-            target="_blank"
-            className="block hover:underline"
-          >
-            WhatsApp Support
-          </a>
-        </div>
-      </div>
-
-    </div>
-
-    <div className="mt-10 text-center text-xs text-gray-500">
-      © {new Date().getFullYear()} DeeGlobalGH. All rights reserved.
-    </div>
-  </div>
-</footer>
     </main>
   );
 }
