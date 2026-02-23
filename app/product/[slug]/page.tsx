@@ -28,6 +28,9 @@ export default async function ProductPage({ params }: Props) {
 
   const outOfStock = product.stockQty <= 0;
 
+  // 🔥 Convert Decimal safely
+  const price = Number(product.retailPrice);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
 
@@ -68,7 +71,7 @@ export default async function ProductPage({ params }: Props) {
           )}
 
           <div className="mt-5 text-2xl font-bold text-blue-900">
-            GH₵ {product.retailPrice.toFixed(2)}
+            GH₵ {price.toFixed(2)}
           </div>
 
           {product.shortSummary && (
@@ -83,7 +86,7 @@ export default async function ProductPage({ params }: Props) {
                 id: product.id,
                 name: product.name,
                 slug: product.slug,
-                retailPrice: product.retailPrice,
+                retailPrice: price, // ✅ FIXED HERE
                 imageSrc: product.imageSrc,
                 stockQty: product.stockQty,
               }}
@@ -126,26 +129,30 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {relatedProducts.map((item) => (
-              <Link
-                key={item.id}
-                href={`/product/${item.slug}`}
-                className="rounded-2xl border bg-white p-4 hover:shadow-sm"
-              >
-                <div className="relative h-48 bg-gray-50">
-                  <Image
-                    src={item.imageSrc || "/products/placeholder.webp"}
-                    alt={item.name}
-                    fill
-                    className="object-contain p-3"
-                  />
-                </div>
-                <div className="mt-3 font-semibold">{item.name}</div>
-                <div className="mt-1 font-bold text-blue-900">
-                  GH₵ {item.retailPrice.toFixed(2)}
-                </div>
-              </Link>
-            ))}
+            {relatedProducts.map((item) => {
+              const relatedPrice = Number(item.retailPrice);
+
+              return (
+                <Link
+                  key={item.id}
+                  href={`/product/${item.slug}`}
+                  className="rounded-2xl border bg-white p-4 hover:shadow-sm"
+                >
+                  <div className="relative h-48 bg-gray-50">
+                    <Image
+                      src={item.imageSrc || "/products/placeholder.webp"}
+                      alt={item.name}
+                      fill
+                      className="object-contain p-3"
+                    />
+                  </div>
+                  <div className="mt-3 font-semibold">{item.name}</div>
+                  <div className="mt-1 font-bold text-blue-900">
+                    GH₵ {relatedPrice.toFixed(2)}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
