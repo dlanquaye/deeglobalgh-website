@@ -179,15 +179,7 @@ We are processing your order and will contact you shortly for delivery.
 
 Thank you for shopping with us.`;
 
-      await sendOrderSMS({
-        phone: order.phone,
-        message,
-      });
-
-      await prisma.order.update({
-        where: { orderId },
-        data: { smsSent: true },
-      });
+      
     }
 
     return NextResponse.json({

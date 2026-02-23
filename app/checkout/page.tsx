@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat("en-GH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
 
 type CustomerProfile = {
@@ -30,7 +23,7 @@ function safeParse<T>(raw: string | null): T | null {
 }
 
 export default function CheckoutPage() {
-  const { items, subtotal } = useCart();
+  const { items } = useCart();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,6 +34,12 @@ export default function CheckoutPage() {
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
+  // ✅ NEW: store current order ID for polling
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+
+  /* =========================================
+     Load saved customer profile
+  ========================================== */
   useEffect(() => {
     const saved = safeParse<CustomerProfile>(
       typeof window !== "undefined"
@@ -80,9 +79,35 @@ export default function CheckoutPage() {
     );
   };
 
-  /* =====================================================
-     PAYSTACK FLOW (FIXED — NOW SENDS ITEMS)
-  ===================================================== */
+  /* =========================================
+     Poll order status after payment
+  ========================================== */
+  useEffect(() => {
+    if (!currentOrderId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/orders/status?orderId=${currentOrderId}`
+        );
+
+        const data = await res.json();
+
+        if (data?.paymentStatus === "PAID") {
+          clearInterval(interval);
+          window.location.href = `/payment-success?reference=${currentOrderId}`;
+        }
+      } catch {
+        // silently ignore polling errors
+      }
+    }, 3000); // check every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [currentOrderId]);
+
+  /* =========================================
+     PAYSTACK FLOW
+  ========================================== */
   const payNowWithPaystack = async () => {
     if (!canCheckout) return;
 
@@ -93,7 +118,9 @@ export default function CheckoutPage() {
     try {
       const orderId = `DG-${Date.now()}`;
 
-      /* 🔐 CORRECT SNAPSHOT STRUCTURE */
+      // store for polling
+      setCurrentOrderId(orderId);
+
       const payload = {
         orderId,
         customer: {
@@ -109,7 +136,7 @@ export default function CheckoutPage() {
         })),
       };
 
-      /* 1️⃣ CREATE ORDER */
+      // 1️⃣ Create order
       const createRes = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,14 +149,13 @@ export default function CheckoutPage() {
         throw new Error(createData?.error || "Failed to create order");
       }
 
-      /* 2️⃣ INITIALIZE PAYSTACK */
+      // 2️⃣ Initialize Paystack
       const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           phone,
-          amount: createData.amount, // use server-calculated amount
           orderId,
         }),
       });
@@ -141,14 +167,13 @@ export default function CheckoutPage() {
         throw new Error("Failed to start payment");
       }
 
+      // redirect to Paystack
       window.location.href = url;
     } catch (err: any) {
       setPayError(err?.message || "Payment failed");
       setPayLoading(false);
     }
   };
-
-  /* ===================================================== */
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
