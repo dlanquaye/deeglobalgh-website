@@ -225,7 +225,7 @@ export default function HomeClient({
                           id: p.id,
                           name: p.name,
                           slug: p.slug,
-                          retailPrice: p.retailPrice,
+                          retailPrice: Number(p.retailPrice),
                           imageSrc: p.imageSrc,
                           stockQty: p.stockQty,
                         },

@@ -212,7 +212,17 @@ export default function ShopPage() {
                       e.preventDefault();
                       e.stopPropagation();
 
-                      addToCart(p, 1);
+                      addToCart(
+  {
+    id: String(p?.id || p?.slug),
+    name: p?.name,
+    slug: p?.slug,
+    retailPrice: Number(p?.retailPrice ?? p?.price ?? 0),
+    imageSrc: p?.image?.src ?? null,
+    stockQty: Number(p?.stockQty ?? 100),
+  },
+  1
+);
 
                       setAddedMap((prev) => ({ ...prev, [pid]: true }));
 
