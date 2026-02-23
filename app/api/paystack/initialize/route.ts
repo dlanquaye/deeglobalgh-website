@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
 
 /**
  * Normalize Ghana phone numbers to 233XXXXXXXXX format
@@ -14,7 +15,7 @@ function normalizeGhanaPhone(phone: string) {
     return p;
   }
 
-  return p; // fallback: do not block payment
+  return p;
 }
 
 export async function POST(req: Request) {
@@ -32,16 +33,41 @@ export async function POST(req: Request) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    const { email, amount, phone: rawPhone, orderId } = body;
+    const { email, phone: rawPhone, orderId } = body;
 
-    if (!email || !amount || !rawPhone || !orderId) {
+    // ❌ Removed "amount" from frontend
+
+    if (!email || !rawPhone || !orderId) {
       return NextResponse.json(
-        { error: "Email, amount, phone, and orderId are required" },
+        { error: "Email, phone, and orderId are required" },
+        { status: 400 }
+      );
+    }
+
+    // 🔒 1. Fetch order from database
+    const order = await prisma.order.findUnique({
+  where: { orderId },
+});
+
+    if (!order) {
+      return NextResponse.json(
+        { error: "Invalid order ID" },
+        { status: 400 }
+      );
+    }
+
+    // 🔒 2. Prevent duplicate payment
+    if (order.paymentStatus === "PAID") {
+      return NextResponse.json(
+        { error: "Order already paid" },
         { status: 400 }
       );
     }
 
     const phone = normalizeGhanaPhone(rawPhone);
+
+    // 🔒 3. Use authoritative amount from database
+    const amountInPesewas = Number(order.amount) * 100;
 
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -52,16 +78,10 @@ export async function POST(req: Request) {
       cache: "no-store",
       body: JSON.stringify({
         email,
-        amount: Number(amount) * 100, // Paystack expects pesewas
+        amount: amountInPesewas,
         currency: "GHS",
-
-        // 🔑 CRITICAL FIX — USE YOUR ORDER ID AS PAYSTACK REFERENCE
         reference: orderId,
-
-        // Redirect user after payment
         callback_url: `${siteUrl}/payment-success`,
-
-        // Extra data for webhook & SMS
         metadata: {
           orderId,
           phone,

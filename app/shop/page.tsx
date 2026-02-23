@@ -214,7 +214,7 @@ export default function ShopPage() {
 
                       addToCart(
   {
-    id: String(p?.id || p?.slug),
+    id: String(p?.id),
     name: p?.name,
     slug: p?.slug,
     retailPrice: Number(p?.retailPrice ?? p?.price ?? 0),

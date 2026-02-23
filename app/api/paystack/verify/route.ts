@@ -49,6 +49,10 @@ export async function GET(req: Request) {
     }
 
     const paystackData = result.data;
+    // 🔒 Verify reference consistency
+if (paystackData.reference !== reference) {
+  throw new Error("Reference mismatch");
+}
     const orderId = paystackData?.metadata?.orderId;
 
     if (!orderId) {
@@ -65,6 +69,14 @@ export async function GET(req: Request) {
       where: { orderId },
       include: { orderItems: true },
     });
+    // 🔒 Stop if already paid (idempotency protection)
+if (order?.paymentStatus === PaymentStatus.PAID) {
+  return NextResponse.json({
+    ok: true,
+    orderId,
+    paymentStatus: PaymentStatus.PAID,
+  });
+}
     console.log("VERIFY ORDER ITEMS:", order?.orderItems);
 
 
@@ -93,6 +105,12 @@ export async function GET(req: Request) {
         paymentStatus: PaymentStatus.FAILED,
       });
     }
+    // 🔒 Verify amount integrity
+const paidAmount = paystackData.amount / 100;
+
+if (paidAmount !== Number(order.amount)) {
+  throw new Error("Payment amount mismatch");
+}
 
     /* ===============================
        CHECK IF STOCK ALREADY DEDUCTED
