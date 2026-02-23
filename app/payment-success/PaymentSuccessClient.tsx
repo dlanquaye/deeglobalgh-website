@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useCart } from "@/app/context/CartContext";
 import { buildAdminOrderMessage, buildWhatsAppLink } from "@/app/lib/whatsapp";
 
-export default function PaymentSuccessClient() {
-  const { clearCart } = useCart();
-  const searchParams = useSearchParams();
-  const reference = searchParams.get("reference");
+type Props = {
+  reference: string | null;
+};
 
+export default function PaymentSuccessClient({ reference }: Props) {
+  const { clearCart } = useCart();
   const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
