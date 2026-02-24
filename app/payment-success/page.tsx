@@ -1,11 +1,12 @@
 import PaymentSuccessClient from "./PaymentSuccessClient";
 
-export default function Page({
+export default async function Page({
   searchParams,
 }: {
-  searchParams: { reference?: string };
+  searchParams: Promise<{ reference?: string }>;
 }) {
-  return (
-    <PaymentSuccessClient reference={searchParams?.reference ?? null} />
-  );
+  const params = await searchParams;
+  const reference = params?.reference ?? null;
+
+  return <PaymentSuccessClient reference={reference} />;
 }

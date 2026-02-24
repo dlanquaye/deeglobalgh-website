@@ -13,9 +13,17 @@ export default function PaymentSuccessClient({ reference }: Props) {
   const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
-    clearCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  console.log("REFERENCE VALUE:", reference);
+}, [reference]);
+
+  useEffect(() => {
+  if (!reference) return;
+
+  clearCart();
+  
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [reference]);
 
   useEffect(() => {
     async function fetchOrder() {
