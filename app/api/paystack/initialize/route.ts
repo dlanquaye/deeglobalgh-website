@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Normalize Ghana phone numbers to 233XXXXXXXXX format

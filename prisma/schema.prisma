@@ -7,34 +7,133 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//////////////////////////////////////
-// ORDER SYSTEM
-//////////////////////////////////////
-
 model Order {
-  id               String        @id @default(cuid())
-  orderId          String        @unique
-  reference        String?       @unique
-  email            String
-  phone            String
-  amount           Int
-  paymentStatus    PaymentStatus @default(PENDING)
-  smsSent          Boolean       @default(false)
-
-  // 🔐 CRITICAL FOR IDEMPOTENCY
-  stockReduced     Boolean       @default(false)
-
-  createdAt        DateTime      @default(now())
-  adminNotes       String?
-  deliveryFee      Int?
-  completedSmsSent Boolean       @default(false)
-  deliverySmsSent  Boolean       @default(false)
-
-  orderItems OrderItem[]
+  id                 String              @id @default(cuid())
+  orderId            String              @unique
+  reference          String?             @unique
+  email              String
+  phone              String
+  amount             Int
+  paymentStatus      PaymentStatus       @default(PENDING)
+  smsSent            Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  adminNotes         String?
+  deliveryFee        Int?
+  completedSmsSent   Boolean             @default(false)
+  deliverySmsSent    Boolean             @default(false)
+  stockReduced       Boolean             @default(false)
   inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
 
   @@index([orderId])
   @@index([reference])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model ImportShipment {
+  id                         String               @id @default(cuid())
+  reference                  String
+  supplierName               String
+  sourceApp                  ImportSourceApp
+  sourceAppOther             String?
+  freightForwarderName       String
+  shippingMode               ShippingMode
+  supplierTrackingId         String?
+  supplierTrackingNotes      String?
+  paymentFinalizedDate       DateTime?
+  currency                   String
+  exchangeRateSnapshot       Decimal
+  status                     ImportShipmentStatus @default(DRAFT)
+  forwarderReceivedConfirmed Boolean              @default(false)
+  forwarderReceivedDate      DateTime?
+  forwarderReceivedNotes     String?
+  supplierDeclaredCbm        Decimal?
+  forwarderMeasuredCbm       Decimal?
+  agreedCbm                  Decimal?
+  cbmDiscrepancyFlag         Boolean              @default(false)
+  cbmConfirmedAt             DateTime?
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+  costs                      ImportCost[]
+}
+
+model ImportCost {
+  id             String         @id @default(cuid())
+  shipmentId     String
+  costType       ImportCostType
+  description    String?
+  amountGhs      Decimal
+  paymentMethod  PaymentMethod
+  paymentDate    DateTime?
+  receiptUrl     String?
+  isPaid         Boolean        @default(false)
+  cashApproved   Boolean        @default(false)
+  cashApprovedAt DateTime?
+  cashNotes      String?
+  isLocked       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  shipment       ImportShipment @relation(fields: [shipmentId], references: [id])
+}
+
+model Product {
+  id                 String              @id @default(cuid())
+  sku                String              @unique
+  name               String
+  slug               String              @unique
+  retailPrice        Float
+  wholesalePrice     Float?
+  distributorPrice   Float?
+  stockQty           Int                 @default(0)
+  lowStockThreshold  Int                 @default(3)
+  categorySlug       String
+  levelSlugs         String[]
+  imageSrc           String
+  imageAlt           String
+  imageTitle         String?
+  imageCaption       String?
+  imageDescription   String?
+  focusKeyphrase     String?
+  metaTitle          String?
+  metaDescription    String?
+  socialTitle        String?
+  socialDescription  String?
+  shortSummary       String?
+  fullDescription    String?
+  brand              String?
+  tags               String[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
+}
+
+model InventoryMovement {
+  id        String                @id @default(cuid())
+  productId String
+  type      InventoryMovementType
+  quantity  Int
+  note      String?
+  createdAt DateTime              @default(now())
+  orderId   String?
+  order     Order?                @relation(fields: [orderId], references: [id])
+  product   Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([orderId])
 }
 
 enum PaymentStatus {
@@ -45,29 +144,6 @@ enum PaymentStatus {
   COMPLETED
   CANCELLED
 }
-
-model OrderItem {
-  id String @id @default(cuid())
-
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  quantity   Int
-  unitPrice  Float
-  totalPrice Float
-
-  createdAt DateTime @default(now())
-
-  @@index([orderId])
-  @@index([productId])
-}
-
-//////////////////////////////////////
-// IMPORTATION SYSTEM
-//////////////////////////////////////
 
 enum ImportShipmentStatus {
   DRAFT
@@ -107,113 +183,6 @@ enum ImportCostType {
   OTHER
 }
 
-model ImportShipment {
-  id             String          @id @default(cuid())
-  reference      String
-  supplierName   String
-  sourceApp      ImportSourceApp
-  sourceAppOther String?
-
-  freightForwarderName String
-  shippingMode         ShippingMode
-
-  supplierTrackingId    String?
-  supplierTrackingNotes String?
-
-  paymentFinalizedDate DateTime?
-  currency             String
-  exchangeRateSnapshot Decimal
-
-  status ImportShipmentStatus @default(DRAFT)
-
-  forwarderReceivedConfirmed Boolean   @default(false)
-  forwarderReceivedDate      DateTime?
-  forwarderReceivedNotes     String?
-
-  supplierDeclaredCbm  Decimal?
-  forwarderMeasuredCbm Decimal?
-  agreedCbm            Decimal?
-  cbmDiscrepancyFlag   Boolean   @default(false)
-  cbmConfirmedAt       DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  costs ImportCost[]
-}
-
-model ImportCost {
-  id         String         @id @default(cuid())
-  shipmentId String
-  shipment   ImportShipment @relation(fields: [shipmentId], references: [id])
-
-  costType    ImportCostType
-  description String?
-  amountGhs   Decimal
-
-  paymentMethod PaymentMethod
-  paymentDate   DateTime?
-
-  receiptUrl String?
-
-  isPaid         Boolean   @default(false)
-  cashApproved   Boolean   @default(false)
-  cashApprovedAt DateTime?
-  cashNotes      String?
-
-  isLocked Boolean @default(false)
-
-  createdAt DateTime @default(now())
-}
-
-//////////////////////////////////////
-// PRODUCT SYSTEM
-//////////////////////////////////////
-
-model Product {
-  id  String @id @default(cuid())
-  sku String @unique
-
-  name String
-  slug String @unique
-
-  retailPrice      Float
-  wholesalePrice   Float?
-  distributorPrice Float?
-
-  stockQty          Int @default(0)
-  lowStockThreshold Int @default(3)
-
-  categorySlug String
-  levelSlugs   String[]
-
-  imageSrc         String
-  imageAlt         String
-  imageTitle       String?
-  imageCaption     String?
-  imageDescription String?
-
-  focusKeyphrase    String?
-  metaTitle         String?
-  metaDescription   String?
-  socialTitle       String?
-  socialDescription String?
-  shortSummary      String?
-  fullDescription   String?
-  brand             String?
-  tags              String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orderItems         OrderItem[]
-  inventoryMovements InventoryMovement[]
-}
-
-//////////////////////////////////////
-// INVENTORY LEDGER SYSTEM
-//////////////////////////////////////
-
 enum InventoryMovementType {
   SALE
   ADMIN_ADJUSTMENT
@@ -221,23 +190,4 @@ enum InventoryMovementType {
   IMPORT_ALLOCATION
   RETURN
   DAMAGE
-}
-
-model InventoryMovement {
-  id String @id @default(cuid())
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  orderId String?
-  order   Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
-
-  type     InventoryMovementType
-  quantity Int
-  note     String?
-
-  createdAt DateTime @default(now())
-
-  @@index([productId])
-  @@index([orderId])
 }

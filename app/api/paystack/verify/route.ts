@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { PaymentStatus, InventoryMovementType } from "@prisma/client";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 export async function GET(req: Request) {
@@ -49,10 +49,12 @@ export async function GET(req: Request) {
     }
 
     const paystackData = result.data;
+
     // 🔒 Verify reference consistency
-if (paystackData.reference !== reference) {
-  throw new Error("Reference mismatch");
-}
+    if (paystackData.reference !== reference) {
+      throw new Error("Reference mismatch");
+    }
+
     const orderId = paystackData?.metadata?.orderId;
 
     if (!orderId) {
@@ -69,22 +71,21 @@ if (paystackData.reference !== reference) {
       where: { orderId },
       include: { orderItems: true },
     });
-    // 🔒 Stop if already paid (idempotency protection)
-if (order?.paymentStatus === PaymentStatus.PAID) {
-  return NextResponse.json({
-    ok: true,
-    orderId,
-    paymentStatus: PaymentStatus.PAID,
-  });
-}
-    console.log("VERIFY ORDER ITEMS:", order?.orderItems);
-
 
     if (!order) {
       return NextResponse.json(
         { error: "Order not found" },
         { status: 404 }
       );
+    }
+
+    // 🔒 Stop early if already paid (first-layer idempotency)
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return NextResponse.json({
+        ok: true,
+        orderId,
+        paymentStatus: PaymentStatus.PAID,
+      });
     }
 
     /* ===============================
@@ -105,12 +106,13 @@ if (order?.paymentStatus === PaymentStatus.PAID) {
         paymentStatus: PaymentStatus.FAILED,
       });
     }
-    // 🔒 Verify amount integrity
-const paidAmount = paystackData.amount / 100;
 
-if (paidAmount !== Number(order.amount)) {
-  throw new Error("Payment amount mismatch");
-}
+    // 🔒 Verify amount integrity
+    const paidAmount = paystackData.amount / 100;
+
+    if (paidAmount !== Number(order.amount)) {
+      throw new Error("Payment amount mismatch");
+    }
 
     /* ===============================
        CHECK IF STOCK ALREADY DEDUCTED
@@ -123,12 +125,14 @@ if (paidAmount !== Number(order.amount)) {
 
     if (!existingMovement) {
       /* ===============================
-         ATOMIC DEDUCTION
+         ATOMIC TRANSACTION
       =============================== */
       await prisma.$transaction(async (tx) => {
+
         for (const item of order.orderItems) {
           const product = await tx.product.findUnique({
             where: { id: item.productId },
+            select: { stockQty: true },
           });
 
           if (!product || product.stockQty < item.quantity) {
@@ -154,21 +158,30 @@ if (paidAmount !== Number(order.amount)) {
           });
         }
 
-        await tx.order.update({
-          where: { orderId },
+        // 🔒 Second-layer idempotency protection (race-condition safe)
+        const updatedOrder = await tx.order.updateMany({
+          where: {
+            orderId,
+            paymentStatus: PaymentStatus.PENDING,
+          },
           data: {
             paymentStatus: PaymentStatus.PAID,
             reference,
           },
         });
+
+        if (updatedOrder.count === 0) {
+          throw new Error("Order already processed");
+        }
       });
     }
 
     /* ===============================
-       SEND SMS (ONCE)
+       SEND SMS (AFTER SUCCESS)
     =============================== */
-    if (!order.smsSent && order.phone) {
-      const message = `DeeGlobalGH:
+    try {
+      if (!order.smsSent && order.phone) {
+        const message = `DeeGlobalGH:
 
 Payment received successfully ✅
 
@@ -179,7 +192,19 @@ We are processing your order and will contact you shortly for delivery.
 
 Thank you for shopping with us.`;
 
-      
+        await sendOrderSMS({
+  phone: order.phone,
+  message,
+});
+
+        await prisma.order.update({
+          where: { orderId },
+          data: { smsSent: true },
+        });
+      }
+    } catch (smsError) {
+      console.error("SMS sending failed:", smsError);
+      // Do NOT fail payment because of SMS
     }
 
     return NextResponse.json({

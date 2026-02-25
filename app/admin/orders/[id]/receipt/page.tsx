@@ -1,4 +1,4 @@
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import PrintButton from "./PrintButton";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 
 const SITE_URL = "https://shopdeeglobalgh.com";

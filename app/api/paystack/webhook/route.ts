@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 export const runtime = "nodejs";

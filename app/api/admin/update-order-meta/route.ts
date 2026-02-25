@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { PaymentStatus } from "@prisma/client";
 

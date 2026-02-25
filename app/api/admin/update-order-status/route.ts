@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { PaymentStatus, InventoryMovementType } from "@prisma/client";
 
