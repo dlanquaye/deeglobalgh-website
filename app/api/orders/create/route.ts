@@ -42,12 +42,12 @@ export async function POST(req: Request) {
     }
 
     /* ===============================
-       📦 FETCH PRODUCTS FROM DB
+       📦 FETCH PRODUCTS BY ID
     =============================== */
-    const skus = items.map((i: any) => i.productId);
+    const ids = items.map((i: any) => i.productId);
 
     const products = await prisma.product.findMany({
-      where: { sku: { in: skus } },
+      where: { id: { in: ids } },
     });
 
     /* ===============================
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     =============================== */
     for (const item of items) {
       const product = products.find(
-        (p) => p.sku === item.productId
+        (p) => p.id === item.productId
       );
 
       if (!product) {
@@ -80,10 +80,10 @@ export async function POST(req: Request) {
 
     const preparedItems = items.map((item: any) => {
       const product = products.find(
-        (p) => p.sku === item.productId
+        (p) => p.id === item.productId
       )!;
 
-      const unitPrice = product.retailPrice;
+      const unitPrice = Number(product.retailPrice);
       const totalPrice = unitPrice * item.quantity;
 
       totalAmount += totalPrice;
