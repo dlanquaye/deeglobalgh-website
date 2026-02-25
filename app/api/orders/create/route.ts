@@ -10,6 +10,9 @@ export async function POST(req: Request) {
 
     const { orderId, customer, items } = body;
 
+    /* ===============================
+       🧾 BASIC VALIDATION
+    =============================== */
     if (
       !orderId ||
       !customer ||
@@ -24,21 +27,36 @@ export async function POST(req: Request) {
       );
     }
 
-   const skus = items.map((i: any) => i.productId);
+    /* ===============================
+       🔒 PREVENT DUPLICATE ORDER ID
+    =============================== */
+    const existingOrder = await prisma.order.findUnique({
+      where: { orderId },
+    });
 
-const products = await prisma.product.findMany({
-  where: { sku: { in: skus } }
-});
+    if (existingOrder) {
+      return NextResponse.json(
+        { error: "Order already exists" },
+        { status: 400 }
+      );
+    }
 
+    /* ===============================
+       📦 FETCH PRODUCTS FROM DB
+    =============================== */
+    const skus = items.map((i: any) => i.productId);
 
+    const products = await prisma.product.findMany({
+      where: { sku: { in: skus } },
+    });
 
     /* ===============================
        🔒 STOCK VALIDATION
     =============================== */
     for (const item of items) {
-      const product = products.find(p => p.sku === item.productId);
-
-
+      const product = products.find(
+        (p) => p.sku === item.productId
+      );
 
       if (!product) {
         return NextResponse.json(
@@ -61,8 +79,9 @@ const products = await prisma.product.findMany({
     let totalAmount = 0;
 
     const preparedItems = items.map((item: any) => {
-      const product = products.find(p => p.sku === item.productId)!;
-
+      const product = products.find(
+        (p) => p.sku === item.productId
+      )!;
 
       const unitPrice = product.retailPrice;
       const totalPrice = unitPrice * item.quantity;
