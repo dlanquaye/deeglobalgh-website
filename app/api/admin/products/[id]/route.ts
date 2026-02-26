@@ -6,10 +6,10 @@ import { NextResponse, NextRequest } from "next/server";
 =============================== */
 export async function GET(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -37,10 +37,10 @@ export async function GET(
 =============================== */
 export async function PATCH(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
     const body = await req.json();
 
     const updated = await prisma.product.update({
@@ -62,11 +62,11 @@ export async function PATCH(
    SOFT DELETE (TOGGLE ACTIVE)
 =============================== */
 export async function DELETE(
-  _req: Request,
+  _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params; // ✅ MUST await
+    const { id } = await context.params;
 
     const existing = await prisma.product.findUnique({
       where: { id },
@@ -74,7 +74,7 @@ export async function DELETE(
     });
 
     if (!existing) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
       );
@@ -85,16 +85,15 @@ export async function DELETE(
       data: { isActive: !existing.isActive },
     });
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       isActive: updated.isActive,
     });
   } catch (error) {
     console.error("SOFT DELETE product error:", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Failed to update product status" },
       { status: 500 }
     );
   }
 }
-
