@@ -5,7 +5,9 @@ import CategoryClient from "./CategoryClient";
 const SITE_URL = "https://shopdeeglobalgh.com";
 
 function prettifySlug(slug: string) {
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) =>
+    c.toUpperCase()
+  );
 }
 
 export async function generateMetadata({
@@ -53,7 +55,6 @@ export default async function CategoryPage({
     return (
       <main className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-2xl font-bold">Exam Past Questions</h1>
-
         <p className="mt-2 text-gray-700">
           Shop verified Past Questions for BECE and WASSCE.
         </p>
@@ -61,9 +62,13 @@ export default async function CategoryPage({
     );
   }
 
-  // 🔥 FETCH REAL PRODUCTS FROM DATABASE
+  // 🔒 Only show active products
   const products = await prisma.product.findMany({
-    where: { categorySlug: slug },
+    where: {
+      categorySlug: slug,
+      isActive: true,
+    },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       name: true,

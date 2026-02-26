@@ -18,8 +18,10 @@ type CategoryProduct = {
   categorySlug: string;
 };
 
-function prettifySlug(slug: string) {
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+function prettifySlug(slug?: string) {
+  return slug
+    ? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "";
 }
 
 export default function CategoryClient({

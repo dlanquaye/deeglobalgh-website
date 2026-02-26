@@ -1,8 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import ToggleActiveButton from "./ToggleActiveButton";
 
-export default async function AdminProductsPage() {
+type Props = {
+  searchParams?: Promise<{
+    status?: string;
+  }>;
+};
+
+export default async function AdminProductsPage({
+  searchParams,
+}: Props) {
+  const resolvedSearchParams = searchParams
+    ? await searchParams
+    : undefined;
+
+  const status = resolvedSearchParams?.status;
+
+  const whereClause =
+    status === "active"
+      ? { isActive: true }
+      : status === "inactive"
+      ? { isActive: false }
+      : {};
+
   const products = await prisma.product.findMany({
+    where: whereClause,
     orderBy: { createdAt: "desc" },
   });
 
@@ -12,12 +35,27 @@ export default async function AdminProductsPage() {
         Admin • Products
       </h1>
 
-      <div className="mt-6">
+      {/* FILTER LINKS */}
+      <div className="mt-6 flex flex-wrap gap-3">
         <Link
-          href="/admin/products/new"
-          className="rounded-xl bg-blue-900 px-4 py-3 font-bold text-white hover:opacity-90"
+          href="/admin/products"
+          className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
         >
-          + Create New Product
+          All
+        </Link>
+
+        <Link
+          href="/admin/products?status=active"
+          className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+        >
+          Active
+        </Link>
+
+        <Link
+          href="/admin/products?status=inactive"
+          className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+        >
+          Inactive
         </Link>
       </div>
 
@@ -25,37 +63,65 @@ export default async function AdminProductsPage() {
         Showing {products.length} products.
       </p>
 
+      {/* PRODUCT LIST */}
       <div className="mt-6 space-y-4">
-        {products.map((p) => (
-          <div key={p.id} className="rounded-2xl border bg-white p-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-bold text-blue-900">
-                  {p.sku} • {p.name}
+        {products.map((p) => {
+          const price = Number(p.retailPrice);
+
+          return (
+            <div
+              key={p.id}
+              className="rounded-2xl border bg-white p-5"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-bold text-blue-900">
+                    {p.sku} • {p.name}
+                  </div>
+
+                  <div className="mt-1 text-sm text-gray-600">
+                    Slug: {p.slug}
+                  </div>
+
+                  <div className="mt-1 text-sm text-gray-600">
+                    Stock: {p.stockQty}
+                  </div>
+
+                  <div className="mt-2">
+                    {p.isActive ? (
+                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-1 text-sm text-gray-600">
-                  Slug: {p.slug}
-                </div>
-                <div className="mt-1 text-sm text-gray-600">
-                  Stock: {p.stockQty}
+
+                <div className="text-lg font-extrabold text-blue-900">
+                  GH₵ {price.toFixed(2)}
                 </div>
               </div>
 
-              <div className="text-lg font-extrabold text-blue-900">
-                GH₵ {p.retailPrice}
+              {/* ACTION BUTTONS */}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  href={`/admin/products/${p.id}`}
+                  className="inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold hover:bg-gray-50"
+                >
+                  Edit Product
+                </Link>
+
+                <ToggleActiveButton
+                  id={p.id}
+                  isActive={p.isActive}
+                />
               </div>
             </div>
-
-            <div className="mt-4">
-              <Link
-                href={`/admin/products/${p.id}`}
-                className="inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-bold hover:bg-gray-50"
-              >
-                Edit Product
-              </Link>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </main>
   );

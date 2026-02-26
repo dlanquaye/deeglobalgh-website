@@ -1,20 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { products } from "../../lib/products";
+import { prisma } from "@/lib/prisma";
+
+const SITE_URL = "https://shopdeeglobalgh.com";
+
+function prettifySlug(slug: string) {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug } = params;
 
-  const SITE_URL = "https://shopdeeglobalgh.com";
-
-  const pretty = slug
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const pretty = prettifySlug(slug);
 
   const title = `${pretty} Products | DeeglobalGh`;
   const description = `Shop ${pretty} textbooks and school essentials in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
@@ -43,15 +45,29 @@ export async function generateMetadata({
 export default async function LevelPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const { slug } = await params;
+  const { slug } = params;
 
-  const pretty = slug
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const pretty = prettifySlug(slug);
 
-  const filtered = products.filter((p) => p.levelSlugs.includes(slug));
+  // 🔒 Only active products
+  const products = await prisma.product.findMany({
+    where: {
+      levelSlugs: { has: slug },
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      retailPrice: true,
+      imageSrc: true,
+      imageAlt: true,
+      imageTitle: true,
+      stockQty: true,
+    },
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -61,26 +77,16 @@ export default async function LevelPage({
         Showing products for <span className="font-semibold">{pretty}</span>.
       </p>
 
-      <div className="mt-4">
-        <Link
-          href={`/shop?level=${slug}`}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-extrabold text-white hover:opacity-90"
-        >
-          View all in Shop
-        </Link>
-      </div>
-
       <p className="mt-2 text-sm text-gray-600">
-        Found <span className="font-semibold">{filtered.length}</span> product
-        {filtered.length === 1 ? "" : "s"} in this level.
+        Found{" "}
+        <span className="font-semibold">{products.length}</span>{" "}
+        product{products.length === 1 ? "" : "s"} in this level.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length > 0 ? (
-          filtered.map((p) => {
-            const imageSrc = p?.image?.src || "/products/placeholder.webp";
-            const imageAlt = p?.image?.alt || p?.name || "DeeglobalGh product";
-            const imageTitle = p?.image?.title || p?.name || "Product image";
+        {products.length > 0 ? (
+          products.map((p) => {
+            const price = Number(p.retailPrice);
 
             return (
               <Link
@@ -90,9 +96,9 @@ export default async function LevelPage({
               >
                 <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
                   <Image
-                    src={imageSrc}
-                    alt={imageAlt}
-                    title={imageTitle}
+                    src={p.imageSrc || "/products/placeholder.webp"}
+                    alt={p.imageAlt || p.name}
+                    title={p.imageTitle || p.name}
                     width={500}
                     height={500}
                     className="h-48 w-auto object-contain"
@@ -100,10 +106,8 @@ export default async function LevelPage({
                 </div>
 
                 <div className="mt-3 font-semibold">{p.name}</div>
-                <div className="mt-1 font-bold text-lg">GH₵ {p.price}</div>
-
-                <div className="mt-3 w-full rounded-xl bg-black px-4 py-3 text-center font-semibold text-white">
-                  Add to cart
+                <div className="mt-1 text-lg font-bold">
+                  GH₵ {price.toFixed(2)}
                 </div>
               </Link>
             );

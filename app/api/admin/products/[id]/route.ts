@@ -6,10 +6,10 @@ import { NextResponse, NextRequest } from "next/server";
 =============================== */
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -37,10 +37,10 @@ export async function GET(
 =============================== */
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
     const body = await req.json();
 
     const updated = await prisma.product.update({
@@ -59,25 +59,42 @@ export async function PATCH(
 }
 
 /* ===============================
-   DELETE PRODUCT
+   SOFT DELETE (TOGGLE ACTIVE)
 =============================== */
 export async function DELETE(
-  _req: NextRequest,
+  _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await context.params; // ✅ MUST await
 
-    await prisma.product.delete({
+    const existing = await prisma.product.findUnique({
       where: { id },
+      select: { isActive: true },
     });
 
-    return NextResponse.json({ success: true });
+    if (!existing) {
+      return Response.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: { isActive: !existing.isActive },
+    });
+
+    return Response.json({
+      success: true,
+      isActive: updated.isActive,
+    });
   } catch (error) {
-    console.error("DELETE product error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete product" },
+    console.error("SOFT DELETE product error:", error);
+    return Response.json(
+      { error: "Failed to update product status" },
       { status: 500 }
     );
   }
 }
+

@@ -5,8 +5,10 @@ export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const products = await prisma.product.findMany({
+  where: { isActive: true },
+  take: 8,
   orderBy: { createdAt: "desc" },
-  take: 12,
+
   select: {
     id: true,
     name: true,
