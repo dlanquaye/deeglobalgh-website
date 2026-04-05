@@ -7,9 +7,16 @@ export async function GET() {
     /* ===============================
        📡 FETCH DAILY REPORT
     =============================== */
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/daily-report`
-    );
+    const baseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.VERCEL_URL ||
+  "http://localhost:3000";
+
+const fullUrl = baseUrl.startsWith("http")
+  ? baseUrl
+  : `https://${baseUrl}`;
+
+const res = await fetch(`${fullUrl}/api/admin/daily-report`);
 
     const data = await res.json();
 
