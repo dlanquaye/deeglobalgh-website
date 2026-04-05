@@ -1,33 +1,64 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { startOfDay, endOfDay } from "date-fns";
+import { PaymentStatus } from "@prisma/client";
 
 export async function GET() {
   try {
     /* ===============================
-       📡 FETCH DAILY REPORT
+       📅 TODAY RANGE
     =============================== */
-    const baseUrl =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  process.env.VERCEL_URL ||
-  "http://localhost:3000";
-
-const fullUrl = baseUrl.startsWith("http")
-  ? baseUrl
-  : `https://${baseUrl}`;
-
-const res = await fetch(`${fullUrl}/api/admin/daily-report`);
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch report");
-    }
-
-    const message = data.message;
+    const todayStart = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
 
     /* ===============================
-       📲 PREPARE WHATSAPP LINK
+       📊 FETCH ORDERS DIRECTLY
+    =============================== */
+    const orders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+    });
+
+    /* ===============================
+       📈 CALCULATIONS
+    =============================== */
+    const totalOrders = orders.length;
+
+    const totalRevenue = orders
+      .filter((o) => o.paymentStatus === PaymentStatus.COMPLETED)
+      .reduce((sum, o) => sum + o.amount, 0);
+
+    const processingCount = orders.filter(
+      (o) => o.paymentStatus === PaymentStatus.DELIVERING
+    ).length;
+
+    const deliveredCount = orders.filter(
+      (o) => o.paymentStatus === PaymentStatus.COMPLETED
+    ).length;
+
+    const cancelledCount = orders.filter(
+      (o) => o.paymentStatus === PaymentStatus.CANCELLED
+    ).length;
+
+    const message = `📊 DeeglobalGh Daily Report
+
+🧾 Orders: ${totalOrders}
+💰 Revenue: GHS ${totalRevenue}
+🚚 Delivering: ${processingCount}
+✅ Completed: ${deliveredCount}
+❌ Cancelled: ${cancelledCount}`;
+
+    console.log("📊 DAILY REPORT:");
+    console.log(message);
+
+    /* ===============================
+       📲 WHATSAPP LINK
     =============================== */
     const phone = "233246011773";
 
@@ -35,13 +66,10 @@ const res = await fetch(`${fullUrl}/api/admin/daily-report`);
       message
     )}`;
 
-    console.log("📊 DAILY REPORT READY:");
-    console.log(message);
-
     return NextResponse.json({
       success: true,
-      whatsappUrl,
       message,
+      whatsappUrl,
     });
 
   } catch (error) {
