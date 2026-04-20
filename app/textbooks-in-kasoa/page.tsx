@@ -42,10 +42,10 @@ export default async function TextbooksKasoaPage({
         ...(keywords.length > 0
           ? keywords.map((word) => ({
               OR: [
-                { name: { contains: word, mode: "insensitive" } },
-                { brand: { contains: word, mode: "insensitive" } },
-                { tags: { has: word } },
-              ],
+  { name: { contains: word } },
+  { brand: { contains: word } },
+  { tags: { has: word } },
+]
             }))
           : []),
 

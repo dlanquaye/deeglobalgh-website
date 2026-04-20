@@ -10,7 +10,7 @@ export async function GET(req: Request) {
       where: {
         name: {
           contains: query,
-          mode: "insensitive",
+        
         },
         isActive: true, // ✅ only active products
       },
