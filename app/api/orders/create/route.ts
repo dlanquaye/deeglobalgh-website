@@ -67,11 +67,14 @@ export async function POST(req: Request) {
 
       if (product.stockQty < item.quantity) {
         return NextResponse.json(
-          { error: `Insufficient stock for ${product.name}` },
+          {
+            success: false,
+            message: `Only ${product.stockQty} items left in stock`,
+          },
           { status: 400 }
         );
       }
-    }
+    } // ✅ THIS WAS MISSING
 
     /* ===============================
        💰 CALCULATE TOTAL FROM DB
@@ -101,15 +104,18 @@ export async function POST(req: Request) {
     =============================== */
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
-        data: {
-          orderId,
-          reference: orderId,
-          email: customer.email,
-          phone: customer.phone,
-          amount: Math.round(totalAmount),
-          paymentStatus: PaymentStatus.PENDING,
-        },
-      });
+  data: {
+    orderId,
+    reference: orderId,
+    email: customer.email,
+    phone: customer.phone,
+    amount: Math.round(totalAmount),
+    paymentStatus: PaymentStatus.PENDING,
+
+    // ✅ CRITICAL FIX
+    locationId: "shop-kasoa",
+  },
+});
 
       for (const item of preparedItems) {
         await tx.orderItem.create({
@@ -131,12 +137,28 @@ export async function POST(req: Request) {
       orderId: result.orderId,
       amount: result.amount,
     });
+
   } catch (err: any) {
     console.error("❌ Order creation failed:", err);
 
+    let message = "Failed to create order";
+
+    try {
+      const parsed = JSON.parse(err.message);
+
+      if (parsed.type === "STOCK_ERROR") {
+        message = parsed.message;
+      }
+    } catch {
+      message = err?.message || message;
+    }
+
     return NextResponse.json(
-      { error: err?.message || "Server error" },
-      { status: 500 }
+      {
+        success: false,
+        message,
+      },
+      { status: 400 }
     );
   }
 }

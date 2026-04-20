@@ -57,8 +57,10 @@ export default function HomeClient({
     return () => clearInterval(id);
   }, [featured, pauseAuto, scroll]);
 
+  // ✅ UPDATED CATEGORY LIST (STORY BOOKS ADDED)
   const categories = [
     "Textbooks",
+    "Story Books", // ✅ NEW
     "Exam Materials",
     "School Essentials",
     "Dormitory Essentials",
@@ -145,36 +147,61 @@ export default function HomeClient({
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/shop" className="rounded-xl bg-blue-900 px-5 py-3 font-bold text-white">
-              Shop All
-            </Link>
-            <Link href="/kasoa" className="rounded-xl border px-5 py-3 font-bold">
-              Shop in Kasoa
-            </Link>
-            <a
-              href="https://wa.me/233246011773"
-              target="_blank"
-              className="rounded-xl bg-yellow-500 px-5 py-3 font-bold text-blue-950"
-            >
-              WhatsApp Support
-            </a>
-          </div>
-        </div>
+  <Link href="/shop" className="rounded-xl bg-blue-900 px-5 py-3 font-bold text-white">
+    Shop All
+  </Link>
+  <Link href="/kasoa" className="rounded-xl border px-5 py-3 font-bold">
+    Shop in Kasoa
+  </Link>
+
+  <button
+    onClick={() => {
+      fetch("/api/checkout", {
+        method: "POST",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.link) {
+            window.location.href = data.link;
+          }
+        })
+        .catch((err) => {
+          console.error("Checkout error:", err);
+        });
+    }}
+    className="rounded-xl bg-yellow-500 px-5 py-3 font-bold text-blue-950"
+  >
+    Order via WhatsApp
+  </button>
+</div>
+</div>
       </section>
 
       {/* ================= SHOP BY CATEGORY ================= */}
       <section className="mx-auto max-w-6xl px-4 pb-10">
         <h2 className="text-xl font-bold">Shop by Category</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map((c) => (
-            <Link
-              key={c}
-              href={`/shop?category=${slugify(c)}`}
-              className="rounded-2xl border p-5 hover:bg-gray-50"
-            >
-              {c}
-            </Link>
-          ))}
+          {categories.map((c) => {
+  let slug = slugify(c);
+
+  // 🔥 FORCE CORRECT SLUGS (VERY IMPORTANT)
+  if (c === "SHS Combined Textbooks") {
+    slug = "shs-combined-edition-textbooks";
+  }
+  if (c === "JHS Combined Textbooks") {
+    slug = "jhs-combined-edition-textbooks";
+  }
+
+  return (
+    <Link
+      key={c}
+      href={`/category/${slug}`}
+      className="rounded-2xl border p-5 hover:bg-gray-50"
+    >
+      {c}
+    </Link>
+  );
+})}
         </div>
       </section>
 

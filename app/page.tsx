@@ -4,20 +4,28 @@ import HomeClient from "./HomeClient";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const products = await prisma.product.findMany({
-  where: { isActive: true },
-  take: 8,
-  orderBy: { createdAt: "desc" },
+  let products: any[] = [];
 
-  select: {
-    id: true,
-    name: true,
-    slug: true,
-    retailPrice: true,
-    imageSrc: true,
-    stockQty: true,
-  },
-});
+  try {
+    const data = await prisma.product.findMany({
+      where: { isActive: true },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        retailPrice: true,
+        imageSrc: true,
+        stockQty: true,
+      },
+    });
+
+    products = data || [];
+  } catch (error) {
+    console.error("Database error:", error);
+    products = []; // ✅ ALWAYS fallback
+  }
 
   return <HomeClient products={products} />;
 }

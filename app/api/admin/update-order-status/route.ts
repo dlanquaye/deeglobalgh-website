@@ -7,7 +7,7 @@ import { PaymentStatus, InventoryMovementType } from "@prisma/client";
 
 /* ===============================
    🚦 Valid Status Transitions
-   =============================== */
+=============================== */
 const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   [PaymentStatus.PENDING]: [
     PaymentStatus.PAID,
@@ -15,6 +15,7 @@ const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   ],
   [PaymentStatus.PAID]: [
     PaymentStatus.DELIVERING,
+    PaymentStatus.COMPLETED,
     PaymentStatus.CANCELLED,
   ],
   [PaymentStatus.DELIVERING]: [
@@ -29,75 +30,90 @@ const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
 export async function POST(req: NextRequest) {
   try {
     /* ===============================
-       🔒 ADMIN AUTH
-       =============================== */
-    const cookieStore = await cookies();
-    const isAdmin = cookieStore.get("dg_admin");
+   🔒 VERIFY ADMIN AUTH
+=============================== */
+const cookieStore = await cookies();
+const rawCookie = cookieStore.get("dg_admin")?.value;
 
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+let isAdmin = false;
+
+if (rawCookie) {
+  try {
+    const parsed = JSON.parse(decodeURIComponent(rawCookie));
+
+    if (parsed.role === "SUPER_ADMIN") {
+      isAdmin = true;
     }
+  } catch (e) {
+    console.error("Invalid admin cookie");
+  }
+}
 
-    const body = await req.json();
-    const nextStatus = body.status as PaymentStatus;
+if (!isAdmin) {
+  return NextResponse.json(
+    { error: "Unauthorized" },
+    { status: 401 }
+  );
+}
 
-    if (!Object.values(PaymentStatus).includes(nextStatus)) {
-      return NextResponse.json(
-        { error: "Invalid status value" },
-        { status: 400 }
-      );
-    }
+const body = await req.json();
+const nextStatus = body.status as PaymentStatus;
+
+if (!Object.values(PaymentStatus).includes(nextStatus)) {
+  return NextResponse.json(
+    { error: "Invalid status value" },
+    { status: 400 }
+  );
+}
+
+if (!body.id && !body.orderId) {
+  return NextResponse.json(
+    { error: "Order identifier missing" },
+    { status: 400 }
+  );
+}
 
     /* ===============================
-       🔎 LOAD ORDER + ITEMS
-       =============================== */
-    let order = null;
-
-    if (typeof body.id === "string") {
-      order = await prisma.order.findUnique({
-        where: { id: body.id },
+       🔐 ATOMIC TRANSACTION
+    =============================== */
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: body.id
+          ? { id: body.id }
+          : { orderId: body.orderId },
         include: { orderItems: true },
       });
-    } else if (typeof body.orderId === "string") {
-      order = await prisma.order.findUnique({
-        where: { orderId: body.orderId },
-        include: { orderItems: true },
-      });
-    }
 
-    if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
-    }
+      if (!order) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
 
-    /* ===============================
-       🚦 VALIDATE STATUS TRANSITION
-       =============================== */
-    const allowedNext = VALID_TRANSITIONS[order.paymentStatus];
+      /* ===============================
+         🛑 Idempotency Guard (FIXED)
+      =============================== */
+      if (order.paymentStatus === nextStatus) {
+        return; // ✅ clean exit (NO response here)
+      }
 
-    if (!allowedNext.includes(nextStatus)) {
-      return NextResponse.json(
-        {
-          error: `Invalid transition from ${order.paymentStatus} to ${nextStatus}`,
-        },
-        { status: 400 }
-      );
-    }
+      /* ===============================
+         🚦 Validate Transition
+      =============================== */
+      const allowedNext = VALID_TRANSITIONS[order.paymentStatus];
 
-    /* ===============================
-       🔁 HANDLE STOCK ROLLBACK
-       =============================== */
-    if (
-      nextStatus === PaymentStatus.CANCELLED &&
-      (order.paymentStatus === PaymentStatus.PAID ||
-        order.paymentStatus === PaymentStatus.DELIVERING)
-    ) {
-      await prisma.$transaction(async (tx) => {
+      if (!allowedNext.includes(nextStatus)) {
+        throw new Error(
+          `INVALID_TRANSITION_${order.paymentStatus}_TO_${nextStatus}`
+        );
+      }
+
+      /* ===============================
+         🔁 Stock Rollback Logic
+      =============================== */
+      if (
+        nextStatus === PaymentStatus.CANCELLED &&
+        (order.paymentStatus === PaymentStatus.PAID ||
+          order.paymentStatus === PaymentStatus.DELIVERING)
+      ) {
         for (const item of order.orderItems) {
           await tx.product.update({
             where: { id: item.productId },
@@ -117,28 +133,38 @@ export async function POST(req: NextRequest) {
             },
           });
         }
+      }
 
-        await tx.order.update({
-          where: { id: order.id },
-          data: { paymentStatus: PaymentStatus.CANCELLED },
-        });
+      /* ===============================
+         ✅ Final Status Update
+      =============================== */
+      await tx.order.update({
+        where: { id: order.id },
+        data: { paymentStatus: nextStatus },
       });
-
-      return NextResponse.json({ success: true });
-    }
-
-    /* ===============================
-       ✅ NORMAL STATUS UPDATE
-       =============================== */
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { paymentStatus: nextStatus },
     });
 
+    /* ===============================
+       ✅ SUCCESS RESPONSE (CRITICAL FIX)
+    =============================== */
     return NextResponse.json({ success: true });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ update-order-status error:", error);
+
+    if (error.message === "ORDER_NOT_FOUND") {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    if (error.message?.startsWith("INVALID_TRANSITION")) {
+      return NextResponse.json(
+        { error: "Invalid status transition" },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(
       { error: "Failed to update order status" },

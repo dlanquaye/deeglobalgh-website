@@ -1,0 +1,8 @@
+datasource db {
+  provider = "postgresql"
+  url      = "postgres://b86cdebbecf8c35645e6a9e09acc9b0f37b8ced84119876ca66ecfa2d9bcc829:sk_iPSi7AXg8pyqtCiw9MO3p@db.prisma.io:5432/postgres?sslmode=require"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}

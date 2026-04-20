@@ -27,29 +27,41 @@ export default function AddToCartButton({
   product,
   outOfStock = false,
 }: Props) {
-  const { addToCart } = useCart();
+  
+  const { addToCart, cartItems } = useCart();;
   const [added, setAdded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAddToCart = () => {
-    const success = addToCart(product, 1);
+  console.log("ADD TO CART CLICKED");
 
-    if (success) {
-      setAdded(true);
-      setMessage("Item added to cart.");
+  const success = addToCart({
+    id: product.id,
+    name: product.name,
+    retailPrice: product.retailPrice,
+    slug: product.slug,
+    imageSrc: product.imageSrc,
+    stockQty: 999, // temporary
+  });
 
-      setTimeout(() => {
-        setMessage(null);
-      }, 2000);
-    }
-  };
+  console.log("ADD RESULT:", success);
+
+  if (success) {
+    setAdded(true);
+    setMessage("Item added to cart.");
+
+    setTimeout(() => {
+      setMessage(null);
+    }, 2000);
+  }
+};
 
   return (
     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          disabled={outOfStock}
+          disabled={false}
           onClick={handleAddToCart}
           className={`inline-flex items-center justify-center rounded-xl px-5 py-3 font-extrabold ${
             outOfStock

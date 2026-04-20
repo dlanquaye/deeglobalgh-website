@@ -1,123 +1,120 @@
-import Link from "next/link";
-import Image from "next/image";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
-const SITE_URL = "https://shopdeeglobalgh.com";
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  retailPrice: number;
+};
 
-function prettifySlug(slug: string) {
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+type Props = {
+  params: {
+    slug?: string;
+  };
+};
+
+/* -------------------------------------------
+   SAFE SLUG FORMATTER
+------------------------------------------- */
+function prettifySlug(slug?: string) {
+  if (!slug) return "";
+
+  return slug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const { slug } = params;
-
+/* -------------------------------------------
+   METADATA
+------------------------------------------- */
+export async function generateMetadata({ params }: Props) {
+  const slug = params?.slug || "";
   const pretty = prettifySlug(slug);
 
-  const title = `${pretty} Products | DeeglobalGh`;
-  const description = `Shop ${pretty} textbooks and school essentials in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
-
-  const canonicalUrl = `${SITE_URL}/level/${slug}`;
-
   return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+    title: `${pretty} Textbooks & Stationery | DeeglobalGh`,
+    description: `Shop ${pretty} textbooks and school supplies in Ghana. Fast delivery available in Kasoa and beyond.`,
   };
 }
 
-export default async function LevelPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const { slug } = params;
-
+/* -------------------------------------------
+   PAGE
+------------------------------------------- */
+export default async function LevelPage({ params }: Props) {
+  const { slug = "" } = await params;
+  const baseLevel = slug.split("-")[0];
   const pretty = prettifySlug(slug);
 
-  // 🔒 Only active products
-  const products = await prisma.product.findMany({
-    where: {
-      levelSlugs: { has: slug },
-      isActive: true,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      retailPrice: true,
-      imageSrc: true,
-      imageAlt: true,
-      imageTitle: true,
-      stockQty: true,
-    },
-  });
+  const products: Product[] = slug
+  ? await prisma.product.findMany({
+      where: {
+        levelSlugs: {
+  has: baseLevel,
+}
+      },
+      take: 40,
+    })
+  : [];
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{pretty}</h1>
+    <div className="max-w-6xl mx-auto px-4 py-8">
 
-      <p className="mt-2 text-gray-700">
-        Showing products for <span className="font-semibold">{pretty}</span>.
+      {/* Title */}
+      <h1 className="text-2xl font-bold mb-2">
+        {pretty || "School Level"} Textbooks
+      </h1>
+
+      <p className="text-gray-600 mb-6">
+        Shop textbooks and school supplies for {pretty || "all levels"} in Ghana.
       </p>
 
-      <p className="mt-2 text-sm text-gray-600">
-        Found{" "}
-        <span className="font-semibold">{products.length}</span>{" "}
-        product{products.length === 1 ? "" : "s"} in this level.
-      </p>
+      {/* CTA Buttons */}
+      <div className="flex gap-3 mb-8 flex-wrap">
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.length > 0 ? (
-          products.map((p) => {
-            const price = Number(p.retailPrice);
+        <Link href="/shop">
+          <button className="btn-primary">
+            Shop All Products
+          </button>
+        </Link>
 
-            return (
-              <Link
-                key={p.id}
-                href={`/product/${p.slug}`}
-                className="rounded-2xl border bg-white p-4 hover:bg-gray-50"
-              >
-                <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                  <Image
-                    src={p.imageSrc || "/products/placeholder.webp"}
-                    alt={p.imageAlt || p.name}
-                    title={p.imageTitle || p.name}
-                    width={500}
-                    height={500}
-                    className="h-48 w-auto object-contain"
-                  />
-                </div>
+        <a
+          href="https://wa.me/233246011773"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <button className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">
+            Order on WhatsApp
+          </button>
+        </a>
 
-                <div className="mt-3 font-semibold">{p.name}</div>
-                <div className="mt-1 text-lg font-bold">
-                  GH₵ {price.toFixed(2)}
-                </div>
-              </Link>
-            );
-          })
-        ) : (
-          <div className="mt-6 rounded-2xl border bg-white p-6 text-gray-700">
-            No products found for this level yet.
-          </div>
-        )}
       </div>
-    </main>
+
+      {/* Products */}
+      {products.length === 0 ? (
+        <p className="text-gray-500">
+          No products found for this level.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {products.map((product) => (
+            <Link key={product.id} href={`/product/${product.slug}`}>
+              <div className="border p-3 rounded-xl hover:bg-gray-50 cursor-pointer">
+                
+                <div className="font-semibold text-sm">
+                  {product.name}
+                </div>
+
+                <div className="text-blue-900 font-bold mt-1">
+                  GH₵ {product.retailPrice}
+                </div>
+
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+    </div>
   );
 }

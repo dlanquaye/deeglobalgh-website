@@ -5,9 +5,9 @@ import CategoryClient from "./CategoryClient";
 const SITE_URL = "https://shopdeeglobalgh.com";
 
 function prettifySlug(slug: string) {
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) =>
-    c.toUpperCase()
-  );
+  return slug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export async function generateMetadata({
@@ -20,7 +20,12 @@ export async function generateMetadata({
   const pretty = prettifySlug(slug);
 
   const title = `${pretty} | DeeglobalGh`;
-  const description = `Shop ${pretty} in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
+  let description = `Shop ${pretty} in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
+
+  if (slug === "story-books") {
+    description =
+      "Buy story books for kids and students in Ghana. Shop African story books, literature books, and reading books with fast delivery from DeeglobalGh.";
+  }
 
   const canonicalUrl = `${SITE_URL}/category/${slug}`;
 
@@ -50,7 +55,7 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
 
-  // Special landing page remains static
+  // Special landing page
   if (slug === "exam-past-questions") {
     return (
       <main className="mx-auto max-w-6xl px-4 py-10">
@@ -62,23 +67,32 @@ export default async function CategoryPage({
     );
   }
 
-  // 🔒 Only show active products
-  const products = await prisma.product.findMany({
-    where: {
-      categorySlug: slug,
-      isActive: true,
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      retailPrice: true,
-      imageSrc: true,
-      stockQty: true,
-      categorySlug: true,
-    },
-  });
+  let products: any[] = [];
+
+  try {
+    const data = await prisma.product.findMany({
+      where: {
+        categorySlug: slug,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        retailPrice: true,
+        imageSrc: true,
+        stockQty: true,
+        categorySlug: true,
+      },
+    });
+
+    products = data || [];
+  } catch (error) {
+    console.error("Database error (category page):", error);
+    products = [];
+  }
 
   return <CategoryClient slug={slug} products={products} />;
 }

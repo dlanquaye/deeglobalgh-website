@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { buildAdminOrderMessage, buildWhatsAppLink } from "@/app/lib/whatsapp";
 
 type Props = {
   reference: string | null;
@@ -12,39 +11,111 @@ export default function PaymentSuccessClient({ reference }: Props) {
   const { clearCart } = useCart();
   const [order, setOrder] = useState<any>(null);
 
+  // ✅ Prevent WhatsApp duplicate trigger
+  const hasTriggeredWhatsApp = useRef(false);
+
+  /* ===============================
+     🧹 CLEAR CART (ONCE)
+  =============================== */
   useEffect(() => {
-  console.log("REFERENCE VALUE:", reference);
-}, [reference]);
+    if (!reference) return;
 
+    clearCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ===============================
+     🔐 VERIFY PAYMENT
+  =============================== */
   useEffect(() => {
-  if (!reference) return;
+    if (!reference) return;
 
-  clearCart();
-  
+    async function verifyPayment() {
+      try {
+        const res = await fetch(
+          `/api/paystack/verify?reference=${reference}`
+        );
+        const data = await res.json();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [reference]);
+        console.log("Verification result:", data);
+      } catch (err) {
+        console.error("Verification failed:", err);
+      }
+    }
 
+    verifyPayment();
+  }, [reference]);
+
+  /* ===============================
+     📦 FETCH ORDER DETAILS
+  =============================== */
   useEffect(() => {
+    if (!reference) return;
+
     async function fetchOrder() {
-      if (!reference) return;
+      try {
+        const res = await fetch(
+          `/api/order-by-reference?reference=${reference}`
+        );
+        const data = await res.json();
 
-      const res = await fetch(
-        `/api/order-by-reference?reference=${reference}`
-      );
-      const data = await res.json();
-
-      if (!data.error) {
-        setOrder(data);
+        if (!data.error) {
+          setOrder(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch order", err);
       }
     }
 
     fetchOrder();
   }, [reference]);
 
-  const message = order ? buildAdminOrderMessage(order) : "";
-  const whatsappLink = order ? buildWhatsAppLink(message) : "#";
+  /* ===============================
+     📲 WHATSAPP (RUN ONCE ONLY)
+  =============================== */
+  useEffect(() => {
+  if (!order) return;
 
+  const key = `whatsapp_sent_${order.orderId}`;
+
+  // ✅ Check if already sent
+  if (localStorage.getItem(key)) return;
+
+  // ✅ Mark as sent
+  localStorage.setItem(key, "true");
+
+  const message = `
+🧾 *NEW PAID ORDER — DEEGLOBALGH*
+
+👤 Name: ${order.customer?.fullName || order.email}
+📞 Phone: ${order.phone}
+
+📍 Delivery Location:
+${order.locationId}
+
+🛒 Items:
+${order.orderItems
+  ?.map((i: any, index: number) => 
+    `${index + 1}. ${i.product?.name ?? "Unknown Product"} x${i.quantity}`
+  )
+  .join("\n")}
+  💰 Total Paid: GHS ${order.amount}
+
+🆔 Order ID: ${order.orderId}
+
+✅ Payment Status: PAID
+`;
+
+
+  const encoded = encodeURIComponent(message);
+  const url = `https://wa.me/233246011773?text=${encoded}`;
+
+  window.open(url, "_blank");
+}, [order]);
+
+  /* ===============================
+     🎉 UI
+  =============================== */
   return (
     <main className="mx-auto max-w-3xl px-4 py-16 text-center">
       <h1 className="text-3xl font-bold text-green-600">
@@ -58,17 +129,6 @@ export default function PaymentSuccessClient({ reference }: Props) {
       <p className="mt-6 text-gray-700">
         We are processing your order and will contact you shortly for delivery.
       </p>
-
-      {order && (
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block mt-8 px-6 py-3 bg-green-600 text-white font-semibold rounded-md"
-        >
-          Notify Admin via WhatsApp
-        </a>
-      )}
     </main>
   );
 }

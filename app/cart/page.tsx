@@ -179,7 +179,14 @@ export default function CartPage() {
                 href="/checkout"
                 className="btn-primary mt-6 inline-flex w-full items-center justify-center px-6 py-4 text-base"
               >
-                Proceed to Checkout
+                <button
+  onClick={() => {
+  window.location.href = "/checkout";
+}}
+  className="w-full rounded-lg bg-blue-900 py-3 text-white font-bold"
+>
+  Order via WhatsApp
+</button>
               </Link>
 
               <Link

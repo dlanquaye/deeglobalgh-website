@@ -21,6 +21,9 @@ export default function NewProductPage() {
     categorySlug: "",
     levelSlugs: "",
     brand: "",
+    author: "",
+publisher: "",
+costPrice: "",
 
     // Image
     imageSrc: "",
@@ -59,35 +62,37 @@ export default function NewProductPage() {
 
     try {
       const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          retailPrice: Number(form.retailPrice),
-          wholesalePrice: form.wholesalePrice
-            ? Number(form.wholesalePrice)
-            : null,
-          distributorPrice: form.distributorPrice
-            ? Number(form.distributorPrice)
-            : null,
-          stockQty: Number(form.stockQty),
-          lowStockThreshold: form.lowStockThreshold
-            ? Number(form.lowStockThreshold)
-            : 3,
-          levelSlugs: form.levelSlugs
-            ? form.levelSlugs
-                .split(",")
-                .map((s) =>
-                  s.trim().toLowerCase().replace(/\s+/g, "-")
-                )
-            : [],
-          tags: form.tags
-            ? form.tags
-                .split(",")
-                .map((s) => s.trim().toLowerCase())
-            : [],
-        }),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include", // ✅ ADD THIS LINE
+  body: JSON.stringify({
+    ...form,
+    costPrice: form.costPrice ? Number(form.costPrice) : null,
+    retailPrice: Number(form.retailPrice),
+    wholesalePrice: form.wholesalePrice
+      ? Number(form.wholesalePrice)
+      : null,
+    distributorPrice: form.distributorPrice
+      ? Number(form.distributorPrice)
+      : null,
+    stockQty: Number(form.stockQty),
+    lowStockThreshold: form.lowStockThreshold
+      ? Number(form.lowStockThreshold)
+      : 3,
+    levelSlugs: form.levelSlugs
+      ? form.levelSlugs
+          .split(",")
+          .map((s) =>
+            s.trim().toLowerCase().replace(/\s+/g, "-")
+          )
+      : [],
+    tags: form.tags
+      ? form.tags
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+      : [],
+  }),
+});
 
       const data = await res.json();
 
@@ -130,7 +135,10 @@ export default function NewProductPage() {
 
         <Input label="SKU" name="sku" value={form.sku} onChange={handleChange} required />
         <Input label="Product Name" name="name" value={form.name} onChange={handleChange} required />
-        <Input label="Slug" name="slug" value={form.slug} onChange={handleChange} required />
+        <Input label="Author" name="author" value={form.author} onChange={handleChange} />
+<Input label="Publisher" name="publisher" value={form.publisher} onChange={handleChange} />
+<Input label="Cost Price (GH₵)" name="costPrice" type="number" value={form.costPrice} onChange={handleChange} />
+        <Input label="Slug" name="slug" value={form.slug} onChange={handleChange} />
         <Input label="Brand" name="brand" value={form.brand} onChange={handleChange} />
 
         <Input label="Retail Price (GH₵)" name="retailPrice" type="number" value={form.retailPrice} onChange={handleChange} required />

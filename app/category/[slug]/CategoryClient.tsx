@@ -45,6 +45,13 @@ export default function CategoryClient({
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-bold">{pretty}</h1>
+      {slug === "story-books" && (
+  <p className="mt-3 text-gray-600 max-w-2xl">
+    Buy story books for kids and students in Ghana. Explore African story books,
+    literature books, and reading books for all levels. DeeglobalGh stocks quality
+    story books with fast delivery across Kasoa and Ghana.
+  </p>
+)}
 
       <p className="mt-2 text-gray-700">
         Showing products under <span className="font-semibold">{pretty}</span>.

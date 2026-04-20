@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Order {
@@ -22,7 +22,10 @@ model Order {
   completedSmsSent   Boolean             @default(false)
   deliverySmsSent    Boolean             @default(false)
   stockReduced       Boolean             @default(false)
+  status             String              @default("PENDING")
+  locationId         String?
   inventoryMovements InventoryMovement[]
+  events             OrderEvent[]
   orderItems         OrderItem[]
 
   @@index([orderId])
@@ -115,15 +118,15 @@ model Product {
   fullDescription    String?
   brand              String?
   tags               String[]
-
   isActive           Boolean             @default(true)
-
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  author             String?
+  costPrice          Float?
+  publisher          String?
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
 }
-
 
 model InventoryMovement {
   id        String                @id @default(cuid())
@@ -138,6 +141,91 @@ model InventoryMovement {
 
   @@index([productId])
   @@index([orderId])
+}
+
+model Admin {
+  id        String       @id @default(cuid())
+  name      String
+  email     String       @unique
+  pinHash   String
+  role      AdminRole    @default(ADMIN)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  pin       String?
+  events    OrderEvent[]
+}
+
+model OrderEvent {
+  id          String         @id @default(cuid())
+  orderId     String
+  adminId     String
+  eventType   OrderEventType
+  description String
+  createdAt   DateTime       @default(now())
+  admin       Admin          @relation(fields: [adminId], references: [id])
+  order       Order          @relation(fields: [orderId], references: [id])
+}
+
+model Staff {
+  id          String    @id @default(cuid())
+  staffNumber String    @unique
+  name        String
+  role        StaffRole
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  branchId    String?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  staff     Staff[]
+}
+
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inventory {
+  id           String       @id @default(cuid())
+  productId    String
+  locationType LocationType
+  locationId   String
+  quantity     Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([productId, locationType, locationId])
+}
+
+model StockMovement {
+  id               String        @id @default(cuid())
+  productId        String
+  type             MovementType
+  quantity         Int
+  fromLocationType LocationType?
+  fromLocationId   String?
+  toLocationType   LocationType?
+  toLocationId     String?
+  createdByStaffId String
+  createdAt        DateTime      @default(now())
+  status           String        @default("PENDING")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  CANCELLED
 }
 
 enum PaymentStatus {
@@ -194,4 +282,40 @@ enum InventoryMovementType {
   IMPORT_ALLOCATION
   RETURN
   DAMAGE
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum OrderEventType {
+  VIEWED
+  NOTE_ADDED
+  DELIVERY_FEE_UPDATED
+  STATUS_CHANGED
+  PAYMENT_CONFIRMED
+}
+
+enum StaffRole {
+  SUPER_ADMIN
+  MANAGER
+  CASHIER
+  SALES
+  DELIVERY_RIDER
+  WAREHOUSE_MANAGER
+  CRM_AGENT
+}
+
+enum LocationType {
+  WAREHOUSE
+  BRANCH
+}
+
+enum MovementType {
+  PURCHASE
+  TRANSFER
+  SALE
+  ADJUSTMENT
+  RETURN
 }

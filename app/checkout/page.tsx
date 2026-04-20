@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
 
@@ -33,13 +33,8 @@ export default function CheckoutPage() {
 
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-
-  // ✅ NEW: store current order ID for polling
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
 
-  /* =========================================
-     Load saved customer profile
-  ========================================== */
   useEffect(() => {
     const saved = safeParse<CustomerProfile>(
       typeof window !== "undefined"
@@ -56,60 +51,37 @@ export default function CheckoutPage() {
     if (saved.area) setArea(saved.area);
   }, []);
 
-  const canCheckout = useMemo(() => {
-    return (
-      items.length > 0 &&
-      fullName.trim() &&
-      email.trim() &&
-      phone.trim() &&
-      location.trim()
-    );
-  }, [items.length, fullName, email, phone, location]);
-
   const saveCustomerProfile = () => {
     localStorage.setItem(
       CUSTOMER_PROFILE_KEY,
-      JSON.stringify({
-        fullName,
-        email,
-        phone,
-        area,
-        location,
-      })
+      JSON.stringify({ fullName, email, phone, area, location })
     );
   };
 
-  /* =========================================
-     Poll order status after payment
-  ========================================== */
   useEffect(() => {
     if (!currentOrderId) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(
-          `/api/orders/status?orderId=${currentOrderId}`
-        );
-
+        const res = await fetch(`/api/orders/status?orderId=${currentOrderId}`);
         const data = await res.json();
 
         if (data?.paymentStatus === "PAID") {
           clearInterval(interval);
           window.location.href = `/payment-success?reference=${currentOrderId}`;
         }
-      } catch {
-        // silently ignore polling errors
-      }
-    }, 3000); // check every 3 seconds
+      } catch {}
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [currentOrderId]);
 
-  /* =========================================
-     PAYSTACK FLOW
-  ========================================== */
   const payNowWithPaystack = async () => {
-    if (!canCheckout) return;
+    if (!fullName.trim()) return alert("Enter full name");
+    if (!email.trim()) return alert("Enter email");
+    if (!phone.trim()) return alert("Enter phone");
+    if (!location.trim()) return alert("Enter delivery location");
+    if (items.length === 0) return alert("Cart is empty");
 
     saveCustomerProfile();
     setPayError(null);
@@ -117,26 +89,17 @@ export default function CheckoutPage() {
 
     try {
       const orderId = `DG-${Date.now()}`;
-
-      // store for polling
       setCurrentOrderId(orderId);
 
       const payload = {
         orderId,
-        customer: {
-          fullName,
-          email,
-          phone,
-          area,
-          location,
-        },
+        customer: { fullName, email, phone, area, location },
         items: items.map((i) => ({
           productId: i.id,
           quantity: i.qty,
         })),
       };
 
-      // 1️⃣ Create order
       const createRes = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,105 +109,85 @@ export default function CheckoutPage() {
       const createData = await createRes.json();
 
       if (!createRes.ok) {
-        throw new Error(createData?.error || "Failed to create order");
+        throw new Error(createData?.message || "Order failed");
       }
 
-      // 2️⃣ Initialize Paystack
       const payRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          phone,
-          orderId,
-        }),
+        body: JSON.stringify({ email, phone, orderId }),
       });
 
       const payData = await payRes.json();
       const url = payData?.data?.authorization_url;
 
-      if (!payRes.ok || !url) {
-        throw new Error("Failed to start payment");
-      }
+      if (!url) throw new Error("Payment failed");
 
-      // redirect to Paystack
       window.location.href = url;
     } catch (err: any) {
-      setPayError(err?.message || "Payment failed");
+      setPayError(err.message);
       setPayLoading(false);
     }
   };
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
-      <h1 className="text-3xl font-extrabold text-[color:var(--brand-blue)]">
-        Checkout
-      </h1>
+      <h1 className="text-3xl font-extrabold text-blue-900">Checkout</h1>
 
       <section className="mt-8 rounded-2xl border bg-white p-10">
         <h2 className="text-xl font-extrabold">Customer Details</h2>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 max-w-3xl mx-auto">
-          <div className="sm:col-span-2">
-            <input
-              className="input-brand h-14 px-4 text-base w-full text-center"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <input
-              type="email"
-              className="input-brand h-14 px-4 text-base w-full text-center"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+        <div className="mt-6 space-y-4 max-w-xl mx-auto">
+          {fullName && (
+            <p className="text-green-700 font-semibold">
+              Welcome back, {fullName.split(" ")[0]} 👋
+            </p>
+          )}
 
           <input
-            className="input-brand h-14 px-4 text-base w-full text-center"
+            className="input-brand w-full text-center"
+            placeholder="Full Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+
+          <input
+            className="input-brand w-full text-center"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <input
+            className="input-brand w-full text-center"
             placeholder="Phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
 
           <input
-            className="input-brand h-14 px-4 text-base w-full text-center"
-            placeholder="Location / Landmark"
+            className="input-brand w-full text-center"
+            placeholder="Delivery Location / Landmark"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
         </div>
+
+        <div className="bg-green-100 p-3 mt-6 rounded">
+          🚚 We deliver to your location. Enter a clear landmark.
+        </div>
       </section>
 
-      <section className="mt-8 rounded-2xl border bg-white p-8 space-y-6">
+      <section className="mt-8 bg-white p-6 rounded-2xl border">
         <button
           onClick={payNowWithPaystack}
-          disabled={!canCheckout || payLoading}
-          className="w-full rounded-2xl bg-yellow-500 py-4 text-lg font-extrabold text-blue-950"
+          disabled={payLoading}
+          className="w-full bg-yellow-500 py-4 font-bold rounded-xl"
         >
-          {payLoading ? "Starting Payment..." : "Pay Now (Paystack)"}
+          {payLoading ? "Processing..." : "Pay Now"}
         </button>
 
-        <p className="text-sm font-medium text-gray-700">
-          🚚 We deliver across Kasoa and nearby areas. Our team will call to confirm delivery.
-        </p>
-
-        {payError && (
-          <p className="text-sm font-semibold text-red-600">{payError}</p>
-        )}
-
-        <hr />
-
-        <Link
-          href="/cart"
-          className="block text-sm font-semibold text-[color:var(--brand-blue)] underline"
-        >
-          Edit Order
-        </Link>
+        {payError && <p className="text-red-500 mt-2">{payError}</p>}
       </section>
     </main>
   );

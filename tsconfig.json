@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "target": "ESNext",
     "lib": [
       "dom",
@@ -17,16 +18,18 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+
+    "ignoreDeprecations": "6.0",
+
     "plugins": [
       {
         "name": "next"
       }
     ],
+
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [

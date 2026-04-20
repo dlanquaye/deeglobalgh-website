@@ -4,29 +4,39 @@ import Link from "next/link";
 import Image from "next/image";
 import AddToCartButton from "./AddToCartButton";
 
-type Props = {
-  params: Promise<{
-    slug: string;
-  }>;
-};
-
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  // ✅ Correct async params handling
   const { slug } = await params;
 
   if (!slug) {
     notFound();
   }
 
-  const product = await prisma.product.findUnique({
+  // ✅ Debug (keep for now)
+  const count = await prisma.product.count();
+  console.log("TOTAL PRODUCTS:", count);
+  console.log("SLUG:", slug);
+
+  // ✅ Fetch product
+  const product = await prisma.product.findFirst({
     where: {
-      slug,
+      slug: slug,
+      isActive: true,
     },
   });
 
-  if (!product || !product.isActive) {
+  console.log("FOUND PRODUCT:", product);
+
+  // ❌ Not found → 404
+  if (!product) {
     notFound();
   }
 
+  // ✅ Related products
   const relatedProducts = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -45,13 +55,17 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      {/* Breadcrumb */}
       <div className="mb-6 text-sm text-gray-600">
         <Link href="/">Home</Link> /{" "}
         <Link href="/shop">Shop</Link> /{" "}
         <span>{product.name}</span>
       </div>
 
+      {/* Main */}
       <div className="grid gap-10 md:grid-cols-2">
+        
+        {/* Image */}
         <div className="rounded-2xl border bg-white p-6">
           <div className="relative h-[420px]">
             <Image
@@ -63,27 +77,35 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Details */}
         <div className="rounded-2xl border bg-gray-50 p-8">
-          <h1 className="text-3xl font-bold">
-            {product.name}
-          </h1>
+          <h1 className="text-3xl font-bold">{product.name}</h1>
 
+          {/* Author */}
+          {product.author && (
+            <div className="mt-2 text-sm text-gray-600">
+              Author: {product.author}
+            </div>
+          )}
+
+          {/* SKU */}
           {product.sku && (
             <div className="mt-3 text-sm font-semibold">
               Product Code: {product.sku}
             </div>
           )}
 
+          {/* Price */}
           <div className="mt-5 text-2xl font-bold">
             GH₵ {price.toFixed(2)}
           </div>
 
+          {/* Summary */}
           {product.shortSummary && (
-            <p className="mt-4">
-              {product.shortSummary}
-            </p>
+            <p className="mt-4">{product.shortSummary}</p>
           )}
 
+          {/* Add to Cart */}
           <div className="mt-6">
             <AddToCartButton
               product={{
@@ -98,6 +120,7 @@ export default async function ProductPage({ params }: Props) {
             />
           </div>
 
+          {/* Continue */}
           <Link
             href="/shop"
             className="mt-4 block w-full rounded-xl border px-5 py-3 text-center"
@@ -107,9 +130,11 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Description */}
       {product.fullDescription && (
-        <div className="mt-14 prose max-w-none">
+        <div className="mt-14 max-w-none overflow-hidden">
           <div
+            className="prose max-w-none break-words"
             dangerouslySetInnerHTML={{
               __html: product.fullDescription,
             }}

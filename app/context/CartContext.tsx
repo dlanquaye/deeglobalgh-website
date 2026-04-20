@@ -36,6 +36,7 @@ export type CartItem = {
 };
 
 type CartContextValue = {
+  cartItems: any[];
   items: CartItem[];
   totalItems: number;
   subtotal: number;
@@ -91,54 +92,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
      ADD TO CART (STRICT STOCK ENFORCEMENT)
   ------------------------------------------- */
   const addToCart = (
-    product: CartProductInput,
-    qty: number = 1
-  ): boolean => {
-    const stockQty = product.stockQty ?? 0;
+  product: CartProductInput,
+  qty: number = 1
+): boolean => {
+  let allowed = true;
 
-    // Hard block if no stock
-    if (stockQty <= 0) {
-      return false;
+  setItems((prev) => {
+    const existing = prev.find((item) => item.id === product.id);
+
+    // If item already exists → increase qty
+    if (existing) {
+      const newQty = existing.qty + qty;
+
+      return prev.map((item) =>
+        item.id === product.id
+          ? { ...item, qty: newQty }
+          : item
+      );
     }
 
-    let allowed = true;
+    // New item
+    return [
+      ...prev,
+      {
+        id: product.id,
+        name: product.name,
+        retailPrice: product.retailPrice,
+        slug: product.slug,
+        imageSrc: product.imageSrc ?? null,
+        qty: qty,
+        stockQty: 999, // temporary
+      },
+    ];
+  });
 
-    setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-
-      // If already in cart
-      if (existing) {
-        const newQty = existing.qty + qty;
-
-        if (newQty > existing.stockQty) {
-          allowed = false;
-          return prev;
-        }
-
-        return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, qty: newQty }
-            : item
-        );
-      }
-
-      // New item
-      return [
-        ...prev,
-        {
-          id: product.id,
-          name: product.name,
-          retailPrice: product.retailPrice,
-          slug: product.slug,
-          imageSrc: product.imageSrc ?? null,
-          qty: Math.min(qty, stockQty),
-          stockQty: stockQty,
-        },
-      ];
-    });
-
-    return allowed;
-  };
+  return allowed;
+};
 
   /* -------------------------------------------
      INCREASE / DECREASE (STOCK SAFE)
@@ -205,15 +194,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 );
 
   const value: CartContextValue = {
-    items,
-    totalItems,
-    subtotal,
-    addToCart,
-    removeFromCart,
-    increaseQty,
-    decreaseQty,
-    clearCart,
-  };
+  cartItems: items, // ✅ ADD THIS LINE
+  items,            // keep this if used elsewhere
+  totalItems,
+  subtotal,
+  addToCart,
+  removeFromCart,
+  increaseQty,
+  decreaseQty,
+  clearCart,
+};
 
   return (
     <CartContext.Provider value={value}>

@@ -1,23 +1,33 @@
 import { cookies } from "next/headers";
 
-export type AdminRole = "super" | "staff";
+export async function requireAdmin() {
+  const cookieStore = await cookies(); // ✅ FIX HERE
 
-export async function requireAdmin(): Promise<AdminRole> {
-  const cookieStore = await cookies();
-  const adminCookie = cookieStore.get("dg_admin");
+  const cookie = cookieStore.get("dg_admin")?.value;
 
-  if (!adminCookie) {
-    throw new Error("UNAUTHORIZED");
+  console.log("🧪 COOKIE RAW:", cookie);
+
+  if (!cookie) {
+    console.log("❌ No cookie found");
+    throw new Error("Unauthorized");
   }
 
-  const value = adminCookie.value;
+  let sessionData;
 
-  // Future-proof parsing
-  if (value === "authorized:super") return "super";
-  if (value === "authorized:staff") return "staff";
+  try {
+    sessionData = JSON.parse(cookie);
+    console.log("🧪 PARSED SESSION:", sessionData);
+  } catch (err) {
+    console.log("❌ JSON parse failed");
+    throw new Error("Unauthorized");
+  }
 
-  // Backward compatibility
-  if (value === "authorized") return "staff";
+  if (!sessionData?.id) {
+    console.log("❌ Session ID missing");
+    throw new Error("Unauthorized");
+  }
 
-  throw new Error("UNAUTHORIZED");
+  console.log("✅ ADMIN AUTH PASSED");
+
+  return sessionData;
 }

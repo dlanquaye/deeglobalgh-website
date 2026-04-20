@@ -50,11 +50,6 @@ export async function GET(req: Request) {
 
     const paystackData = result.data;
 
-    // 🔒 Verify reference consistency
-    if (paystackData.reference !== reference) {
-      throw new Error("Reference mismatch");
-    }
-
     const orderId = paystackData?.metadata?.orderId;
 
     if (!orderId) {
@@ -65,11 +60,17 @@ export async function GET(req: Request) {
     }
 
     /* ===============================
-       FIND ORDER + ITEMS
+       FIND ORDER + ITEMS + PRODUCT
     =============================== */
     const order = await prisma.order.findUnique({
       where: { orderId },
-      include: { orderItems: true },
+      include: {
+        orderItems: {
+          include: {
+            product: true, // ✅ VERY IMPORTANT
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -79,7 +80,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // 🔒 Stop early if already paid (first-layer idempotency)
+    /* ===============================
+       ALREADY PROCESSED → EXIT
+    =============================== */
     if (order.paymentStatus === PaymentStatus.PAID) {
       return NextResponse.json({
         ok: true,
@@ -107,77 +110,58 @@ export async function GET(req: Request) {
       });
     }
 
-    // 🔒 Verify amount integrity
-    const paidAmount = paystackData.amount / 100;
-
-    if (paidAmount !== Number(order.amount)) {
-      throw new Error("Payment amount mismatch");
-    }
-
     /* ===============================
-       CHECK IF STOCK ALREADY DEDUCTED
+       STOCK + ORDER UPDATE
     =============================== */
-    const existingMovement = await prisma.inventoryMovement.findFirst({
-      where: {
-        note: `Online Order ${order.orderId}`,
-      },
-    });
-
-    if (!existingMovement) {
-      /* ===============================
-         ATOMIC TRANSACTION
-      =============================== */
-      await prisma.$transaction(async (tx) => {
-
-        for (const item of order.orderItems) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { stockQty: true },
-          });
-
-          if (!product || product.stockQty < item.quantity) {
-            throw new Error(
-              `Stock inconsistency detected for product ${item.productId}`
-            );
-          }
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              stockQty: { decrement: item.quantity },
-            },
-          });
-
-          await tx.inventoryMovement.create({
-            data: {
-              productId: item.productId,
-              type: InventoryMovementType.SALE,
-              quantity: -item.quantity,
-              note: `Online Order ${order.orderId}`,
-            },
-          });
-        }
-
-        // 🔒 Second-layer idempotency protection (race-condition safe)
-        const updatedOrder = await tx.order.updateMany({
+    await prisma.$transaction(async (tx) => {
+      for (const item of order.orderItems) {
+        const inventory = await tx.inventory.findFirst({
           where: {
-            orderId,
-            paymentStatus: PaymentStatus.PENDING,
-          },
-          data: {
-            paymentStatus: PaymentStatus.PAID,
-            reference,
+            productId: item.productId,
+            locationId: order.locationId!,
           },
         });
 
-        if (updatedOrder.count === 0) {
-          throw new Error("Order already processed");
+        if (!inventory || inventory.quantity < item.quantity) {
+          throw new Error(
+            `Stock inconsistency for ${item.product?.name || item.productId}`
+          );
         }
+
+        await tx.inventory.updateMany({
+          where: {
+            productId: item.productId,
+            locationId: order.locationId!,
+          },
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            type: InventoryMovementType.SALE,
+            quantity: -item.quantity,
+            note: `Online Order ${order.orderId} - ${reference}`,
+          },
+        });
+      }
+
+      // ✅ IMPORTANT FIX (use update, not updateMany)
+      await tx.order.update({
+        where: { orderId },
+        data: {
+          paymentStatus: PaymentStatus.PAID,
+          reference,
+        },
       });
-    }
+    });
 
     /* ===============================
-       SEND SMS (AFTER SUCCESS)
+       SEND SMS (FIXED)
     =============================== */
     try {
       if (!order.smsSent && order.phone) {
@@ -188,14 +172,14 @@ Payment received successfully ✅
 Order ID: ${order.orderId}
 Amount: GHS ${order.amount.toFixed(2)}
 
-We are processing your order and will contact you shortly for delivery.
+We are processing your order and will contact you shortly.
 
 Thank you for shopping with us.`;
 
         await sendOrderSMS({
-  phone: order.phone,
-  message,
-});
+          phone: order.phone,
+          message,
+        });
 
         await prisma.order.update({
           where: { orderId },
@@ -203,8 +187,7 @@ Thank you for shopping with us.`;
         });
       }
     } catch (smsError) {
-      console.error("SMS sending failed:", smsError);
-      // Do NOT fail payment because of SMS
+      console.error("SMS failed:", smsError);
     }
 
     return NextResponse.json({

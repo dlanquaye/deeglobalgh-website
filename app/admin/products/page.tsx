@@ -3,19 +3,15 @@ import Link from "next/link";
 import ToggleActiveButton from "./ToggleActiveButton";
 
 type Props = {
-  searchParams?: Promise<{
+  searchParams?: {
     status?: string;
-  }>;
+  };
 };
 
 export default async function AdminProductsPage({
   searchParams,
 }: Props) {
-  const resolvedSearchParams = searchParams
-    ? await searchParams
-    : undefined;
-
-  const status = resolvedSearchParams?.status;
+  const status = searchParams?.status;
 
   const whereClause =
     status === "active"

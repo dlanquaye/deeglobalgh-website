@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";import Image from "next/image";
 import { useCart } from "@/app/context/CartContext";
 
 /* -------------------------------------------
-   TYPES (Prisma-aligned shape)
+   TYPES
 ------------------------------------------- */
 type ProductCardProduct = {
   id: string;
   name: string;
   slug: string;
   retailPrice: number;
-  imageSrc: string;
-  stockQty: number;
+  imageSrc?: string | null;
+  stockQty?: number | null;
 };
 
 type Props = {
@@ -21,22 +21,31 @@ type Props = {
 };
 
 export default function ProductCard({ product }: Props) {
+  const [mounted, setMounted] = useState(false);
+
+useEffect(() => {
+  setMounted(true);
+}, []);
   const { addToCart } = useCart();
 
-  const [stockQty, setStockQty] = useState<number>(product.stockQty);
+  /* -------------------------------------------
+     SAFE NORMALIZATION (VERY IMPORTANT)
+  ------------------------------------------- */
+  const stockQty = typeof product.stockQty === "number" ? product.stockQty : 0;
+
+  const imageSrc =
+    typeof product.imageSrc === "string" && product.imageSrc.length > 0
+      ? product.imageSrc
+      : "/placeholder.png";
+
+  const outOfStock = stockQty <= 0;
+
   const [message, setMessage] = useState<string | null>(null);
 
   /* -------------------------------------------
-     Sync stock if product changes
+     AUTO CLEAR MESSAGE
   ------------------------------------------- */
   useEffect(() => {
-    setStockQty(product.stockQty);
-  }, [product.stockQty]);
-
-  /* -------------------------------------------
-     Auto-clear message
-  ------------------------------------------- */
-  useLayoutEffect(() => {
     if (!message) return;
 
     const timer = setTimeout(() => {
@@ -47,17 +56,6 @@ export default function ProductCard({ product }: Props) {
   }, [message]);
 
   /* -------------------------------------------
-     STOCK STATES
-  ------------------------------------------- */
-  const outOfStock = stockQty <= 0;
-
-  /* -------------------------------------------
-     IMAGE
-  ------------------------------------------- */
-  const imageSrc =
-    product.imageSrc || "/products/placeholder.webp";
-
-  /* -------------------------------------------
      ADD TO CART
   ------------------------------------------- */
   const handleAddToCart = () => {
@@ -66,33 +64,32 @@ export default function ProductCard({ product }: Props) {
       return;
     }
 
-    requestAnimationFrame(() => {
-      const success = addToCart(
-        {
-          id: product.id,
-          name: product.name,
-          slug: product.slug,
-          retailPrice: product.retailPrice,
-          imageSrc: product.imageSrc,
-          stockQty: product.stockQty,
-        },
-        1
-      );
+    const success = addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        retailPrice: product.retailPrice,
+        imageSrc: imageSrc,
+        stockQty: stockQty,
+      },
+      1
+    );
 
-      if (!success) {
-        setMessage("Unable to add item to cart. Please refresh.");
-      } else {
-        setMessage("Added to cart.");
-      }
-    });
+    setMessage(
+      success
+        ? "Added to cart."
+        : "Unable to add item to cart. Please refresh."
+    );
   };
 
   /* -------------------------------------------
-     RENDER
+     UI
   ------------------------------------------- */
+  if (!mounted) return null;
   return (
     <div className="card-brand relative overflow-hidden bg-white">
-      {/* Stock badge */}
+      {/* STOCK BADGE */}
       {outOfStock && (
         <div className="absolute left-3 top-3 z-10">
           <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
@@ -101,18 +98,19 @@ export default function ProductCard({ product }: Props) {
         </div>
       )}
 
-      {/* Image */}
-      <div className="flex h-44 items-center justify-center overflow-hidden bg-[color:var(--bg-soft)]">
+      {/* IMAGE */}
+      <div className="flex h-44 items-center justify-center overflow-hidden bg-gray-100">
         <Image
           src={imageSrc}
           alt={product.name}
           width={400}
           height={400}
           className="h-full w-auto object-contain"
+          priority={false}
         />
       </div>
 
-      {/* Content */}
+      {/* CONTENT */}
       <div className="p-4">
         <div className="text-sm font-semibold text-[color:var(--text-main)]">
           {product.name}

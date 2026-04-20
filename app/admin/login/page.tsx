@@ -3,72 +3,77 @@
 import { useState } from "react";
 
 export default function AdminLoginPage() {
-  const [secret, setSecret] = useState("");
+  const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // ✅ enables Enter key submit
-
-    if (!secret.trim()) {
-      setError("Admin PIN is required");
-      return;
-    }
-
+    e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await fetch("/api/admin-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, pin }),
       });
 
-      if (!res.ok) {
-        setError("Invalid admin PIN");
-        setLoading(false);
-        return;
-      }
+      const data = await res.json();
 
-      // ✅ Login success → redirect to admin
-      window.location.href = "/admin/db-orders";
-    } catch {
-      setError("Login failed");
+      if (res.ok) {
+        window.location.href = "/admin/order-control"; // ✅ correct redirect
+      } else {
+        setError(data.error || "Login failed");
+      }
+    } catch (err) {
+      setError("Something went wrong");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-md px-6 py-20 text-center">
-      <h1 className="text-2xl font-extrabold text-[color:var(--brand-blue)]">
-        Admin Login
-      </h1>
+    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm rounded-2xl bg-white p-8 shadow"
+      >
+        <h1 className="mb-6 text-center text-xl font-bold">
+          Admin Login
+        </h1>
 
-      {/* ✅ FORM ENABLES ENTER KEY */}
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <input
+          type="email"
+          placeholder="Admin Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="mb-4 w-full rounded border px-3 py-2"
+          required
+        />
+
         <input
           type="password"
-          placeholder="Enter Admin PIN"
-          className="input-brand h-14 w-full text-center text-lg"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          disabled={loading}
-          autoFocus
+          placeholder="Enter PIN"
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          className="mb-4 w-full rounded border px-3 py-2"
+          required
         />
 
         {error && (
-          <p className="text-sm font-semibold text-red-600">
-            {error}
-          </p>
+          <p className="mb-3 text-sm text-red-600">{error}</p>
         )}
 
         <button
-          type="submit" // ✅ important
-          disabled={loading || !secret}
-          className="btn-primary w-full py-4 text-lg font-extrabold"
+          type="submit"
+          disabled={loading}
+          className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white"
         >
-          {loading ? "Checking..." : "Login"}
+          {loading ? "Logging in…" : "Login"}
         </button>
       </form>
     </main>
