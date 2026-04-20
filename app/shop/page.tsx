@@ -9,22 +9,16 @@ export default async function ShopPage({
 }: {
   searchParams: Promise<{ search?: string; level?: string; category?: string }>;
 }) {
-  // ✅ FIX — unwrap the Promise
+  // ✅ unwrap the Promise
   const params = await searchParams;
 
   const rawSearch = params?.search || "";
   const rawLevel = params?.level || "";
   const rawCategory = params?.category || "";
 
-  
-
   const search = rawSearch.toLowerCase().trim();
   const level = rawLevel.toLowerCase().trim();
   const category = rawCategory.toLowerCase().trim();
-
-  
-
-  
 
   const products = await prisma.product.findMany({
     where: {
@@ -36,8 +30,16 @@ export default async function ShopPage({
           ? [
               {
                 OR: [
-                  { name: { contains: search, mode: "insensitive" } },
-                  { brand: { contains: search, mode: "insensitive" } },
+                  {
+                    name: {
+                      contains: search,
+                    },
+                  },
+                  {
+                    brand: {
+                      contains: search,
+                    },
+                  },
                   { tags: { has: search } },
                 ],
               },
@@ -60,7 +62,6 @@ export default async function ShopPage({
     },
   });
 
-  
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
 
