@@ -13,13 +13,14 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
 
-    "ignoreDeprecations": "6.0",
+    // ✅ THIS IS THE CORRECT FIX
+    "ignoreDeprecations": "5.0",
 
     "plugins": [
       {
@@ -27,6 +28,7 @@
       }
     ],
 
+    // ✅ KEEP THESE (REQUIRED FOR YOUR IMPORTS)
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]

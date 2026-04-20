@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import Link from "next/link";
 import ShopClient from "./ShopClient";
 

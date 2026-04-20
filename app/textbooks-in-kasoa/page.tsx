@@ -1,7 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import Link from "next/link";
-import ProductCard from "@/app/components/ProductCard";
-
+import ProductCard from "../components/ProductCard";
 export const dynamic = "force-dynamic";
 
 export default async function TextbooksKasoaPage({

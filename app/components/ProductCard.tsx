@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";import Image from "next/image";
-import { useCart } from "@/app/context/CartContext";
+import { useCart } from "../context/CartContext";
 
 /* -------------------------------------------
    TYPES
