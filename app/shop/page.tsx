@@ -39,7 +39,7 @@ export default async function ShopPage({
 {
   brand: {
     contains: search,
-    mode: "insensitive",
+    mode: "insensitive" as const
   },
 },
       ],
