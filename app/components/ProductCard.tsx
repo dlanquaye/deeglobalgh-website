@@ -116,24 +116,24 @@ useEffect(() => {
           {product.name}
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="whitespace-nowrap text-base font-bold text-[color:var(--brand-blue)]">
-            GH₵ {product.retailPrice}
-          </div>
+        <div className="mt-2 flex flex-col gap-2">
+  <div className="text-base font-bold text-[color:var(--brand-blue)]">
+    GH₵ {product.retailPrice}
+  </div>
 
-          <button
-            type="button"
-            disabled={outOfStock}
-            onClick={handleAddToCart}
-            className={`rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap ${
-              outOfStock
-                ? "cursor-not-allowed bg-gray-200 text-gray-500"
-                : "btn-primary"
-            }`}
-          >
-            {outOfStock ? "Out of Stock" : "Add to cart"}
-          </button>
-        </div>
+  <button
+    type="button"
+    disabled={outOfStock}
+    onClick={handleAddToCart}
+    className={`w-full rounded-xl py-2 text-sm font-bold ${
+      outOfStock
+        ? "cursor-not-allowed bg-gray-200 text-gray-500"
+        : "btn-primary"
+    }`}
+  >
+    {outOfStock ? "Out of Stock" : "Add to cart"}
+  </button>
+</div>
 
         {message && (
           <p className="mt-2 text-xs font-semibold text-green-700">
