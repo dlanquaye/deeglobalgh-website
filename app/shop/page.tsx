@@ -17,6 +17,7 @@ export default async function ShopPage({
   const rawCategory = params?.category || "";
 
   const search = rawSearch.toLowerCase().trim();
+  const keywords = search.split(" ").filter(Boolean);
   const level = rawLevel.toLowerCase().trim();
   const category = rawCategory.toLowerCase().trim();
 
@@ -26,25 +27,15 @@ export default async function ShopPage({
       AND: [
         ...(category ? [{ categorySlug: category }] : []),
 
-        ...(search
-          ? [
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: search,
-                    },
-                  },
-                  {
-                    brand: {
-                      contains: search,
-                    },
-                  },
-                  { tags: { has: search } },
-                ],
-              },
-            ]
-          : []),
+        ...(keywords.length > 0
+  ? keywords.map((word) => ({
+      OR: [
+        { name: { contains: word } },
+        { brand: { contains: word } },
+        { tags: { has: word } },
+      ],
+    }))
+  : []),
 
         ...(level
           ? [
