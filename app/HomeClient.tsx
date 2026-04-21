@@ -95,28 +95,20 @@ export default function HomeClient({
       <section className="mx-auto max-w-6xl px-4 py-6">
         <div className="rounded-2xl border bg-white p-4">
           <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search books, stationery, dorm items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && search.trim()) {
-                  router.push(`/shop?search=${encodeURIComponent(search)}`);
-                }
-              }}
-              className="flex-1 rounded-xl border px-5 py-4 text-lg outline-none focus:ring-2 focus:ring-blue-900"
-            />
-            <button
-              onClick={() => {
-                if (search.trim()) {
-                  router.push(`/shop?search=${encodeURIComponent(search)}`);
-                }
-              }}
-              className="rounded-xl bg-blue-900 px-6 py-4 font-bold text-white"
-            >
-              Search
-            </button>
+            <form method="GET" action="/shop" className="flex gap-2">
+  <input
+    type="text"
+    name="search"
+    placeholder="Search textbooks..."
+    className="flex-1 border rounded-xl px-4 py-3"
+  />
+  <button
+    type="submit"
+    className="bg-blue-900 text-white px-4 py-3 rounded-xl font-bold"
+  >
+    Search
+  </button>
+</form>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">

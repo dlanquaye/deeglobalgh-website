@@ -30,9 +30,18 @@ export default async function ShopPage({
         ...(keywords.length > 0
   ? keywords.map((word) => ({
       OR: [
-        { name: { contains: word } },
-        { brand: { contains: word } },
-        { tags: { has: word } },
+        {
+  name: {
+    contains: search,
+    mode: "insensitive",
+  },
+},
+{
+  brand: {
+    contains: search,
+    mode: "insensitive",
+  },
+},
       ],
     }))
   : []),
