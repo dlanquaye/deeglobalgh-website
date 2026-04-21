@@ -33,7 +33,7 @@ export default async function ShopPage({
         {
   name: {
     contains: search,
-    mode: "insensitive",
+    mode: "insensitive" as const
   },
 },
 {
