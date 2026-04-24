@@ -1,3 +1,12 @@
+export const metadata = {
+  title: "Textbooks in Kasoa | Buy School Books in Kasoa - DeeglobalGh",
+  description:
+    "Buy textbooks in Kasoa for Basic, JHS, and SHS. Fast delivery available. Order school books online in Kasoa today.",
+  alternates: {
+    canonical: "https://www.shopdeeglobalgh.com/textbooks-in-kasoa",
+  },
+};
+
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import ProductCard from "@/app/components/ProductCard";
