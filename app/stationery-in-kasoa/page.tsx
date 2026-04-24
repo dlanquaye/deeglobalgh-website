@@ -107,6 +107,22 @@ export default async function StationeryKasoaPage({
         school items at affordable prices.
       </p>
 
+      <div className="mb-6 flex flex-wrap gap-3">
+  <Link
+    href="/textbooks-in-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Shop Textbooks in Kasoa
+  </Link>
+
+  <Link
+    href="/exam-materials-in-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Buy Exam Materials in Kasoa
+  </Link>
+</div>
+
       {/* CTA */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <Link

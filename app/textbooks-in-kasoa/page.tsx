@@ -103,6 +103,23 @@ export default async function TextbooksKasoaPage({
         and learning resources to help students succeed.
       </p>
 
+      <div className="mb-6 flex flex-wrap gap-3">
+  <Link
+    href="/stationery-in-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Shop Stationery in Kasoa
+  </Link>
+
+  <Link
+    href="/exam-materials-in-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Buy Exam Materials in Kasoa
+  </Link>
+</div>
+
+
       {/* CTA */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <Link
