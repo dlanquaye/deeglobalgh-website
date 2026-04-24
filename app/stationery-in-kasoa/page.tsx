@@ -1,138 +1,221 @@
-import Link from "next/link";
-
+/* ================= SEO METADATA ================= */
 export const metadata = {
-  title: "Stationery in Kasoa | School Essentials | DeeglobalGh",
+  title:
+    "Stationery in Kasoa | Buy School Supplies in Kasoa | DeeglobalGh",
   description:
-    "Buy stationery in Kasoa: pens, pencils, rulers, crayons, erasers, sharpeners, calculators, and school supplies. Order from DeeglobalGh for fast delivery in Kasoa.",
+    "Buy stationery in Kasoa including pens, pencils, rulers, calculators, and school essentials. Fast delivery available in Kasoa.",
   alternates: {
-    canonical: "https://shopdeeglobalgh.com/stationery-in-kasoa",
+    canonical: "https://www.shopdeeglobalgh.com/stationery-in-kasoa",
   },
 };
 
-export default function StationeryInKasoaPage() {
-  const pageSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: "Stationery in Kasoa",
-    url: "https://shopdeeglobalgh.com/stationery-in-kasoa",
-    about: "Stationery in Kasoa",
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import ProductCard from "@/app/components/ProductCard";
+
+export const dynamic = "force-dynamic";
+
+
+
+export default async function StationeryKasoaPage({
+  searchParams,
+}: {
+  searchParams: {
+    search?: string;
+    level?: string;
+    category?: string;
+  };
+}) {
+  /* -------------------------------------------
+     PARAMS
+  ------------------------------------------- */
+  const rawSearch = searchParams?.search || "";
+  const rawLevel = searchParams?.level || "";
+  const rawCategory = searchParams?.category;
+
+  /* -------------------------------------------
+     NORMALIZE
+  ------------------------------------------- */
+  const search = rawSearch.toLowerCase().trim();
+  const level = rawLevel.toLowerCase().trim();
+  const category = rawCategory?.toLowerCase().trim();
+
+  const keywords = search.split(" ").filter(Boolean);
+
+  /* -------------------------------------------
+     QUERY BUILD
+  ------------------------------------------- */
+  const where: any = {
+    isActive: true,
+    AND: [],
   };
 
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-12">
-      {/* ✅ Page Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(pageSchema),
-        }}
-      />
+  /* CATEGORY (default = stationery) */
+  where.AND.push(
+    category ? { categorySlug: category } : { categorySlug: "stationery" }
+  );
 
-      <h1 className="text-3xl font-extrabold text-blue-900">
-        Buy Stationery in Kasoa
+  /* SEARCH */
+  if (keywords.length > 0) {
+    where.AND.push(
+      ...keywords.map((word) => ({
+        OR: [
+          { name: { contains: word } },
+          { brand: { contains: word } },
+          { tags: { has: word } },
+        ],
+      }))
+    );
+  }
+
+  /* LEVEL */
+  if (level) {
+    where.AND.push({
+      levelSlugs: {
+        has: level,
+      },
+    });
+  }
+
+  /* -------------------------------------------
+     FETCH
+  ------------------------------------------- */
+  const products = await prisma.product.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  });
+
+  /* -------------------------------------------
+     UI
+  ------------------------------------------- */
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-10">
+
+      {/* ================= SEO HEADER ================= */}
+      <h1 className="text-3xl font-bold text-blue-900 mb-4">
+        Stationery in Kasoa – Buy School Supplies Near You
       </h1>
 
-      <p className="mt-4 max-w-3xl text-gray-700">
-        DeeglobalGh is a reliable place to buy{" "}
-        <strong>stationery in Kasoa</strong>. We stock everyday school items
-        including pens, pencils, erasers, sharpeners, rulers, crayons,{" "}
-        calculators, and other <strong>school essentials</strong>.
+      <p className="text-gray-600 max-w-2xl mb-4">
+        Looking for stationery in Kasoa? DeeglobalGh provides school supplies
+        for Pre-School, Basic, JHS, and SHS students. Order online and get fast
+        delivery in Kasoa.
       </p>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <p className="text-gray-600 max-w-2xl mb-6">
+        Shop pens, pencils, rulers, erasers, calculators, and other essential
+        school items at affordable prices.
+      </p>
+
+      {/* CTA */}
+      <div className="flex gap-3 mb-6 flex-wrap">
         <Link
-          href="/category/school-essentials"
-          className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-6 py-3 font-extrabold text-white hover:opacity-90"
+          href="/shop?category=stationery"
+          className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold"
         >
-          Browse School Essentials
+          Shop All Stationery
         </Link>
 
         <a
           href="https://wa.me/233246011773"
           target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center justify-center rounded-xl bg-yellow-500 px-6 py-3 font-extrabold text-blue-950 hover:opacity-90"
+          className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
         >
           Order on WhatsApp
         </a>
       </div>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-bold">Popular stationery items</h2>
+      {/* ================= SEARCH ================= */}
+      <form method="GET" className="mb-6 flex gap-3">
+        <input
+          type="text"
+          name="search"
+          defaultValue={rawSearch}
+          placeholder="Search stationery..."
+          className="flex-1 border rounded-xl px-4 py-3"
+        />
+        <button className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold">
+          Search
+        </button>
+      </form>
 
-        <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <li className="rounded-2xl border bg-white p-5">
-            <div className="font-semibold">Pens & Pencils</div>
-            <div className="mt-1 text-sm text-gray-600">
-              Ball pens, pencils, and writing tools for all levels.
-            </div>
-          </li>
-          <li className="rounded-2xl border bg-white p-5">
-            <div className="font-semibold">Rulers & Maths Sets</div>
-            <div className="mt-1 text-sm text-gray-600">
-              Rulers, geometry sets, and mathematical instruments.
-            </div>
-          </li>
-          <li className="rounded-2xl border bg-white p-5">
-            <div className="font-semibold">Crayons & Colours</div>
-            <div className="mt-1 text-sm text-gray-600">
-              For Creche, Nursery, KG, and lower primary pupils.
-            </div>
-          </li>
-          <li className="rounded-2xl border bg-white p-5">
-            <div className="font-semibold">Calculators</div>
-            <div className="mt-1 text-sm text-gray-600">
-              Scientific calculators for SHS students and exams.
-            </div>
-          </li>
-        </ul>
-      </section>
+      {/* ================= LEVEL FILTER ================= */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {[
+          "pre-school",
+          "basic-1",
+          "basic-2",
+          "basic-3",
+          "basic-4",
+          "basic-5",
+          "basic-6",
+          "jhs",
+          "shs",
+        ].map((lvl) => {
+          const params = new URLSearchParams();
 
-      <section className="mt-10 rounded-2xl border bg-gray-50 p-6">
-        <h2 className="text-xl font-bold text-blue-900">
-          Stationery delivery in Kasoa
-        </h2>
-        <p className="mt-2 text-gray-700">
-          Order stationery online and get delivery within Kasoa and nearby areas.
-          Confirm delivery location and fees on WhatsApp.
-        </p>
-      </section>
+          if (rawSearch) params.set("search", rawSearch);
+          if (category) params.set("category", category);
 
-      <section className="mt-10">
-        <h2 className="text-xl font-bold">Explore related pages</h2>
+          params.set("level", lvl);
 
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Link
-            href="/kasoa"
-            className="rounded-2xl border bg-white p-5 hover:bg-gray-50"
-          >
-            <div className="font-semibold">Shop in Kasoa</div>
-            <div className="mt-1 text-sm text-gray-600">
-              View all Kasoa shopping options.
-            </div>
-          </Link>
+          return (
+            <Link
+              key={lvl}
+              href={`/stationery-in-kasoa?${params.toString()}`}
+              className="border px-3 py-1 rounded-full text-sm hover:bg-gray-100"
+            >
+              {lvl.toUpperCase()}
+            </Link>
+          );
+        })}
+      </div>
 
-          <Link
-            href="/textbooks-in-kasoa"
-            className="rounded-2xl border bg-white p-5 hover:bg-gray-50"
-          >
-            <div className="font-semibold">Textbooks in Kasoa</div>
-            <div className="mt-1 text-sm text-gray-600">
-              Browse textbooks by level.
-            </div>
-          </Link>
+      {/* ================= PRODUCTS ================= */}
+      <h2 className="text-xl font-bold mb-6">Available Stationery</h2>
+
+      {products.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-lg font-semibold text-gray-700">
+            No stationery found.
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Try different keywords or browse all stationery.
+          </p>
 
           <Link
-            href="/shop"
-            className="rounded-2xl border bg-white p-5 hover:bg-gray-50"
+            href="/shop?category=stationery"
+            className="inline-block mt-4 bg-blue-900 text-white px-6 py-3 rounded-xl font-bold"
           >
-            <div className="font-semibold">Shop All Products</div>
-            <div className="mt-1 text-sm text-gray-600">
-              Browse the full store catalog.
-            </div>
+            View All Stationery
           </Link>
         </div>
-      </section>
-    </main>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {products.map((p: any) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+      )}
+
+      {/* ================= SEO FOOTER ================= */}
+      <div className="mt-12 max-w-3xl">
+        <h2 className="text-xl font-bold mb-3">
+          Where to buy stationery in Kasoa
+        </h2>
+
+        <p className="text-gray-600 mb-3">
+          Parents and students in Kasoa can easily buy stationery online from
+          DeeglobalGh. We provide reliable delivery and a wide range of school
+          supplies.
+        </p>
+
+        <p className="text-gray-600">
+          From pens and pencils to calculators and exam tools, you can find all
+          your school essentials in one place and order easily.
+        </p>
+      </div>
+
+    </div>
   );
 }
