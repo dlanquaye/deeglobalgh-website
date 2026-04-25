@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/context/CartContext";
@@ -39,7 +40,7 @@ export default function HomeClient({
   useEffect(() => {
     if (!Array.isArray(products)) return;
     const shuffled = [...products].sort(() => Math.random() - 0.5);
-    setFeatured(shuffled.slice(0, 6));
+    setFeatured(shuffled.slice(0, 4));
   }, [products]);
 
   const featuredRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +54,7 @@ export default function HomeClient({
 
   useEffect(() => {
     if (featured.length < 6 || pauseAuto) return;
-    const id = setInterval(() => scroll("right"), 5000);
+    const id = setInterval(() => scroll("right"), 8000);
     return () => clearInterval(id);
   }, [featured, pauseAuto, scroll]);
 
@@ -242,13 +243,15 @@ export default function HomeClient({
               return (
                 <div key={p.id} className="min-w-[280px] rounded-2xl border bg-white p-4">
                   <Link href={`/product/${p.slug}`}>
-                    <div className="relative h-52 bg-gray-50">
+                    <div className="relative h-52 bg-gray-50 overflow-hidden rounded-lg">
                       <Image
-                        src={p.imageSrc || "/products/placeholder.webp"}
-                        alt={p.name}
-                        fill
-                        className="object-contain p-3"
-                      />
+  src={p.imageSrc || "/products/placeholder.webp"}
+  alt={p.name}
+  fill
+  className="object-contain p-3"
+  sizes="(max-width: 768px) 100vw, 25vw"
+  priority={false}
+/>
                     </div>
                     <div className="mt-3 font-semibold">{p.name}</div>
                     <div className="mt-1 font-bold text-blue-900">
