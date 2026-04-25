@@ -128,6 +128,8 @@ export default function HomeClient({
         </div>
       </section>
 
+      
+
       {/* ================= HERO ================= */}
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl border bg-gray-50 p-6">
@@ -142,8 +144,17 @@ export default function HomeClient({
   <Link href="/shop" className="rounded-xl bg-blue-900 px-5 py-3 font-bold text-white">
     Shop All
   </Link>
+
   <Link href="/kasoa" className="rounded-xl border px-5 py-3 font-bold">
     Shop in Kasoa
+  </Link>
+
+  {/* ✅ NEW BUTTON (THIS IS ALL WE ADD) */}
+  <Link
+    href="/school-list-items-kasoa"
+    className="rounded-xl bg-green-600 px-5 py-3 font-bold text-white hover:bg-green-700"
+  >
+    View Full School List
   </Link>
 
   <button
@@ -195,6 +206,16 @@ export default function HomeClient({
   );
 })}
         </div>
+
+        <div className="mt-6 text-center">
+  <Link
+    href="/school-list-items-kasoa"
+    className="inline-block bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700"
+  >
+    View Full School List for All Classes
+  </Link>
+</div>
+
       </section>
 
       {/* ================= FEATURED ================= */}
@@ -277,6 +298,16 @@ export default function HomeClient({
 
           <button onClick={() => scroll("right")} className="border px-3 py-2">→</button>
         </div>
+
+      <div className="mt-6 text-center">
+  <Link
+    href="/school-list-items-kasoa"
+    className="text-green-600 font-semibold hover:underline"
+  >
+    Looking for full school requirements? View full list →
+  </Link>
+</div>
+
       </section>
 
       {/* ================= SCHOOL LEVELS ================= */}
@@ -293,6 +324,16 @@ export default function HomeClient({
             </Link>
           ))}
         </div>
+
+        <div className="mt-6 text-center">
+  <Link
+    href="/school-list-items-kasoa"
+    className="inline-block border border-green-600 text-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-50"
+  >
+    See Complete School List (All Levels)
+  </Link>
+</div>
+
       </section>
 
     </main>
