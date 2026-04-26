@@ -60,18 +60,16 @@ export default function HomeClient({
 
   // ✅ UPDATED CATEGORY LIST (STORY BOOKS ADDED)
   const categories = [
-    "Textbooks",
-    "Story Books", // ✅ NEW
-    "Exam Materials",
-    "School Essentials",
-    "Dormitory Essentials",
-    "Uniforms & Clothing Essentials",
-    "Drawing & Technical",
-    "Bags & Lunch Packs",
-    "Calculators",
-    "JHS Combined Textbooks",
-    "SHS Combined Textbooks",
-  ];
+  "Textbooks",
+  "Story Books",
+  "Exam Materials",
+  "School Essentials",
+  "Boarding Essentials",
+  "Uniforms & Clothing Essentials",
+  "Practical & Technical Essentials",
+  "School Bags & Accessories",
+  "School Electronics",
+];
 
   const levels = [
     "Pre-School",

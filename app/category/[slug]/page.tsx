@@ -94,5 +94,66 @@ export default async function CategoryPage({
     products = [];
   }
 
-  return <CategoryClient slug={slug} products={products} />;
+  return (
+  <main className="mx-auto max-w-6xl px-4 py-6">
+
+    {/* ✅ TEXTBOOK SUBCATEGORY NAV */}
+    {slug === "textbooks" && (
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold mb-3">
+          Shop by Level
+        </h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+
+          <a href="/category/textbooks/basic-1-3" className="rounded-xl p-4 text-center font-medium bg-green-50 hover:bg-blue-100 border border-green-200 transition">
+            Basic 1–3
+          </a>
+
+          <a href="/category/textbooks/basic-4-6" className="rounded-xl p-4 text-center font-medium bg-blue-50 hover:bg-blue-100 border border-blue-200 transition">
+            Basic 4–6
+          </a>
+
+          <a href="/category/textbooks/jhs" className="rounded-xl p-4 text-center font-medium bg-teal-50 hover:bg-blue-100 border border-yellow-200 transition">
+            JHS
+          </a>
+
+          <a href="/category/textbooks/shs" className="rounded-xl p-4 text-center font-medium bg-blue-50 hover:bg-blue-100 border border-blue-200 transition">
+            SHS
+          </a>
+
+          <a href="/category/textbooks/jhs-combined" className="rounded-xl p-4 text-center font-medium bg-teal-50 hover:bg-blue-100 border border-blue-200 transition">
+            JHS Combined
+          </a>
+
+          <a href="/category/textbooks/shs-combined" className="rounded-xl p-4 text-center font-medium bg-blue-50 hover:bg-blue-100 border border-blue-200 transition">
+            SHS Combined
+          </a>
+
+        </div>
+      </div>
+    )}
+{/* ✅ EXAM MATERIALS SUBCATEGORY NAV */}
+{slug === "exam-materials" && (
+  <div className="mb-6">
+    <h2 className="text-lg font-semibold mb-3">
+      Select Exam Level
+    </h2>
+
+    <div className="grid grid-cols-2 gap-3">
+
+      <a href="/category/exam-materials/jhs" className="rounded-xl p-4 text-center font-medium bg-yellow-50 hover:bg-blue-100 border border-blue-200 transition">
+        JHS (BECE)
+      </a>
+
+      <a href="/category/exam-materials/shs" className="rounded-xl p-4 text-center font-medium bg-cyan-50 hover:bg-blue-100 border border-blue-200 transition">
+        SHS (WASSCE)
+      </a>
+
+    </div>
+  </div>
+)}
+    <CategoryClient slug={slug} products={products} />
+  </main>
+);
 }

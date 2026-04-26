@@ -104,6 +104,7 @@ model Product {
   stockQty           Int                 @default(0)
   lowStockThreshold  Int                 @default(3)
   categorySlug       String
+  subCategorySlug String?
   levelSlugs         String[]
   imageSrc           String
   imageAlt           String
