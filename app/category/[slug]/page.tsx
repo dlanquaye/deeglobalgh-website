@@ -130,6 +130,10 @@ export default async function CategoryPage({
             SHS Combined
           </a>
 
+          <a href="/category/textbooks/pre-school" className="rounded-xl p-4 text-center font-medium bg-pink-50 hover:bg-pink-100 border border-pink-200 transition">
+  Pre-School
+</a>
+
         </div>
       </div>
     )}
