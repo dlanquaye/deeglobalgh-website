@@ -78,7 +78,7 @@ export default async function ProductPage({
         </div>
 
         {/* Details */}
-        <div className="rounded-2xl border bg-gray-50 p-8">
+        <div className="rounded-2xl border bg-gray-50 p-8 shadow-sm">
           <h1 className="text-3xl font-bold">{product.name}</h1>
 
           {/* Author */}
@@ -105,6 +105,16 @@ export default async function ProductPage({
             <p className="mt-4">{product.shortSummary}</p>
           )}
 
+{/* TRUST + DELIVERY */}
+<div className="mt-6 bg-white border rounded-xl p-4 space-y-2 text-sm">
+
+  <p>✔ NaCCA approved & New Curriculum aligned</p>
+
+  <p>🚚 Fast delivery available in Kasoa, Accra & nationwide</p>
+
+  <p>📦 Order today and receive your items without stress</p>
+
+</div>
           {/* Add to Cart */}
           <div className="mt-6">
             <AddToCartButton
@@ -121,9 +131,19 @@ export default async function ProductPage({
           </div>
 
           {/* Continue */}
+          {/* WHATSAPP ORDER */}
+<a
+  href={`https://wa.me/233246011773?text=Hello, I want to order ${product.name}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="mt-4 block w-full bg-yellow-500 text-black px-5 py-3 rounded-xl text-center font-bold"
+>
+  Order Now via WhatsApp
+</a>
           <Link
             href="/shop"
             className="mt-4 block w-full rounded-xl border px-5 py-3 text-center"
+            
           >
             Continue Shopping
           </Link>

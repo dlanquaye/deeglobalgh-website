@@ -28,13 +28,13 @@ export default function SchoolListPage() {
       {/* CTA */}
       <div className="flex gap-3 mb-8 flex-wrap">
         <a
-          href="https://wa.me/233246011773"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
-        >
-          Order Full School List on WhatsApp
-        </a>
+  href="https://wa.me/233246011773"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
+>
+  Order Full School List on WhatsApp
+</a>
 
         <Link
           href="/shop"
@@ -42,7 +42,16 @@ export default function SchoolListPage() {
         >
           Browse All Products
         </Link>
+
+        
       </div>
+
+<Link
+  href="/school-list-items-kasoa"
+  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold"
+>
+  View Full School List
+</Link>
 
       {/* SCHOOL LEVELS */}
       <h2 className="text-xl font-bold mb-4">
