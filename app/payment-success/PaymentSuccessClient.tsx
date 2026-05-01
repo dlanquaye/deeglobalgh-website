@@ -11,18 +11,16 @@ export default function PaymentSuccessClient({ reference }: Props) {
   const { clearCart } = useCart();
   const [order, setOrder] = useState<any>(null);
 
-  // ✅ Prevent WhatsApp duplicate trigger
-  const hasTriggeredWhatsApp = useRef(false);
+  
 
   /* ===============================
      🧹 CLEAR CART (ONCE)
   =============================== */
   useEffect(() => {
-    if (!reference) return;
+  if (!reference) return;
 
-    clearCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  clearCart();
+}, [reference]);
 
   /* ===============================
      🔐 VERIFY PAYMENT
@@ -88,10 +86,11 @@ export default function PaymentSuccessClient({ reference }: Props) {
 🧾 *NEW PAID ORDER — DEEGLOBALGH*
 
 👤 Name: ${order.customer?.fullName || order.email}
-📞 Phone: ${order.phone}
+📞 Phone: ${order.customer?.phone || order.phone || "N/A"}
 
 📍 Delivery Location:
-${order.locationId}
+${order.customer?.location || order.location || "N/A"}
+📍 Area: ${order.customer?.area || order.area || "N/A"}
 
 🛒 Items:
 ${order.orderItems

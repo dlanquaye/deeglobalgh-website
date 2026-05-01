@@ -4,11 +4,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PaymentStatus } from "@prisma/client";
 
+function getDeliveryFee(location: string) {
+  const loc = location.toLowerCase();
+
+  if (loc.includes("kasoa")) return 30;
+
+  return 0; // outside Kasoa → handled manually
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
     const { orderId, customer, items } = body;
+    const location = customer?.location || "";
 
     /* ===============================
        🧾 BASIC VALIDATION
@@ -98,6 +107,12 @@ export async function POST(req: Request) {
         totalPrice,
       };
     });
+    
+
+    const deliveryFee = getDeliveryFee(location);
+
+totalAmount += deliveryFee;
+
 
     /* ===============================
        🔐 ATOMIC TRANSACTION
