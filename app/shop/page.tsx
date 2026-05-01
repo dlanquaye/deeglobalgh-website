@@ -128,44 +128,9 @@ export default async function ShopPage({
           </button>
         </form>
 
-        {/* LEVEL FILTER */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          {[
-            "pre-school",
-            "basic-1",
-            "basic-2",
-            "basic-3",
-            "basic-4",
-            "basic-5",
-            "basic-6",
-            "jhs",
-            "shs",
-          ].map((lvl) => {
-            const params = new URLSearchParams();
+        
 
-            if (rawSearch) params.set("search", rawSearch);
-            if (rawCategory) params.set("category", rawCategory);
-
-            params.set("level", lvl);
-
-            return (
-              <Link
-                key={lvl}
-                href={`/shop?${params.toString()}`}
-                className="px-4 py-2 rounded-xl text-sm font-medium 
-bg-white border border-gray-200 
-shadow-sm hover:shadow-md 
-hover:border-blue-400 
-hover:bg-blue-50 
-transition"
-              >
-                {lvl.toUpperCase()}
-              </Link>
-            );
-          })}
-        </div>
-
-        <h2 className="text-2xl font-bold mb-6">All Products</h2>
+        
 
         {/* PRODUCTS */}
         <ShopClient products={products} />

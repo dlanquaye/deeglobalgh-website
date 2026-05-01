@@ -31,12 +31,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
   useEffect(() => {
   if (!products || products.length === 0) return;
 
-  const shuffled = [...products]
-    .map((p) => ({ p, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ p }) => p);
-
-  setFeatured(shuffled.slice(0, 6));
+  setFeatured(products.slice(0, 6));
 
 }, [products]);
 
@@ -86,7 +81,6 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
           </form>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/kasoa" className="rounded-xl border px-4 py-2">Kasoa</Link>
             <Link href="/textbooks-in-kasoa" className="rounded-xl border px-4 py-2">Textbooks in Kasoa</Link>
             <Link href="/stationery-in-kasoa" className="rounded-xl border px-4 py-2">Stationery in Kasoa</Link>
             <Link href="/cart" className="rounded-xl border px-4 py-2">
@@ -100,38 +94,107 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 text-white p-8 shadow-xl">
 
-          <h1 className="text-3xl font-bold">
-            Textbooks, Stationery & School Essentials in Kasoa
-          </h1>
+          <h1 className="text-3xl font-bold leading-tight">
+  Buy Textbooks & School Supplies in Kasoa — Fast Delivery Available
+</h1>
 
-          <p className="mt-3 max-w-2xl text-white/90">
-            NaCCA approved and new curriculum textbooks, learning aids, boarding essentials, and complete school supplies for Pre-School to SHS students, teachers, and parents across Ghana.
-          </p>
+<p className="mt-3 max-w-2xl text-white/90">
+  Order all your school items in one place. From Pre-School to SHS, we deliver textbooks, stationery, and full school lists across Kasoa, Accra, and Ghana.
+</p>
+
+<p className="mt-2 text-sm text-white/80 font-medium">
+  ✔ NaCCA Approved • ✔ Fast Delivery • ✔ WhatsApp Ordering Available
+</p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/shop" className="bg-white text-blue-900 px-5 py-3 rounded-xl font-bold">
-              Shop All
-            </Link>
 
-            <Link href="/kasoa" className="bg-white/20 px-5 py-3 rounded-xl font-bold">
-              Shop in Kasoa
-            </Link>
+  {/* PRIMARY CTA */}
+  <Link
+    href="https://wa.me/233246011773"
+    target="_blank"
+    className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold shadow-lg"
+  >
+    Order via WhatsApp
+  </Link>
 
-            <Link href="/school-list-items-kasoa" className="bg-green-500 px-5 py-3 rounded-xl font-bold">
-              View Full School List
-            </Link>
+  {/* SECONDARY */}
+  <Link
+    href="/school-list-items-kasoa"
+    className="bg-green-500 px-5 py-3 rounded-xl font-bold text-white"
+  >
+    View Full School List
+  </Link>
 
-<Link
-  href="https://wa.me/233246011773"
-  target="_blank"
-  className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold"
->
-  Order via WhatsApp
-</Link>
-            
-          </div>
+  {/* SUPPORT */}
+  <Link
+    href="/shop"
+    className="bg-white text-blue-900 px-5 py-3 rounded-xl font-semibold"
+  >
+    Shop All
+  </Link>
+
+</div>
         </div>
       </section>
+
+      {/* ================= DELIVERY STRIP ================= */}
+<section className="bg-green-600 text-white py-4">
+  <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-3">
+
+    <p className="font-semibold text-center md:text-left">
+      🚚 Fast delivery available in Kasoa, Accra & nationwide — Order now via WhatsApp
+    </p>
+
+    <a
+      href="https://wa.me/233246011773"
+      target="_blank"
+      className="bg-white text-green-700 px-4 py-2 rounded-xl font-bold"
+    >
+      Order Now
+    </a>
+
+  </div>
+</section>
+
+<div className="flex flex-wrap gap-3 justify-center">
+
+  <Link href="/shop?level=pre-school" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Pre-School
+  </Link>
+
+  <Link href="/shop?level=basic-1" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 1
+  </Link>
+
+  <Link href="/shop?level=basic-2" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 2
+  </Link>
+
+  <Link href="/shop?level=basic-3" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 3
+  </Link>
+
+  <Link href="/shop?level=basic-4" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 4
+  </Link>
+
+  <Link href="/shop?level=basic-5" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 5
+  </Link>
+
+  <Link href="/shop?level=basic-6" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    Basic 6
+  </Link>
+
+  <Link href="/shop?level=jhs" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    JHS
+  </Link>
+
+  <Link href="/shop?level=shs" className="px-4 py-2 bg-gray-100 rounded-full text-sm font-semibold">
+    SHS
+  </Link>
+
+</div>
 
       {/* ================= TRUST ================= */}
       <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-3 gap-6">
@@ -178,6 +241,35 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
         </div>
       </section>
 
+{/* ================= SCHOOL LEVEL ================= */}
+<section className="mx-auto max-w-6xl px-4 pb-12">
+  <h2 className="text-xl font-bold mb-4">Shop by School Level</h2>
+
+  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+    {[
+      { name: "Pre-School", slug: "pre-school" },
+      { name: "Basic 1", slug: "basic-1" },
+      { name: "Basic 2", slug: "basic-2" },
+      { name: "Basic 3", slug: "basic-3" },
+      { name: "Basic 4", slug: "basic-4" },
+      { name: "Basic 5", slug: "basic-5" },
+      { name: "Basic 6", slug: "basic-6" },
+      { name: "JHS", slug: "jhs" },
+      { name: "SHS", slug: "shs" },
+    ].map((level) => (
+      <Link
+        key={level.slug}
+        href={`/shop?level=${level.slug}`}
+        className="rounded-2xl border bg-white p-5 hover:bg-blue-50 hover:shadow-md transition text-center font-semibold"
+      >
+        {level.name}
+      </Link>
+    ))}
+
+  </div>
+</section>
+
       {/* ================= FEATURED (UNCHANGED CORE) ================= */}
       <section className="mx-auto max-w-6xl px-4 pb-14">
         <div className="flex justify-between items-center">
@@ -197,16 +289,54 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
   className="flex gap-4 overflow-x-auto scroll-smooth"
 >
             {featured.map((p) => (
-              <div key={p.id} className="min-w-[260px] bg-white border rounded-xl p-4 shadow-sm">
-                <Link href={`/product/${p.slug}`}>
-                  <div className="relative h-48">
-                    <Image src={p.imageSrc} alt={p.name} fill className="object-contain" />
-                  </div>
-                  <div className="mt-2 font-semibold">{p.name}</div>
-                  <div className="text-blue-900 font-bold">GH₵ {p.retailPrice}</div>
-                </Link>
-              </div>
-            ))}
+  <div
+    key={p.id}
+    className="min-w-[260px] bg-white border rounded-2xl p-4 shadow-sm flex flex-col"
+  >
+    <Link href={`/product/${p.slug}`}>
+      <div className="relative h-48">
+        <Image src={p.imageSrc} alt={p.name} fill className="object-contain" />
+      </div>
+
+      <div className="mt-2 text-sm font-semibold line-clamp-2 min-h-[40px]">
+        {p.name}
+      </div>
+
+      <div className="mt-1 text-lg font-bold text-blue-900">
+        GH₵ {p.retailPrice}
+      </div>
+    </Link>
+
+    {/* BUTTONS */}
+    <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+
+      <Link
+        href={`/product/${p.slug}`}
+        className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full"
+      >
+        View
+      </Link>
+
+      <button
+        onClick={() =>
+          window.open(
+            `https://wa.me/233246011773?text=${encodeURIComponent(
+              `Hello, I want to order:
+Product: ${p.name}
+Price: GH₵ ${p.retailPrice}
+Quantity: 1`
+            )}`,
+            "_blank"
+          )
+        }
+        className="text-xs font-semibold bg-green-600 text-white px-3 py-1 rounded-full"
+      >
+        WhatsApp
+      </button>
+
+    </div>
+  </div>
+))}
           </div>
 
           <button onClick={() => scroll("right")} className="border px-3 py-2">→</button>
