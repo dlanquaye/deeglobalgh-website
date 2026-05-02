@@ -138,3 +138,26 @@ export async function POST(req: Request) {
     );
   }
 }
+// ✅ GET ALL PRODUCTS WITH STOCK (FOR ADMIN DASHBOARD)
+export async function GET() {
+  try {
+    await requireAdmin();
+
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        stockQty: true,
+        lowStockThreshold: true,
+        costPrice: true, // ✅ ADD THIS
+      },
+    });
+
+    return NextResponse.json({ products });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Unauthorized or server error" },
+      { status: 500 }
+    );
+  }
+}

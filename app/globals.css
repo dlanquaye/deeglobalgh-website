@@ -63,3 +63,23 @@ body {
   border: 1px solid var(--border);
   background: #ffffff;
 }
+
+@media print {
+  body * {
+    display: none !important;
+  }
+
+  .print-area {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .print-area * {
+    display: revert !important;
+  }
+}
+
+ 

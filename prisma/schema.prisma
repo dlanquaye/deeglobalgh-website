@@ -125,6 +125,7 @@ model Product {
   updatedAt          DateTime            @updatedAt
   author             String?
   costPrice          Float?
+  stock Int @default(0)
   publisher          String?
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
