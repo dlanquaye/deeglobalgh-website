@@ -150,6 +150,7 @@ export async function GET() {
         stockQty: true,
         lowStockThreshold: true,
         costPrice: true, // ✅ ADD THIS
+        supplier: true, // 👈 ADD THIS
       },
     });
 

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("NEON_DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+ 
 }
 
 
@@ -127,6 +128,7 @@ model Product {
   costPrice          Float?
   stock Int @default(0)
   publisher          String?
+  supplier Supplier? 
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
 }
@@ -321,4 +323,18 @@ enum MovementType {
   SALE
   ADJUSTMENT
   RETURN
+}
+enum Supplier {
+  AKI_OLA
+  A_PLUS
+  GOLDEN
+  BEST_BRAIN
+  EXCELLENCE
+  ESSENTIAL
+  AUNTIE_DIANA
+  DWT
+  WUCHARD
+  TSINA
+  MAKOLA
+  WISE_ANT
 }

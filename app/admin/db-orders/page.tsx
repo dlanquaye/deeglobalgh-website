@@ -152,7 +152,7 @@ const allProductsMap = (() => {
   }));
 })();
   
-const availableCapital = 2000;
+const availableCapital = 2500;
 
 
 
@@ -188,6 +188,7 @@ return {
   restockQty,
   restockCost,
     unitCost,
+    supplier: p.supplier || "unknown", // 👈 ADD THIS
 
 };
   })
@@ -196,6 +197,8 @@ return {
 
   const prioritizedRestock = (() => {
   let remaining = availableCapital;
+
+  
 
   return smartLowStockProducts
     // Sort HIGH → MEDIUM → LOW
@@ -216,12 +219,34 @@ return {
   remaining -= finalCost;
 
   return {
-    ...p,
-    restockQty: finalQty,
-    restockCost: finalCost,
-  };
+  name: p.name,
+  stockQty: p.stockQty,
+  demand: p.demand,
+  demandLevel: p.demandLevel,
+  isLowStock: p.isLowStock,
+  unitCost: p.unitCost,
+  supplier: p.supplier || "unknown", // 👈 FORCE KEEP
+  restockQty: finalQty,
+  restockCost: finalCost,
+};
 })
+
 .filter((p): p is NonNullable<typeof p> => p !== null);})();
+
+console.log("RESTOCK ITEMS:", prioritizedRestock);
+
+// ✅ GROUP RESTOCK BY SUPPLIER
+const restockBySupplier: Record<string, typeof prioritizedRestock> = {};
+
+prioritizedRestock.forEach((item) => {
+  const supplier = item.supplier || "unknown";
+
+  if (!restockBySupplier[supplier]) {
+    restockBySupplier[supplier] = [];
+  }
+
+  restockBySupplier[supplier].push(item);
+});
 
   const lowStockProductsFromDB = products
   .filter((p) => p.stockQty <= p.lowStockThreshold)
@@ -521,40 +546,63 @@ const handleSendReport = async () => {
   window.open(url, "_blank");
 });
   } catch (error) {
-    console.error("Failed to send report:", error);
+   
   }
 };
 
+const supplierPhones: Record<string, string> = {
+  "Aki Ola": "233270030000",
+  "A+": "233246011773",
+  "Golden": "23354113111",
+  "Best Brain": "233270030000",
+  "Excellence": "233270030000",
+  "Essential": "23354113111",
+  "Auntie Diana": "23354113111",
+  "DWT": "23354113111",
+  "Wuchard": "23354113111",
+  "Tsina": "233246011773",
+  "Makola": "233246011773",
+  "Wise Ant": "233246011773",
+  "Don": "233246011773",
+  "Nataraj": "233246011773",
+  "Skoolbox": "233246011773",
+};
+
 const handleSendRestock = () => {
-  if (!prioritizedRestock.length) {
+  const suppliers = Object.keys(restockBySupplier);
+
+  if (suppliers.length === 0) {
     alert("No restock needed");
     return;
   }
 
-  let total = 0;
+  suppliers.forEach((supplier) => {
+    const items = restockBySupplier[supplier];
 
-  const lines = prioritizedRestock.map((p, i) => {
-    const itemTotal = p.restockQty * p.unitCost;
-    total += itemTotal;
+    let total = 0;
 
-    return `${i + 1}. ${p.name}
+    const lines = items.map((p, i) => {
+      const itemTotal = p.restockQty * p.unitCost;
+      total += itemTotal;
+
+      return `${i + 1}. ${p.name}
 Qty: ${p.restockQty}
 Unit: GHS ${p.unitCost}
 Total: GHS ${itemTotal}`;
-  });
+    });
 
-  const message = `RESTOCK ORDER – DEEGLOBALGH
+    const message = `RESTOCK ORDER – ${supplier.toUpperCase()}
 
 ${lines.join("\n\n")}
 
 -------------------------
 TOTAL: GHS ${total}`;
 
-  const encoded = encodeURIComponent(message);
+    const encoded = encodeURIComponent(message);
 
-  const phone = "233246011773"; // 👈 CHANGE THIS
-
-  window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
+const phone = supplierPhones[supplier] || "233246011773";
+    window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
+  });
 };
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
@@ -571,6 +619,7 @@ TOTAL: GHS ${total}`;
 </div>
 
 <button
+
   onClick={handleSendRestock}
   className="bg-red-600 text-white px-4 py-2 rounded-lg ml-2"
 >
