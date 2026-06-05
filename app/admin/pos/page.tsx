@@ -19,6 +19,10 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
+  const [customerName, setCustomerName] = useState("");
+const [customerPhone, setCustomerPhone] = useState("");
+const [paymentMethod, setPaymentMethod] = useState("Cash");
+const [isProcessing, setIsProcessing] = useState(false);
 
   // 🔍 Search
   const handleSearch = async (value: string) => {
@@ -97,10 +101,14 @@ export default function POSPage() {
 
   // 💳 Checkout
   const handleCheckout = async () => {
-    if (cart.length === 0) {
-      alert("Cart is empty");
-      return;
-    }
+  if (isProcessing) return;
+
+  if (cart.length === 0) {
+    alert("Cart is empty");
+    return;
+  }
+
+  setIsProcessing(true);
 
     try {
       const res = await fetch("/api/pos/checkout", {
@@ -109,11 +117,14 @@ export default function POSPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          items: cart.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-          })),
-        }),
+  customerName,
+  customerPhone,
+  paymentMethod,
+  items: cart.map((item) => ({
+    id: item.id,
+    quantity: item.quantity,
+  })),
+}),
       });
 
       const data = await res.json();
@@ -127,6 +138,8 @@ export default function POSPage() {
       setCart([]);
     } catch {
       alert("Something went wrong");
+      } finally {
+  setIsProcessing(false);
     }
   };
 
@@ -222,6 +235,33 @@ export default function POSPage() {
           )}
 
           {/* TOTAL + ACTIONS */}
+          <div className="mt-4 space-y-3">
+  <input
+    type="text"
+    placeholder="Customer Name"
+    value={customerName}
+    onChange={(e) => setCustomerName(e.target.value)}
+    className="w-full border p-2 rounded-lg"
+  />
+
+  <input
+    type="text"
+    placeholder="Customer Phone"
+    value={customerPhone}
+    onChange={(e) => setCustomerPhone(e.target.value)}
+    className="w-full border p-2 rounded-lg"
+  />
+
+  <select
+    value={paymentMethod}
+    onChange={(e) => setPaymentMethod(e.target.value)}
+    className="w-full border p-2 rounded-lg"
+  >
+    <option value="Cash">Cash</option>
+    <option value="Mobile Money">Mobile Money</option>
+    <option value="Bank Transfer">Bank Transfer</option>
+  </select>
+</div>
           <div className="mt-6 border-t pt-4 space-y-2">
             <p className="font-semibold">Total: GHS {total}</p>
 
@@ -233,11 +273,12 @@ export default function POSPage() {
             </button>
 
             <button
-              onClick={handleCheckout}
-              className="w-full bg-black text-white p-2 rounded-lg"
-            >
-              Complete Sale
-            </button>
+  onClick={handleCheckout}
+  disabled={isProcessing}
+  className="w-full bg-black text-white p-2 rounded-lg disabled:opacity-50"
+>
+  {isProcessing ? "Processing..." : "Complete Sale"}
+</button>
           </div>
         </div>
 

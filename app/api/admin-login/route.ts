@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -45,19 +46,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. ✅ Plain PIN check ONLY
-    console.log("COMPARE:", {
-      inputPin: pin,
-      dbPin: admin.pin,
-    });
+    // 4. Verify hashed PIN
 
-    if (String(pin).trim() !== String(admin.pin).trim()) {
-      console.log("❌ PIN mismatch");
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
+const validPin = await bcrypt.compare(
+  pin,
+  admin.pinHash
+);
+
+if (!validPin) {
+  console.log("❌ PIN mismatch");
+
+  return NextResponse.json(
+    { error: "Invalid credentials" },
+    { status: 401 }
+  );
+}
 
     // 5. Success
     console.log("✅ LOGIN SUCCESS");

@@ -283,9 +283,7 @@ const todayRevenue = orders
     );
   })
   .reduce(
-    (sum, o) =>
-      sum +
-      o.orderItems.reduce((itemSum, i) => itemSum + i.quantity, 0),
+    (sum, o) => sum + o.amount,
     0
   );
 

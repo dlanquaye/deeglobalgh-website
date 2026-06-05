@@ -9,13 +9,15 @@ export async function GET(req: Request) {
     const products = await prisma.product.findMany({
       where: {
         name: {
-          contains: query,
-        
-        },
+  contains: query,
+  mode: "insensitive",
+},
         isActive: true, // ✅ only active products
       },
       take: 10,
     });
+console.log("SEARCH:", query);
+console.log("RESULTS:", products.length);
 
     return NextResponse.json(products);
   } catch (error) {

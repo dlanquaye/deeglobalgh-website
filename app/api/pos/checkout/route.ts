@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items } = body;
+
+const {
+  items,
+  customerName,
+  customerPhone,
+  paymentMethod,
+} = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json(
@@ -33,37 +39,38 @@ export async function POST(req: Request) {
       }
 
       // ✅ Deduct stock
-      await prisma.product.update({
-        where: { id: item.id },
-        data: {
-          stockQty: product.stockQty - item.quantity,
-        },
-      });
-
-      // 🚫 Inventory movement temporarily disabled
-      // await prisma.inventoryMovement.create({
-      //   data: {
-      //     productId: item.id,
-      //     quantity: -item.quantity,
-      //     type: "SALE",
-      //   },
-      // });
+    
+     await prisma.product.update({
+  where: { id: item.id },
+  data: {
+    stockQty: product.stockQty - item.quantity,
+  },
+});
     }
 
-    // 💰 Calculate total
-const total = items.reduce(
-  (sum: number, item: any) =>
-    sum + item.quantity * (item.retailPrice || 0),
-  0
-);
+    let total = 0;
+
+for (const item of items) {
+  const product = await prisma.product.findUnique({
+    where: { id: item.id },
+  });
+
+  if (!product) continue;
+
+  total += product.retailPrice * item.quantity;
+}
 
 // 🧾 Create Order
 const order = await prisma.order.create({
   data: {
-    orderId: `POS-${Date.now()}`, // simple unique ID
-    email: "pos@shop.com",        // temporary
-    phone: "0000000000",          // temporary
-    amount: Math.round(total),    // must be Int
+    orderId: `POS-${Date.now()}`,
+    email: "pos@shop.com",
+
+    phone: customerPhone || "0000000000",
+    customerName: customerName || null,
+    paymentMethod: paymentMethod || "Cash",
+
+    amount: Math.round(total),
     paymentStatus: "PAID",
   },
 });
@@ -77,14 +84,24 @@ for (const item of items) {
   if (!product) continue;
 
   await prisma.orderItem.create({
-  data: {
-    orderId: order.id,
-    productId: product.id,
-    quantity: item.quantity,
-    unitPrice: product.retailPrice,
-    totalPrice: product.retailPrice * item.quantity,
-  },
-});
+    data: {
+      orderId: order.id,
+      productId: product.id,
+      quantity: item.quantity,
+      unitPrice: product.retailPrice,
+      totalPrice: product.retailPrice * item.quantity,
+    },
+  });
+
+  await prisma.inventoryMovement.create({
+    data: {
+      productId: product.id,
+      quantity: -item.quantity,
+      type: "SALE",
+      orderId: order.id,
+      note: `POS Sale ${order.orderId}`,
+    },
+  });
 }
 
 return NextResponse.json({
