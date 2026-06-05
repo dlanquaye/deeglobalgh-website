@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "health": "node health-check.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -15,7 +16,7 @@
     "csv-parse": "^6.2.1",
     "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "next": "16.1.1",
     "pg": "^8.20.0",
     "react": "19.2.3",
