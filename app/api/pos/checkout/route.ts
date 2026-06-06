@@ -12,101 +12,112 @@ const {
   paymentMethod,
 } = body;
 
-    if (!items || items.length === 0) {
-      return NextResponse.json(
-        { error: "No items provided" },
-        { status: 400 }
+if (!items || items.length === 0) {
+  return NextResponse.json(
+    { error: "No items provided" },
+    { status: 400 }
+  );
+}
+
+const result = await prisma.$transaction(async (tx) => {
+  const productIds = items.map((item: any) => item.id);
+
+const products = await tx.product.findMany({
+  where: {
+    id: {
+      in: productIds,
+    },
+  },
+});
+
+const productMap = new Map(
+  products.map((product) => [product.id, product])
+);
+  // Validate stock first
+  for (const item of items) {
+    const product = productMap.get(item.id);
+
+    if (!product) {
+      throw new Error(`Product not found`);
+    }
+
+    if (product.stockQty < item.quantity) {
+      throw new Error(
+        `Not enough stock for ${product.name}`
       );
     }
+  }
 
-    for (const item of items) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.id },
-      });
+  // Calculate total
+  let total = 0;
 
-      if (!product) {
-        return NextResponse.json(
-          { error: `Product not found` },
-          { status: 404 }
-        );
-      }
+  for (const item of items) {
+    const product = productMap.get(item.id);
 
-      if (product.stockQty < item.quantity) {
-        return NextResponse.json(
-          { error: `Not enough stock for ${product.name}` },
-          { status: 400 }
-        );
-      }
+    if (!product) continue;
 
-      // ✅ Deduct stock
-    
-     await prisma.product.update({
-  where: { id: item.id },
-  data: {
-    stockQty: product.stockQty - item.quantity,
-  },
-});
-    }
+    total += product.retailPrice * item.quantity;
+  }
 
-    let total = 0;
-
-for (const item of items) {
-  const product = await prisma.product.findUnique({
-    where: { id: item.id },
-  });
-
-  if (!product) continue;
-
-  total += product.retailPrice * item.quantity;
-}
-
-// 🧾 Create Order
-const order = await prisma.order.create({
-  data: {
-    orderId: `POS-${Date.now()}`,
-    email: "pos@shop.com",
-
-    phone: customerPhone || "0000000000",
-    customerName: customerName || null,
-    paymentMethod: paymentMethod || "Cash",
-
-    amount: Math.round(total),
-    paymentStatus: "PAID",
-  },
-});
-
-// 🧾 Save order items
-for (const item of items) {
-  const product = await prisma.product.findUnique({
-    where: { id: item.id },
-  });
-
-  if (!product) continue;
-
-  await prisma.orderItem.create({
+  // Create order
+  const order = await tx.order.create({
     data: {
-      orderId: order.id,
-      productId: product.id,
-      quantity: item.quantity,
-      unitPrice: product.retailPrice,
-      totalPrice: product.retailPrice * item.quantity,
+      orderId: `POS-${Date.now()}`,
+      email: "pos@shop.com",
+
+      phone: customerPhone || "0000000000",
+      customerName: customerName || null,
+      paymentMethod: paymentMethod || "Cash",
+
+      amount: Math.round(total),
+      paymentStatus: "PAID",
     },
   });
 
-  await prisma.inventoryMovement.create({
-    data: {
-      productId: product.id,
-      quantity: -item.quantity,
-      type: "SALE",
-      orderId: order.id,
-      note: `POS Sale ${order.orderId}`,
-    },
-  });
-}
+  // Process each item
+  for (const item of items) {
+    const product = productMap.get(item.id);
+
+    if (!product) continue;
+
+    // Deduct stock
+    await tx.product.update({
+      where: { id: item.id },
+      data: {
+        stockQty: product.stockQty - item.quantity,
+      },
+    });
+
+    // Create order item
+    await tx.orderItem.create({
+      data: {
+        orderId: order.id,
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice: product.retailPrice,
+        totalPrice:
+          product.retailPrice * item.quantity,
+      },
+    });
+
+    // Inventory movement
+    await tx.inventoryMovement.create({
+      data: {
+        productId: product.id,
+        quantity: -item.quantity,
+        type: "SALE",
+        orderId: order.id,
+        note: `POS Sale ${order.orderId}`,
+      },
+    });
+  }
+
+  return order;
+});
 
 return NextResponse.json({
   success: true,
-  orderId: order.id,
+  orderId: result.id,
 });
 
   } catch (error) {
