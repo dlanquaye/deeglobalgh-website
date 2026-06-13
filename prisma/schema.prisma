@@ -13,8 +13,6 @@ model Order {
   reference          String?             @unique
   email              String
   phone              String
-  customerName String?
-  paymentMethod String?
   amount             Int
   paymentStatus      PaymentStatus       @default(PENDING)
   smsSent            Boolean             @default(false)
@@ -26,6 +24,8 @@ model Order {
   stockReduced       Boolean             @default(false)
   status             String              @default("PENDING")
   locationId         String?
+  customerName       String?
+  paymentMethod      String?
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]
   orderItems         OrderItem[]
@@ -293,6 +293,8 @@ enum InventoryMovementType {
   IMPORT_ALLOCATION
   RETURN
   DAMAGE
+  TRANSFER_OUT
+  TRANSFER_IN
 }
 
 enum AdminRole {

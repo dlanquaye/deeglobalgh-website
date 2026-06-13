@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { applyStockMovement } from "@/lib/stock";
+import { LocationType } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -33,20 +35,31 @@ const products = await tx.product.findMany({
 const productMap = new Map(
   products.map((product) => [product.id, product])
 );
-  // Validate stock first
-  for (const item of items) {
-    const product = productMap.get(item.id);
 
-    if (!product) {
-      throw new Error(`Product not found`);
-    }
+  // Validate branch inventory first
+for (const item of items) {
+  const product = productMap.get(item.id);
 
-    if (product.stockQty < item.quantity) {
-      throw new Error(
-        `Not enough stock for ${product.name}`
-      );
-    }
+  if (!product) {
+    throw new Error(`Product not found`);
   }
+
+  const inventory = await tx.inventory.findFirst({
+    where: {
+      productId: item.id,
+      locationType: LocationType.BRANCH,
+      locationId: "cmq4b407s0000g3jg31elgm80",
+    },
+  });
+
+  const availableQty = inventory?.quantity || 0;
+
+  if (availableQty < item.quantity) {
+    throw new Error(
+      `Not enough stock for ${product.name}. Available: ${availableQty}`
+    );
+  }
+}
 
   // Calculate total
   let total = 0;
@@ -71,6 +84,8 @@ const productMap = new Map(
 
       amount: Math.round(total),
       paymentStatus: "PAID",
+      
+      locationId: "cmq4b407s0000g3jg31elgm80",
     },
   });
 
@@ -89,27 +104,30 @@ const productMap = new Map(
     });
 
     // Create order item
-    await tx.orderItem.create({
-      data: {
-        orderId: order.id,
-        productId: product.id,
-        quantity: item.quantity,
-        unitPrice: product.retailPrice,
-        totalPrice:
-          product.retailPrice * item.quantity,
-      },
-    });
+    // await tx.orderItem.create({
+      // data: {
+        // orderId: order.id,
+        // productId: product.id,
+        // quantity: item.quantity,
+        // unitPrice: product.retailPrice,
+        // totalPrice:
+         // product.retailPrice * item.quantity,
+      // },
+    // });
 
     // Inventory movement
-    await tx.inventoryMovement.create({
-      data: {
-        productId: product.id,
-        quantity: -item.quantity,
-        type: "SALE",
-        orderId: order.id,
-        note: `POS Sale ${order.orderId}`,
-      },
-    });
+    const movement = await tx.stockMovement.create({
+  data: {
+    productId: product.id,
+    quantity: item.quantity,
+    type: "SALE",
+    fromLocationType: LocationType.BRANCH,
+    fromLocationId: "cmq4b407s0000g3jg31elgm80",
+    createdByStaffId: "DG001",
+  },
+});
+
+await applyStockMovement(tx, movement.id);
   }
 
   return order;

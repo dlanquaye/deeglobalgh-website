@@ -18,27 +18,55 @@ export default async function OrderReceiptPage(props: {
   }
 
   const order = await prisma.order.findFirst({
-    where: { orderId: id },
-    orderBy: { createdAt: "desc" },
-  });
+  where: { orderId: id },
+  orderBy: { createdAt: "desc" },
+  include: {
+    orderItems: {
+      include: {
+        product: true,
+      },
+    },
+  },
+});
 
   if (!order) {
     notFound();
   }
 
+  console.log(
+  "RECEIPT DATA:",
+  JSON.stringify(
+    {
+      customerName: order.customerName,
+      paymentMethod: order.paymentMethod,
+      orderItems: order.orderItems,
+    },
+    null,
+    2
+  )
+);
+
   return (
     <OrderReceiptClient
-      order={{
-        id: order.id,
-        orderId: order.orderId,
-        createdAt: order.createdAt.toISOString(),
-        email: order.email,
-        phone: order.phone,
-        amount: order.amount,
-        deliveryFee: order.deliveryFee,
-        paymentStatus: order.paymentStatus,
-        adminNotes: order.adminNotes,
-      }}
-    />
+  order={{
+    id: order.id,
+    orderId: order.orderId,
+    createdAt: order.createdAt.toISOString(),
+
+    customerName: order.customerName,
+    paymentMethod: order.paymentMethod,
+
+    email: order.email,
+    phone: order.phone,
+
+    amount: order.amount,
+    deliveryFee: order.deliveryFee,
+
+    paymentStatus: order.paymentStatus,
+    adminNotes: order.adminNotes,
+
+    orderItems: order.orderItems,
+  }}
+/>
   );
 }

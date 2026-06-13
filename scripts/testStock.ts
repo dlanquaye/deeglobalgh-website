@@ -77,7 +77,7 @@ const order = orderData.order;
     },
   });
 
-  await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx) => {
     await applyStockMovement(tx, transfer.id);
   });
 

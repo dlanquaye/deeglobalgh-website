@@ -91,12 +91,51 @@ export default function OrderReceiptClient({ order }: any) {
 
   const total =
     order.amount + (order.deliveryFee ?? 0);
+    console.log("RECEIPT ORDER:", order);
 
   return (
     <main className="mx-auto max-w-2xl bg-white p-8 print:p-0">
-      <h1 className="mb-6 text-2xl font-extrabold">
-        Order Receipt
+      <div className="mb-6 border-b pb-6">
+  <div className="flex items-center gap-4">
+    <img
+  src="/products/deeglobalgh-logo.png"
+  alt="DeeglobalGh"
+  className="h-24 w-auto"
+/>
+
+    <div>
+      <h1 className="text-3xl font-extrabold text-blue-900">
+        DeeglobalGh
       </h1>
+
+      <p className="text-sm text-gray-700">
+        Kasoa, New Market
+      </p>
+
+      <p className="text-sm text-yellow-600 font-medium">
+        Educational Books • School Supplies • Exam Essentials
+      </p>
+    </div>
+  </div>
+
+  <h2 className="mt-6 text-2xl font-extrabold">
+    Order Receipt
+  </h2>
+</div>
+
+
+      <div className="mb-4 rounded bg-green-50 p-3 text-sm print:bg-white">
+  <div>
+    <strong>Customer:</strong>{" "}
+    {order.customerName || "N/A"}
+  </div>
+
+  <div>
+    <strong>Payment Method:</strong>{" "}
+    {order.paymentMethod || "N/A"}
+  </div>
+</div>
+
 
       <div className="space-y-4 text-sm">
         <div>
@@ -135,6 +174,41 @@ export default function OrderReceiptClient({ order }: any) {
           Total: GHS {formatMoney(total)}
         </div>
 
+<hr />
+
+<h2 className="mb-3 mt-4 text-lg font-bold">
+  Items Purchased
+</h2>
+
+<div className="space-y-3">
+  {order.orderItems?.map((item: any) => (
+    <div
+      key={item.id}
+      className="rounded border p-3"
+    >
+      <div className="font-semibold">
+        {item.product?.name}
+      </div>
+
+      <div className="text-sm text-gray-600">
+        SKU: {item.product?.sku}
+      </div>
+
+      <div>
+        Qty: {item.quantity}
+      </div>
+
+      <div>
+        Unit Price: GHS {formatMoney(item.unitPrice)}
+      </div>
+
+      <div className="font-medium">
+        Line Total: GHS {formatMoney(item.totalPrice)}
+      </div>
+    </div>
+  ))}
+</div>
+
         <hr />
 
         <div>
@@ -150,6 +224,37 @@ export default function OrderReceiptClient({ order }: any) {
           </div>
         )}
       </div>
+
+<hr className="mt-8" />
+
+<div className="mt-6 text-sm">
+  <h3 className="font-bold text-lg">
+    Thank You For Shopping With DeeglobalGh
+  </h3>
+
+  <p className="mt-2">
+    Fast delivery of textbooks, exam essentials, and school supplies.
+  </p>
+
+  <div className="mt-4">
+    <strong>WhatsApp Support:</strong> 0246 011 773
+  </div>
+
+  <div>
+    <strong>Management Escalation:</strong> 054 113 1111
+  </div>
+
+  <div className="mt-4">
+    <a
+      href="https://g.page/r/Cc9a8U1h6aPlEBM/review"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 underline"
+    >
+      Leave Us a Google Review
+    </a>
+  </div>
+</div>
 
       <div className="mt-8 flex gap-4 print:hidden">
         <PrintButton />
