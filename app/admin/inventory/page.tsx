@@ -128,6 +128,28 @@ const inventorySummary = await prisma.inventory.groupBy({
   >
     Transfer Stock
   </a>
+
+  <a
+  href="/admin/inventory/transfers"
+  className="bg-purple-600 text-white px-4 py-2 rounded"
+>
+  Transfer History
+</a>
+
+<a
+  href="/admin/inventory/receipts"
+  className="bg-orange-600 text-white px-4 py-2 rounded"
+>
+  Receive History
+</a>
+
+<a
+  href="/admin/inventory/adjustment"
+  className="bg-red-600 text-white px-4 py-2 rounded"
+>
+  Inventory Adjustment
+</a>
+
 </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
