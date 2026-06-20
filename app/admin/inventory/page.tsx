@@ -150,6 +150,14 @@ const inventorySummary = await prisma.inventory.groupBy({
   Inventory Adjustment
 </a>
 
+<a
+  href="/admin/inventory/adjustments"
+  className="bg-indigo-600 text-white px-4 py-2 rounded"
+>
+  View Adjustments
+</a>
+
+
 </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
