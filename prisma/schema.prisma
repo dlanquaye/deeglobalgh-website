@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Order {
@@ -181,15 +182,24 @@ model Staff {
   updatedAt   DateTime  @updatedAt
   branchId    String?
   branch      Branch?   @relation(fields: [branchId], references: [id])
+
+  dailyClosings DailyClosing[]
+  expenses      Expense[]
+  purchases Purchase[]
+  bankDeposits BankDeposit[]
 }
 
 model Branch {
-  id        String   @id @default(cuid())
-  name      String
-  location  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  staff     Staff[]
+  id            String         @id @default(cuid())
+  name          String
+  location      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  staff         Staff[]
+  dailyClosings DailyClosing[]
+  expenses      Expense[]
+  purchases Purchase[]
+  bankDeposits BankDeposit[]
 }
 
 model Warehouse {
@@ -225,6 +235,108 @@ model StockMovement {
   createdAt        DateTime      @default(now())
   status           String        @default("PENDING")
 }
+
+model DailyClosing {
+  id String @id @default(cuid())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  closedByStaffId String
+  closedByStaff   Staff  @relation(fields: [closedByStaffId], references: [id])
+
+  businessDate DateTime
+
+  openingFloat Decimal @db.Decimal(10, 2)
+
+  expectedCash Decimal @db.Decimal(10, 2)
+  actualCash   Decimal @db.Decimal(10, 2)
+
+  variance Decimal @db.Decimal(10, 2)
+
+  varianceReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses Expense[]
+  purchases Purchase[]
+  bankDeposits BankDeposit[]
+}
+
+model Expense {
+  id String @id @default(cuid())
+
+  dailyClosingId String?
+  dailyClosing   DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  enteredByStaffId String
+  enteredByStaff   Staff  @relation(fields: [enteredByStaffId], references: [id])
+
+  expenseType String
+  amount      Decimal @db.Decimal(10, 2)
+
+  notes String
+
+  receiptImageUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Purchase {
+  id               String   @id @default(cuid())
+
+  dailyClosingId   String?
+  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+
+  branchId         String
+  branch           Branch   @relation(fields: [branchId], references: [id])
+
+  enteredByStaffId String
+  enteredByStaff   Staff    @relation(fields: [enteredByStaffId], references: [id])
+
+  supplierName     String
+
+  amount           Decimal  @db.Decimal(10, 2)
+
+  referenceNumber  String?
+
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BankDeposit {
+  id               String   @id @default(cuid())
+
+  dailyClosingId   String?
+  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+
+  branchId         String
+  branch           Branch   @relation(fields: [branchId], references: [id])
+
+  enteredByStaffId String
+  enteredByStaff   Staff    @relation(fields: [enteredByStaffId], references: [id])
+
+  bankName         String
+
+  amount           Decimal  @db.Decimal(10, 2)
+
+  referenceNumber  String?
+
+  depositMethod    String
+
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 
 model playing_with_neon {
   id    Int    @id @default(autoincrement())
