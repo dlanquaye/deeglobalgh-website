@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   title: "DeeglobalGh | Textbooks, School Essentials & Delivery",
   description:
     "Shop textbooks, stationery, and school essentials in Ghana. Fast delivery across Kasoa and beyond.",
+
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

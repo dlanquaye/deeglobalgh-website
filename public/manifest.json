@@ -1,0 +1,11 @@
+{
+  "name": "DeeglobalGH POS",
+  "short_name": "DeeglobalGH",
+  "description": "DeeglobalGH Inventory and POS System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "orientation": "portrait",
+  "icons": []
+}
