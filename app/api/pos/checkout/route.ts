@@ -104,16 +104,16 @@ for (const item of items) {
     });
 
     // Create order item
-    // await tx.orderItem.create({
-      // data: {
-        // orderId: order.id,
-        // productId: product.id,
-        // quantity: item.quantity,
-        // unitPrice: product.retailPrice,
-        // totalPrice:
-         // product.retailPrice * item.quantity,
-      // },
-    // });
+    await tx.orderItem.create({
+      data: {
+        orderId: order.id,
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice: product.retailPrice,
+        totalPrice:
+         product.retailPrice * item.quantity,
+       },
+     });
 
     // Inventory movement
     const movement = await tx.stockMovement.create({
@@ -135,7 +135,7 @@ await applyStockMovement(tx, movement.id);
 
 return NextResponse.json({
   success: true,
-  orderId: result.id,
+  orderId: result.orderId,
 });
 
   } catch (error) {

@@ -10,10 +10,16 @@ function formatMoney(amount: number) {
   }).format(amount);
 }
 
-export default function OrderReceiptClient({ order }: any) {
+export default function OrderReceiptClient({
+  order,
+  source,
+}: {
+  order: any;
+  source?: string;
+}) {
     
   const [reason, setReason] = useState("");
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(source === "pos");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

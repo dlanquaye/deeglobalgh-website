@@ -173,20 +173,19 @@ model OrderEvent {
 }
 
 model Staff {
-  id          String    @id @default(cuid())
-  staffNumber String    @unique
-  name        String
-  role        StaffRole
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  branchId    String?
-  branch      Branch?   @relation(fields: [branchId], references: [id])
-
+  id            String         @id @default(cuid())
+  staffNumber   String         @unique
+  name          String
+  role          StaffRole
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  branchId      String?
+  bankDeposits  BankDeposit[]
   dailyClosings DailyClosing[]
   expenses      Expense[]
-  purchases Purchase[]
-  bankDeposits BankDeposit[]
+  purchases     Purchase[]
+  branch        Branch?        @relation(fields: [branchId], references: [id])
 }
 
 model Branch {
@@ -195,11 +194,11 @@ model Branch {
   location      String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  staff         Staff[]
+  bankDeposits  BankDeposit[]
   dailyClosings DailyClosing[]
   expenses      Expense[]
-  purchases Purchase[]
-  bankDeposits BankDeposit[]
+  purchases     Purchase[]
+  staff         Staff[]
 }
 
 model Warehouse {
@@ -237,106 +236,72 @@ model StockMovement {
 }
 
 model DailyClosing {
-  id String @id @default(cuid())
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
+  id              String        @id @default(cuid())
+  branchId        String
   closedByStaffId String
-  closedByStaff   Staff  @relation(fields: [closedByStaffId], references: [id])
-
-  businessDate DateTime
-
-  openingFloat Decimal @db.Decimal(10, 2)
-
-  expectedCash Decimal @db.Decimal(10, 2)
-  actualCash   Decimal @db.Decimal(10, 2)
-
-  variance Decimal @db.Decimal(10, 2)
-
-  varianceReason String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  expenses Expense[]
-  purchases Purchase[]
-  bankDeposits BankDeposit[]
+  businessDate    DateTime
+  openingFloat    Decimal       @db.Decimal(10, 2)
+  expectedCash    Decimal       @db.Decimal(10, 2)
+  actualCash      Decimal       @db.Decimal(10, 2)
+  variance        Decimal       @db.Decimal(10, 2)
+  varianceReason  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  bankDeposits    BankDeposit[]
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  closedByStaff   Staff         @relation(fields: [closedByStaffId], references: [id])
+  expenses        Expense[]
+  purchases       Purchase[]
 }
 
 model Expense {
-  id String @id @default(cuid())
-
-  dailyClosingId String?
-  dailyClosing   DailyClosing? @relation(fields: [dailyClosingId], references: [id])
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
+  id               String        @id @default(cuid())
+  dailyClosingId   String?
+  branchId         String
   enteredByStaffId String
-  enteredByStaff   Staff  @relation(fields: [enteredByStaffId], references: [id])
-
-  expenseType String
-  amount      Decimal @db.Decimal(10, 2)
-
-  notes String
-
-  receiptImageUrl String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expenseType      String
+  amount           Decimal       @db.Decimal(10, 2)
+  notes            String
+  receiptImageUrl  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  branch           Branch        @relation(fields: [branchId], references: [id])
+  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+  enteredByStaff   Staff         @relation(fields: [enteredByStaffId], references: [id])
 }
 
 model Purchase {
-  id               String   @id @default(cuid())
-
+  id               String        @id @default(cuid())
   dailyClosingId   String?
-  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
-
   branchId         String
-  branch           Branch   @relation(fields: [branchId], references: [id])
-
   enteredByStaffId String
-  enteredByStaff   Staff    @relation(fields: [enteredByStaffId], references: [id])
-
   supplierName     String
-
-  amount           Decimal  @db.Decimal(10, 2)
-
+  amount           Decimal       @db.Decimal(10, 2)
   referenceNumber  String?
-
   notes            String?
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  branch           Branch        @relation(fields: [branchId], references: [id])
+  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+  enteredByStaff   Staff         @relation(fields: [enteredByStaffId], references: [id])
 }
 
 model BankDeposit {
-  id               String   @id @default(cuid())
-
+  id               String        @id @default(cuid())
   dailyClosingId   String?
-  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
-
   branchId         String
-  branch           Branch   @relation(fields: [branchId], references: [id])
-
   enteredByStaffId String
-  enteredByStaff   Staff    @relation(fields: [enteredByStaffId], references: [id])
-
   bankName         String
-
-  amount           Decimal  @db.Decimal(10, 2)
-
+  amount           Decimal       @db.Decimal(10, 2)
   referenceNumber  String?
-
   depositMethod    String
-
   notes            String?
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  branch           Branch        @relation(fields: [branchId], references: [id])
+  dailyClosing     DailyClosing? @relation(fields: [dailyClosingId], references: [id])
+  enteredByStaff   Staff         @relation(fields: [enteredByStaffId], references: [id])
 }
-
 
 model playing_with_neon {
   id    Int    @id @default(autoincrement())

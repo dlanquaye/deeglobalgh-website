@@ -7,8 +7,12 @@ export const runtime = "nodejs";
 
 export default async function OrderReceiptPage(props: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ source?: string }>;
 }) {
+
   const { id } = await props.params;
+
+  const { source } = await props.searchParams;
 
   const cookieStore = await cookies();
   const session = cookieStore.get("dg_admin")?.value;
@@ -47,26 +51,27 @@ export default async function OrderReceiptPage(props: {
 );
 
   return (
-    <OrderReceiptClient
-  order={{
-    id: order.id,
-    orderId: order.orderId,
-    createdAt: order.createdAt.toISOString(),
+  <OrderReceiptClient
+    source={source}
+    order={{
+      id: order.id,
+      orderId: order.orderId,
+      createdAt: order.createdAt.toISOString(),
 
-    customerName: order.customerName,
-    paymentMethod: order.paymentMethod,
+      customerName: order.customerName,
+      paymentMethod: order.paymentMethod,
 
-    email: order.email,
-    phone: order.phone,
+      email: order.email,
+      phone: order.phone,
 
-    amount: order.amount,
-    deliveryFee: order.deliveryFee,
+      amount: order.amount,
+      deliveryFee: order.deliveryFee,
 
-    paymentStatus: order.paymentStatus,
-    adminNotes: order.adminNotes,
+      paymentStatus: order.paymentStatus,
+      adminNotes: order.adminNotes,
 
-    orderItems: order.orderItems,
-  }}
-/>
-  );
+      orderItems: order.orderItems,
+    }}
+  />
+);
 }

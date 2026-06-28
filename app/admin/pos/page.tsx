@@ -129,13 +129,18 @@ const [isProcessing, setIsProcessing] = useState(false);
 
       const data = await res.json();
 
+      console.log("CHECKOUT RESPONSE:", data);
+
       if (!res.ok) {
         alert(data.error || "Checkout failed");
         return;
       }
 
-      alert("Sale completed successfully");
-      setCart([]);
+      window.location.href =
+  `/admin/orders/${data.orderId}/receipt?source=pos`;
+
+setCart([]);
+
     } catch {
       alert("Something went wrong");
       } finally {
