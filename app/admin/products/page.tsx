@@ -7,20 +7,54 @@ import ToggleActiveButton from "./ToggleActiveButton";
 type Props = {
   searchParams?: {
     status?: string;
+    q?: string;
   };
 };
 
 export default async function AdminProductsPage({
   searchParams,
-}: Props) {
-  const status = searchParams?.status;
+}: {
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+  }>;
+}) {
+  const params = await searchParams;
 
-  const whereClause =
-    status === "active"
-      ? { isActive: true }
-      : status === "inactive"
-      ? { isActive: false }
-      : {};
+  const status = params.status;
+  const q = params.q?.trim() || "";
+  
+
+  const whereClause = {
+  ...(status === "active"
+    ? { isActive: true }
+    : status === "inactive"
+    ? { isActive: false }
+    : {}),
+
+  ...(q
+    ? {
+        OR: [
+          {
+            name: {
+              contains: q,
+            },
+          },
+          {
+            sku: {
+              contains: q,
+            },
+          },
+          {
+            slug: {
+              contains: q,
+          
+            },
+          },
+        ],
+      }
+    : {}),
+};
 
   const products = await prisma.product.findMany({
     where: whereClause,
@@ -60,6 +94,19 @@ export default async function AdminProductsPage({
       <p className="mt-4 text-sm text-gray-600">
         Showing {products.length} products.
       </p>
+
+      <form
+  method="GET"
+  className="mt-4"
+>
+  <input
+    type="text"
+    name="q"
+    defaultValue={q}
+    placeholder="Search by product name, SKU or slug..."
+    className="w-full rounded-xl border px-4 py-3"
+  />
+</form>
 
       {/* PRODUCT LIST */}
       <div className="mt-6 space-y-4">
