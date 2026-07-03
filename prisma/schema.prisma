@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -32,28 +31,26 @@ model Order {
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]
   orderItems         OrderItem[]
+  returns            ReturnRequest[]
 
   @@index([orderId])
   @@index([reference])
-
-  returns ReturnRequest[]
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
-  orderId    String
-  productId  String
-  quantity   Int
-  unitPrice  Float
-  totalPrice Float
-  createdAt  DateTime @default(now())
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id])
+  id          String       @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime     @default(now())
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id])
+  returnItems ReturnItem[]
 
   @@index([orderId])
   @@index([productId])
-
-  returnItems ReturnItem[]
 }
 
 model ImportShipment {
@@ -138,8 +135,7 @@ model Product {
   supplier           Supplier?
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
-
-  returnItems ReturnItem[]
+  returnItems        ReturnItem[]
 }
 
 model InventoryMovement {
@@ -166,6 +162,8 @@ model Admin {
   isActive  Boolean      @default(true)
   createdAt DateTime     @default(now())
   pin       String?
+  staffId   String?      @unique
+  staff     Staff?       @relation(fields: [staffId], references: [id])
   events    OrderEvent[]
 }
 
@@ -181,38 +179,36 @@ model OrderEvent {
 }
 
 model Staff {
-  id            String         @id @default(cuid())
-  staffNumber   String         @unique
-  name          String
-  role          StaffRole
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  branchId      String?
-  bankDeposits  BankDeposit[]
-  dailyClosings DailyClosing[]
-  expenses      Expense[]
-  purchases     Purchase[]
-  branch        Branch?        @relation(fields: [branchId], references: [id])
-
+  id               String          @id @default(cuid())
+  staffNumber      String          @unique
+  name             String
+  role             StaffRole
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  branchId         String?
+  adminAccount     Admin?
+  bankDeposits     BankDeposit[]
+  dailyClosings    DailyClosing[]
+  expenses         Expense[]
+  purchases        Purchase[]
+  approvedReturns  ReturnRequest[] @relation("ReturnApprovedBy")
   requestedReturns ReturnRequest[] @relation("ReturnRequestedBy")
-
-approvedReturns ReturnRequest[] @relation("ReturnApprovedBy")
+  branch           Branch?         @relation(fields: [branchId], references: [id])
 }
 
 model Branch {
-  id            String         @id @default(cuid())
-  name          String
-  location      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  bankDeposits  BankDeposit[]
-  dailyClosings DailyClosing[]
-  expenses      Expense[]
-  purchases     Purchase[]
-  staff         Staff[]
-
+  id             String          @id @default(cuid())
+  name           String
+  location       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bankDeposits   BankDeposit[]
+  dailyClosings  DailyClosing[]
+  expenses       Expense[]
+  purchases      Purchase[]
   returnRequests ReturnRequest[]
+  staff          Staff[]
 }
 
 model Warehouse {
@@ -318,58 +314,38 @@ model BankDeposit {
 }
 
 model ReturnRequest {
-  id String @id @default(cuid())
-
-  returnNumber String @unique
-
-  orderId String
-  order Order @relation(fields: [orderId], references: [id])
-
-  branchId String
-  branch Branch @relation(fields: [branchId], references: [id])
-
-  requestedByStaffId String
-  requestedByStaff Staff @relation("ReturnRequestedBy", fields: [requestedByStaffId], references: [id])
-
-  approvedByStaffId String?
-  approvedByStaff Staff? @relation("ReturnApprovedBy", fields: [approvedByStaffId], references: [id])
-
-  type ReturnType
-
-  status ReturnStatus @default(PENDING)
-
-  customerReason String
-
+  id                    String       @id @default(cuid())
+  returnNumber          String       @unique
+  orderId               String
+  branchId              String
+  requestedByStaffId    String
+  approvedByStaffId     String?
+  type                  ReturnType
+  status                ReturnStatus @default(PENDING)
+  customerReason        String
   managerDecisionReason String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  completedAt DateTime?
-
-  items ReturnItem[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  completedAt           DateTime?
+  items                 ReturnItem[]
+  approvedByStaff       Staff?       @relation("ReturnApprovedBy", fields: [approvedByStaffId], references: [id])
+  branch                Branch       @relation(fields: [branchId], references: [id])
+  order                 Order        @relation(fields: [orderId], references: [id])
+  requestedByStaff      Staff        @relation("ReturnRequestedBy", fields: [requestedByStaffId], references: [id])
 }
 
 model ReturnItem {
-  id String @id @default(cuid())
-
+  id              String          @id @default(cuid())
   returnRequestId String
-  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id])
-
-  orderItemId String
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
-
-  productId String
-  product Product @relation(fields: [productId], references: [id])
-
-  quantity Int
-
-  condition ReturnCondition
-
-  itemReason String?
-
-  createdAt DateTime @default(now())
+  orderItemId     String
+  productId       String
+  quantity        Int
+  condition       ReturnCondition
+  itemReason      String?
+  createdAt       DateTime        @default(now())
+  orderItem       OrderItem       @relation(fields: [orderItemId], references: [id])
+  product         Product         @relation(fields: [productId], references: [id])
+  returnRequest   ReturnRequest   @relation(fields: [returnRequestId], references: [id])
 }
 
 model playing_with_neon {

@@ -23,8 +23,10 @@ export default function AdminLoginPage() {
       });
 
       const data = await res.json();
+      console.log("LOGIN RESPONSE:", res.status, data);
 
       if (res.ok) {
+        console.log("Redirecting to /admin/order-control");
         window.location.href = "/admin/order-control"; // ✅ correct redirect
       } else {
         setError(data.error || "Login failed");

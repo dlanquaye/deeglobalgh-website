@@ -23,8 +23,15 @@ export async function POST(req: Request) {
 
     // 2. Find admin
     const admin = await prisma.admin.findUnique({
-      where: { email },
-    });
+  where: { email },
+  include: {
+    staff: {
+      include: {
+        branch: true,
+      },
+    },
+  },
+});
 
     // ✅ DEBUG: Log DB result
     console.log("DB ADMIN:", admin);
@@ -69,16 +76,19 @@ if (!validPin) {
 
     // 6. Set cookie
     response.cookies.set(
-      "dg_admin",
-      JSON.stringify({
-        id: admin.id,
-        role: admin.role,
-      }),
-      {
-        httpOnly: true,
-        path: "/",
-      }
-    );
+  "dg_admin",
+  JSON.stringify({
+    adminId: admin.id,
+    role: admin.role,
+    staffId: admin.staff?.id ?? null,
+    branchId: admin.staff?.branch?.id ?? null,
+    staffName: admin.staff?.name ?? null,
+  }),
+  {
+    httpOnly: true,
+    path: "/",
+  }
+);
 
     return response;
 

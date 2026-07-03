@@ -27,7 +27,13 @@ export async function proxy(req: NextRequest) {
     return handleUnauthorized(req, isAdminAPI);
   }
 
-  let sessionData: { id: string; role: string } | null = null;
+  let sessionData: {
+  adminId: string;
+  role: string;
+  staffId?: string | null;
+  branchId?: string | null;
+  staffName?: string | null;
+} | null = null;
 
   try {
     sessionData = JSON.parse(sessionCookie.value);
@@ -36,9 +42,9 @@ export async function proxy(req: NextRequest) {
   }
 
   // No valid session ID → unauthorized
-  if (!sessionData?.id) {
-    return handleUnauthorized(req, isAdminAPI);
-  }
+  if (!sessionData?.adminId) {
+  return handleUnauthorized(req, isAdminAPI);
+}
 
   // ✅ IMPORTANT: NO Prisma here (Edge safe)
   return NextResponse.next();

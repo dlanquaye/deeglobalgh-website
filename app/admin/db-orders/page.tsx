@@ -1112,6 +1112,18 @@ const phone = supplierPhones[supplier] || "233246011773";
                         </button>
                       )}
 
+                      {(o.paymentStatus === "DELIVERED" ||
+  o.paymentStatus === "COMPLETED") && (
+  <button
+    onClick={() =>
+      window.location.href = `/admin/returns/new?order=${o.id}`
+    }
+    className="block mb-2 text-purple-700 underline text-sm"
+  >
+    ↩ Create Return
+  </button>
+)}
+
                       {(o.paymentStatus === "DELIVERING" ||
                         o.paymentStatus === "PROCESSING") && (
                         <button

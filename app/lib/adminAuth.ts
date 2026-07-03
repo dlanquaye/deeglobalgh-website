@@ -22,10 +22,10 @@ export async function requireAdmin() {
     throw new Error("Unauthorized");
   }
 
-  if (!sessionData?.id) {
-    console.log("❌ Session ID missing");
-    throw new Error("Unauthorized");
-  }
+  if (!sessionData?.adminId) {
+  console.log("❌ Admin ID missing");
+  throw new Error("Unauthorized");
+}
 
   console.log("✅ ADMIN AUTH PASSED");
 
