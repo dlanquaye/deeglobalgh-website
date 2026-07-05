@@ -21,7 +21,7 @@ export default function POSPage() {
   const [results, setResults] = useState<Product[]>([]);
   const [customerName, setCustomerName] = useState("");
 const [customerPhone, setCustomerPhone] = useState("");
-const [paymentMethod, setPaymentMethod] = useState("Cash");
+const [paymentMethod, setPaymentMethod] = useState("CASH");
 const [isProcessing, setIsProcessing] = useState(false);
 
   // 🔍 Search
@@ -262,9 +262,9 @@ setCart([]);
     onChange={(e) => setPaymentMethod(e.target.value)}
     className="w-full border p-2 rounded-lg"
   >
-    <option value="Cash">Cash</option>
-    <option value="Mobile Money">Mobile Money</option>
-    <option value="Bank Transfer">Bank Transfer</option>
+    <option value="CASH">Cash</option>
+    <option value="MOMO">Mobile Money</option>
+    <option value="BANK_TRANSFER">Bank Transfer</option>
   </select>
 </div>
           <div className="mt-6 border-t pt-4 space-y-2">

@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const {
       businessDate,
       openingFloat,
-      expectedCash,
+      
       actualCash,
       varianceReason,
     } = body;
@@ -75,8 +75,32 @@ if (existingClosing) {
   );
 }
 
+const startOfDay = new Date(businessDate);
+startOfDay.setHours(0, 0, 0, 0);
+
+const endOfDay = new Date(businessDate);
+endOfDay.setHours(23, 59, 59, 999);
+
+const cashSales = await prisma.order.aggregate({
+  _sum: {
+    amount: true,
+  },
+  where: {
+    paymentMethod: "Cash",
+    status: "COMPLETED",
+    createdAt: {
+  gte: startOfDay,
+  lte: endOfDay,
+},
+  },
+});
+
+const expectedCash =
+  Number(openingFloat) +
+  Number(cashSales._sum.amount ?? 0);
+
     const variance =
-      Number(actualCash) - Number(expectedCash);
+  Number(actualCash) - expectedCash;
 
     const closing = await prisma.dailyClosing.create({
       data: {
@@ -94,7 +118,11 @@ if (existingClosing) {
       },
     });
 
-    return NextResponse.json(closing);
+    return NextResponse.json({
+  ...closing,
+  expectedCash,
+  variance,
+});
   } catch (error) {
     console.error(error);
 

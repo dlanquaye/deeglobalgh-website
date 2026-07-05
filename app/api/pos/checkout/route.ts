@@ -80,7 +80,7 @@ for (const item of items) {
 
       phone: customerPhone || "0000000000",
       customerName: customerName || null,
-      paymentMethod: paymentMethod || "Cash",
+      paymentMethod: paymentMethod || "CASH",
 
       amount: Math.round(total),
       paymentStatus: "PAID",

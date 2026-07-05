@@ -9,9 +9,7 @@ export default function DailyClosingPage() {
   const [actualCash, setActualCash] = useState("");
   const [varianceReason, setVarianceReason] = useState("");
 
-  const calculatedVariance =
-  Number(actualCash || 0) -
-  Number(expectedCash || 0);
+  
 
   const [closings, setClosings] = useState([]);
 
@@ -32,20 +30,7 @@ export default function DailyClosingPage() {
   
   async function handleSubmit() {
 
-    const variance =
-  Number(actualCash) -
-  Number(expectedCash);
-
-if (
-  variance !== 0 &&
-  !varianceReason.trim()
-) {
-  alert(
-    "Variance reason is required when variance is not zero"
-  );
-
-  return;
-}
+    
 
     const response = await fetch("/api/finance/daily-closing", {
       method: "POST",
@@ -55,13 +40,25 @@ if (
       body: JSON.stringify({
         businessDate,
         openingFloat: Number(openingFloat),
-        expectedCash: Number(expectedCash),
+        
         actualCash: Number(actualCash),
         varianceReason,
       }),
     });
 
-    await response.json();
+    const result = await response.json();
+    if (!response.ok) {
+  alert(result.error || "Failed to save daily closing");
+  return;
+}
+    setExpectedCash(result.expectedCash?.toString() ?? "");
+    alert(
+  `Daily Closing Saved
+
+Expected Cash: GHS ${result.expectedCash}
+
+Variance: GHS ${result.variance}`
+);
 
     await loadClosings();
 
@@ -98,12 +95,12 @@ if (
         />
 
         <input
-          type="number"
-          className="border p-2 w-full"
-          placeholder="Expected Cash"
-          value={expectedCash}
-          onChange={(e) => setExpectedCash(e.target.value)}
-        />
+  type="number"
+  className="border p-2 w-full bg-gray-100"
+  placeholder="Expected Cash"
+  value={expectedCash}
+  readOnly
+/>
 
         <input
           type="number"
@@ -114,7 +111,7 @@ if (
         />
 
 <div className="font-semibold">
-  Variance: GHS {calculatedVariance}
+  Variance: Will be calculated after saving
 </div>
 
         <textarea
