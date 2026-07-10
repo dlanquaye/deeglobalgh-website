@@ -6,19 +6,64 @@ const BRANCH_ID = "cmq4b407s0000g3jg31elgm80";
 // Replace with your actual Manager Staff ID
 const STAFF_ID = "cmq4b407s0000g3jg31elgm80";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+const businessDate = searchParams.get("businessDate");
+const startOfDay = businessDate ? new Date(businessDate) : null;
+
+if (startOfDay) {
+  startOfDay.setHours(0, 0, 0, 0);
+}
+
+const endOfDay = businessDate ? new Date(businessDate) : null;
+
+if (endOfDay) {
+  endOfDay.setHours(23, 59, 59, 999);
+}
   try {
     const expenses = await prisma.expense.findMany({
-      orderBy: {
-        createdAt: "desc",
+  where: {
+  branchId: BRANCH_ID,
+  ...(startOfDay &&
+    endOfDay && {
+      createdAt: {
+        gte: startOfDay,
+        lte: endOfDay,
       },
+    }),
+},
+
+      orderBy: [
+  {
+    createdAt: "desc",
+  },
+],
       include: {
         branch: true,
         enteredByStaff: true,
       },
     });
 
-    return NextResponse.json(expenses);
+    const expenseTotals = await prisma.expense.aggregate({
+  where: {
+    branchId: BRANCH_ID,
+    ...(startOfDay &&
+      endOfDay && {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      }),
+  },
+  _sum: {
+    amount: true,
+  },
+});
+
+    return NextResponse.json({
+  expenses,
+  expenseTotals,
+});
   } catch (error) {
     console.error(error);
 

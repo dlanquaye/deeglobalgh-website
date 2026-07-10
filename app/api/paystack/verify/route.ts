@@ -154,9 +154,10 @@ export async function GET(req: Request) {
       await tx.order.update({
         where: { orderId },
         data: {
-          paymentStatus: PaymentStatus.PAID,
-          reference,
-        },
+  paymentStatus: PaymentStatus.PAID,
+  paymentMethod: "ONLINE_CARD",
+  reference,
+}
       });
     });
 

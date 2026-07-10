@@ -86,7 +86,7 @@ const cashSales = await prisma.order.aggregate({
     amount: true,
   },
   where: {
-    paymentMethod: "Cash",
+    paymentMethod: "CASH",
     status: "COMPLETED",
     createdAt: {
   gte: startOfDay,
@@ -95,9 +95,37 @@ const cashSales = await prisma.order.aggregate({
   },
 });
 
+const expenseTotals = await prisma.expense.aggregate({
+  _sum: {
+    amount: true,
+  },
+  where: {
+    branchId: BRANCH_ID,
+    createdAt: {
+      gte: startOfDay,
+      lte: endOfDay,
+    },
+  },
+});
+
+const bankDeposits = await prisma.bankDeposit.aggregate({
+  _sum: {
+    amount: true,
+  },
+  where: {
+    branchId: BRANCH_ID,
+    createdAt: {
+      gte: startOfDay,
+      lte: endOfDay,
+    },
+  },
+});
+
 const expectedCash =
   Number(openingFloat) +
-  Number(cashSales._sum.amount ?? 0);
+  Number(cashSales._sum.amount ?? 0) -
+  Number(expenseTotals._sum.amount ?? 0) -
+  Number(bankDeposits._sum.amount ?? 0);
 
     const variance =
   Number(actualCash) - expectedCash;
@@ -120,9 +148,13 @@ const expectedCash =
 
     return NextResponse.json({
   ...closing,
+  cashSales: Number(cashSales._sum.amount ?? 0),
+  expenseTotal: Number(expenseTotals._sum.amount ?? 0),
+  bankDepositTotal: Number(bankDeposits._sum.amount ?? 0),
   expectedCash,
   variance,
 });
+
   } catch (error) {
     console.error(error);
 
