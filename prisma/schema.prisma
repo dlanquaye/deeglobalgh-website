@@ -136,6 +136,8 @@ model Product {
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
   returnItems        ReturnItem[]
+
+  estimateItems EstimateItem[]
 }
 
 model InventoryMovement {
@@ -348,6 +350,130 @@ model ReturnItem {
   returnRequest   ReturnRequest   @relation(fields: [returnRequestId], references: [id])
 }
 
+model EstimateRequest {
+  id String @id @default(cuid())
+
+  estimateNumber String @unique
+
+  status EstimateStatus @default(NEW)
+
+  source EstimateSource @default(WEBSITE)
+
+  customerName String
+
+  phone String
+
+  email String?
+
+  schoolName String?
+
+  className String?
+
+  academicYear String?
+
+  notes String?
+
+  estimatedTotal Decimal? @db.Decimal(10, 2)
+
+  attachments EstimateAttachment[]
+
+  items EstimateItem[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  isArchived Boolean @default(false)
+
+  priority EstimatePriority @default(NORMAL)
+
+  @@index([status])
+  @@index([source])
+  @@index([customerName])
+  @@index([phone])
+  @@index([createdAt])
+}
+
+model EstimateAttachment {
+  id String @id @default(cuid())
+
+  estimateRequestId String
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  fileName String
+
+  filePath String
+
+  fileType EstimateAttachmentType
+
+  fileSize Int?
+
+  ocrText String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([estimateRequestId])
+}
+
+model EstimateItem {
+  id String @id @default(cuid())
+
+  estimateRequestId String
+
+  estimateRequest EstimateRequest @relation(fields: [estimateRequestId], references: [id], onDelete: Cascade)
+
+  lineNumber Int
+
+  quantity Int @default(1)
+
+  description String
+
+  productId String?
+
+  product Product? @relation(fields: [productId], references: [id])
+
+  matchMethod MatchMethod @default(NONE)
+
+  matchConfidence Float?
+
+  unitPrice Decimal? @db.Decimal(10, 2)
+
+  totalPrice Decimal? @db.Decimal(10, 2)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  matchStatus MatchStatus @default(PENDING)
+
+  @@index([estimateRequestId])
+  @@index([productId])
+}
+
+model DocumentSequence {
+  id String @id @default(cuid())
+
+  document String
+
+  year Int
+
+  month Int
+
+  lastNumber Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([document, year, month])
+  @@index([document])
+}
+
 model playing_with_neon {
   id    Int    @id @default(autoincrement())
   name  String
@@ -490,4 +616,51 @@ enum ReturnCondition {
   DAMAGED
   DEFECTIVE
   OPENED
+}
+
+enum EstimateStatus {
+  NEW
+  PROCESSING
+  MATCHING
+  REVIEW_REQUIRED
+  QUOTED
+  APPROVED
+  CART_CREATED
+  ORDER_CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum EstimateSource {
+  WEBSITE
+  WHATSAPP
+  WALK_IN
+  ADMIN
+}
+
+enum EstimateAttachmentType {
+  IMAGE
+  PDF
+  WORD
+  EXCEL
+  TEXT
+}
+
+enum MatchMethod {
+  NONE
+  AUTO
+  MANUAL
+}
+
+enum EstimatePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum MatchStatus {
+  PENDING
+  MATCHED
+  NOT_FOUND
 }
