@@ -1,0 +1,1 @@
+export const typoCorrectionMap: Record<string, string> = {};

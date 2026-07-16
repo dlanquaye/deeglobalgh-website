@@ -137,7 +137,40 @@ model Product {
   orderItems         OrderItem[]
   returnItems        ReturnItem[]
 
+  fingerprint ProductFingerprint?
+
   estimateItems EstimateItem[]
+
+  knowledgeNodeId String?
+  knowledgeNode   KnowledgeNode? @relation(fields: [knowledgeNodeId], references: [id])
+}
+
+model ProductFingerprint {
+  id String @id @default(cuid())
+
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  subjectNodeCode    String?
+  publisherNodeCode  String?
+  curriculumNodeCode String?
+  resourceNodeCode   String?
+  activityNodeCode   String?
+  languageNodeCode   String?
+
+  confidence Int
+
+  engineVersion Int @default(2)
+
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subjectNodeCode])
+  @@index([publisherNodeCode])
+  @@index([curriculumNodeCode])
+  @@index([resourceNodeCode])
+  @@index([activityNodeCode])
+  @@index([languageNodeCode])
 }
 
 model InventoryMovement {
@@ -480,6 +513,52 @@ model playing_with_neon {
   value Float? @db.Real
 }
 
+model KnowledgeNode {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  slug        String  @unique
+  name        String
+  description String?
+
+  nodeType KnowledgeNodeType
+  status   KnowledgeStatus   @default(ACTIVE)
+
+  parentId String?
+  parent   KnowledgeNode?  @relation("KnowledgeNodeHierarchy", fields: [parentId], references: [id])
+  children KnowledgeNode[] @relation("KnowledgeNodeHierarchy")
+
+  outgoingRelationships KnowledgeRelationship[] @relation("KnowledgeNodeSource")
+  incomingRelationships KnowledgeRelationship[] @relation("KnowledgeNodeTarget")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([nodeType])
+  @@index([slug])
+}
+
+model KnowledgeRelationship {
+  id String @id @default(cuid())
+
+  sourceId String
+  targetId String
+
+  relationshipType KnowledgeRelationType
+
+  weight Float @default(1)
+
+  source KnowledgeNode @relation("KnowledgeNodeSource", fields: [sourceId], references: [id])
+  target KnowledgeNode @relation("KnowledgeNodeTarget", fields: [targetId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([sourceId, targetId, relationshipType])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -663,4 +742,47 @@ enum MatchStatus {
   PENDING
   MATCHED
   NOT_FOUND
+}
+
+enum KnowledgeStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+enum KnowledgeRelationType {
+  RELATED_TO
+  RECOMMENDS
+  SUPPORTS
+  REQUIRES
+  PREREQUISITE_FOR
+  CONTRIBUTES_TO
+  ENHANCES
+  COMPLEMENTS
+  ALTERNATIVE_TO
+}
+
+enum VocabularyType {
+  CUSTOMER
+  SEARCH
+  COMMON_NAME
+  SLANG
+}
+
+enum AliasType {
+  SPELLING
+  ALTERNATIVE
+  ABBREVIATION
+}
+
+enum KnowledgeNodeType {
+  PRODUCT_FAMILY
+  CATEGORY
+  SUBJECT
+  EDUCATIONAL_CAPABILITY
+  DEVELOPMENTAL_CAPABILITY
+  COGNITIVE_CAPABILITY
+  EDUCATIONAL_OUTCOME
+  LIFE_SKILL
+  CHARACTER_TRAIT
 }

@@ -1,0 +1,1 @@
+export const abbreviationMap: Record<string, string> = {};
