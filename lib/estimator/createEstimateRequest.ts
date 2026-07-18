@@ -5,18 +5,27 @@ import { generateEstimateNumber } from "@/lib/estimator";
 export async function createEstimateRequest(
   customerName: string,
   phone: string,
-  source: EstimateSource
-)
-
-{
+  source: EstimateSource,
+  schoolName?: string,
+  className?: string,
+  academicYear?: string,
+  notes?: string
+) {
   const estimate = await prisma.estimateRequest.create({
-  data: {
-    estimateNumber: await generateEstimateNumber(),
-    customerName,
-    phone,
-    source: source ?? "WEBSITE",
-  },
-});
+    data: {
+      estimateNumber: await generateEstimateNumber(),
 
-return estimate;
+      customerName,
+      phone,
+
+      schoolName,
+      className,
+      academicYear,
+      notes,
+
+      source: source ?? "WEBSITE",
+    },
+  });
+
+  return estimate;
 }

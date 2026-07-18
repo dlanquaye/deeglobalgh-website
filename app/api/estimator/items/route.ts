@@ -7,7 +7,12 @@ import {
 export async function POST(request: Request) {
   const body = await request.json();
 
-  const { estimateId, productName, quantity } = body;
+  const {
+  estimateId,
+  productId,
+  productName,
+  quantity,
+} = body;
 
   if (!estimateId || !productName || !quantity) {
     return NextResponse.json(
@@ -35,7 +40,8 @@ const estimate = await findEstimateRequest(estimateId);
     const item = await createEstimateItem(
   estimateId,
   productName,
-  quantity
+  quantity,
+  productId
 );
 
 return NextResponse.json({

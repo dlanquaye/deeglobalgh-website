@@ -48,3 +48,14 @@ prisma/schema_introspected_backup.prisma
 
 # Temporary SQL migration scripts
 add_returns_module.sql
+
+# Google Cloud credentials
+credentials/
+
+# Uploaded files
+uploads/
+
+# Environment variables
+.env
+.env.local
+.env.production
