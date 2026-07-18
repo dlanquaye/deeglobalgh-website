@@ -142,10 +142,50 @@ model Product {
 
   estimateItems EstimateItem[]
 
+  educationalProductMatches EducationalProductMatch[]
+
   knowledgeNodeId String?
   knowledgeNode   KnowledgeNode? @relation(fields: [knowledgeNodeId], references: [id])
 
   book Book? @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  educationalEntityId String?
+
+  educationalEntity EducationalEntity? @relation(fields: [educationalEntityId], references: [id])
+
+  educationalEditionId String?
+
+  educationalEdition EducationalEdition? @relation(fields: [educationalEditionId], references: [id])
+
+  classificationConfidence Float?
+
+  classificationMethod EducationalClassificationSource?
+
+  // Search Optimisation
+
+  educationalSearchText String? @db.Text
+
+  // Synchronisation
+
+  educationalLastSyncedAt DateTime?
+
+  // Quality
+
+  educationalVerified Boolean @default(false)
+
+  // AI
+
+  educationalEmbeddingId String?
+
+  //
+
+  // Product indexes
+
+  //
+
+  @@index([educationalEntityId])
+  @@index([educationalEditionId])
+  @@index([educationalVerified])
 }
 
 model ProductFingerprint {
@@ -167,6 +207,18 @@ model ProductFingerprint {
 
   generatedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  educationalEntityId String?
+
+  educationalEntity EducationalEntity? @relation(fields: [educationalEntityId], references: [id])
+
+  curriculumVersionId String?
+
+  curriculumVersion EducationalCurriculumVersion? @relation(fields: [curriculumVersionId], references: [id])
+
+  educationalEditionId String?
+
+  educationalEdition EducationalEdition? @relation(fields: [educationalEditionId], references: [id])
 
   @@index([subjectNodeCode])
   @@index([publisherNodeCode])
@@ -423,6 +475,14 @@ model EstimateRequest {
 
   priority EstimatePriority @default(NORMAL)
 
+  educationalClassId String?
+
+  educationalClass EducationalClass? @relation(fields: [educationalClassId], references: [id])
+
+  curriculumVersionId String?
+
+  curriculumVersion EducationalCurriculumVersion? @relation(fields: [curriculumVersionId], references: [id])
+
   @@index([status])
   @@index([source])
   @@index([customerName])
@@ -493,6 +553,10 @@ model EstimateItem {
 
   matchStatus MatchStatus @default(PENDING)
 
+  educationalEntityId String?
+
+  educationalEntity EducationalEntity? @relation(fields: [educationalEntityId], references: [id])
+
   @@index([estimateRequestId])
   @@index([productId])
 }
@@ -543,6 +607,9 @@ model KnowledgeNode {
   updatedAt DateTime @updatedAt
 
   products Product[]
+
+  educationalEntityId String?            @unique
+  educationalEntity   EducationalEntity? @relation(fields: [educationalEntityId], references: [id])
 
   @@index([nodeType])
   @@index([slug])
@@ -885,6 +952,1464 @@ model LevelAlias {
   @@unique([levelId, alias])
 }
 
+model EducationalEntity {
+  id String @id @default(cuid())
+
+  // Identity
+  entityType    EducationalEntityType
+  code          String                @unique
+  canonicalName String
+  displayName   String?
+  searchName    String?
+  slug          String?               @unique
+  description   String?               @db.Text
+
+  // Lifecycle
+  status          EducationalStatus @default(ACTIVE)
+  confidenceScore Int               @default(100)
+
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Child Records
+  aliases            EducationalAlias[]
+  externalReferences EducationalExternalReference[]
+  versions           EducationalVersion[]
+
+  // Publishing
+  publisher EducationalPublisher?
+  bookLine  EducationalBookLine?
+  series    EducationalSeries?
+  book      EducationalBook?
+  edition   EducationalEdition?
+  isbn      EducationalISBN?
+  author    EducationalAuthor?
+
+  // Curriculum
+  curriculum        EducationalCurriculum?
+  curriculumVersion EducationalCurriculumVersion?
+  learningArea      EducationalLearningArea?
+  subject           EducationalSubject?
+  strand            EducationalStrand?
+  subStrand         EducationalSubStrand?
+  indicator         EducationalIndicator?
+
+  // Classification
+  language       EducationalLanguage?
+  educationStage EducationalEducationStage?
+  level          EducationalLevel?
+  ageGroup       EducationalAgeGroup?
+  resourceType   EducationalResourceType?
+  concept        EducationalConcept?
+
+  // Institutions
+  country      EducationalCountry?
+  region       EducationalRegion?
+  district     EducationalDistrict?
+  circuit      EducationalCircuit?
+  school       EducationalSchool?
+  academicYear EducationalAcademicYear?
+  class        EducationalClass?
+
+  // Approvals
+  approvalBody EducationalApprovalBody?
+
+  // Synchronisation
+  source EducationalSource?
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  products            Product[]
+  productFingerprints ProductFingerprint[]
+  estimateItems       EstimateItem[]
+  knowledgeNodes      KnowledgeNode[]
+
+  relationshipsFrom EducationalRelationship[] @relation("RelationshipFrom")
+  relationshipsTo   EducationalRelationship[] @relation("RelationshipTo")
+
+  auditLogs             EducationalAuditLog[]
+  conflicts             EducationalConflict[]
+  syncItems             EducationalSyncItem[]
+  classificationResults EducationalClassificationResult[]
+  embeddings            EducationalEmbedding[]
+  searchIndexes         EducationalSearchIndex[]
+  productMatches        EducationalProductMatch[]
+
+  @@index([entityType])
+  @@index([status])
+  @@index([canonicalName])
+  @@index([displayName])
+  @@index([searchName])
+  @@index([code])
+}
+
+model EducationalAlias {
+  id String @id @default(cuid())
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  aliasType EducationalAliasType
+  alias     String
+
+  isPreferred Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityId])
+  @@index([alias])
+  @@index([aliasType])
+}
+
+model EducationalExternalReference {
+  id String @id @default(cuid())
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  source     String
+  externalId String
+
+  url String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([entityId])
+  @@index([source])
+}
+
+model EducationalVersion {
+  id String @id @default(cuid())
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  version Int
+
+  reason    String?
+  createdBy String?
+
+  snapshot Json?
+
+  isCurrent Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([entityId, version])
+  @@index([entityId])
+  @@index([isCurrent])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// PUBLISHING MODELS
+// ============================================================================
+
+model EducationalPublisher {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  publisherType PublisherType @default(PRIVATE)
+
+  shortName String?
+  legalName String?
+
+  country String?
+
+  website String?
+  email   String?
+  phone   String?
+
+  logo String?
+
+  establishedYear Int?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookLines EducationalBookLine[]
+
+  @@index([publisherType])
+  @@index([country])
+  @@index([isActive])
+}
+
+model EducationalBookLine {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  publisherId String
+  publisher   EducationalPublisher @relation(fields: [publisherId], references: [id])
+
+  marketingName String?
+
+  description String? @db.Text
+
+  books EducationalBook[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([publisherId])
+}
+
+model EducationalSeries {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  description String? @db.Text
+
+  books EducationalBook[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EducationalBook {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  bookLineId String
+  bookLine   EducationalBookLine @relation(fields: [bookLineId], references: [id])
+
+  seriesId String?
+  series   EducationalSeries? @relation(fields: [seriesId], references: [id])
+
+  subtitle String?
+
+  summary String? @db.Text
+
+  // Core relationships
+  editions EducationalEdition[]
+  authors  EducationalBookAuthor[]
+
+  // Junction table back-relations
+  subjects           EducationalBookSubject[]
+  levels             EducationalBookLevel[]
+  languages          EducationalBookLanguage[]
+  resourceTypes      EducationalBookResourceType[]
+  curriculumVersions EducationalBookCurriculumVersion[]
+  concepts           EducationalBookConcept[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookLineId])
+  @@index([seriesId])
+}
+
+model EducationalEdition {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id])
+
+  editionNumber Int?
+
+  editionName String?
+
+  publicationYear Int?
+
+  publicationDate DateTime?
+
+  revision String?
+
+  binding BookBinding?
+
+  pageCount Int?
+
+  coverImage String?
+
+  publisherSku String?
+
+  isCurrentEdition Boolean @default(true)
+
+  isPublished Boolean @default(true)
+
+  isDigital Boolean @default(false)
+
+  isPrint Boolean @default(true)
+
+  isActive Boolean @default(true)
+
+  isbns EducationalISBN[]
+
+  approvedTextbooks ApprovedTextbook[]
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  products            Product[]
+  productFingerprints ProductFingerprint[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookId])
+  @@index([publicationYear])
+  @@index([isCurrentEdition])
+}
+
+model EducationalISBN {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  editionId String
+  edition   EducationalEdition @relation(fields: [editionId], references: [id])
+
+  isbn10 String?
+
+  isbn13 String? @unique
+
+  barcode String?
+
+  format String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([editionId])
+  @@index([isbn10])
+}
+
+model EducationalAuthor {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  biography String? @db.Text
+
+  nationality String?
+
+  website String?
+
+  photo String?
+
+  books EducationalBookAuthor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EducationalBookAuthor {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   EducationalAuthor @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  authorOrder Int @default(1)
+
+  role String? // Author, Editor, Illustrator, Translator
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, authorId])
+  @@index([bookId])
+  @@index([authorId])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// CURRICULUM MODELS
+// ============================================================================
+
+model EducationalCurriculum {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  authority CurriculumAuthority
+
+  countryCode String?
+
+  officialCode String?
+
+  description String? @db.Text
+
+  website String?
+
+  versions EducationalCurriculumVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authority])
+  @@index([countryCode])
+}
+
+model EducationalCurriculumVersion {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  curriculumId String
+  curriculum   EducationalCurriculum @relation(fields: [curriculumId], references: [id])
+
+  version String
+
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  isCurrent Boolean @default(true)
+
+  description String? @db.Text
+
+  learningAreas EducationalLearningArea[]
+
+  approvedTextbooks ApprovedTextbook[]
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  productFingerprints    ProductFingerprint[]
+  estimateRequests       EstimateRequest[]
+  bookCurriculumVersions EducationalBookCurriculumVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([curriculumId, version])
+  @@index([curriculumId])
+  @@index([isCurrent])
+}
+
+model EducationalLearningArea {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  curriculumVersionId String
+  curriculumVersion   EducationalCurriculumVersion @relation(fields: [curriculumVersionId], references: [id])
+
+  displayOrder Int @default(1)
+
+  description String? @db.Text
+
+  subjects EducationalSubject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([curriculumVersionId])
+}
+
+model EducationalSubject {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  learningAreaId String
+  learningArea   EducationalLearningArea @relation(fields: [learningAreaId], references: [id])
+
+  subjectCode String?
+
+  description String? @db.Text
+
+  displayOrder Int @default(1)
+
+  strands EducationalStrand[]
+
+  bookSubjects EducationalBookSubject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([learningAreaId])
+  @@index([subjectCode])
+}
+
+model EducationalStrand {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   EducationalSubject @relation(fields: [subjectId], references: [id])
+
+  strandCode String?
+
+  displayOrder Int @default(1)
+
+  description String? @db.Text
+
+  subStrands EducationalSubStrand[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subjectId])
+  @@index([strandCode])
+}
+
+model EducationalSubStrand {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  strandId String
+  strand   EducationalStrand @relation(fields: [strandId], references: [id])
+
+  subStrandCode String?
+
+  displayOrder Int @default(1)
+
+  description String? @db.Text
+
+  indicators EducationalIndicator[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([strandId])
+  @@index([subStrandCode])
+}
+
+model EducationalIndicator {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  subStrandId String
+  subStrand   EducationalSubStrand @relation(fields: [subStrandId], references: [id])
+
+  indicatorCode String?
+
+  statement String @db.Text
+
+  explanation String? @db.Text
+
+  displayOrder Int @default(1)
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  concepts EducationalIndicatorConcept[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subStrandId])
+  @@index([indicatorCode])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// CLASSIFICATION MODELS
+// ============================================================================
+
+model EducationalEducationStage {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  levelType EducationalLevelType
+
+  displayOrder Int @default(1)
+
+  description String? @db.Text
+
+  levels EducationalLevel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([levelType])
+}
+
+model EducationalLevel {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  educationStageId String
+  educationStage   EducationalEducationStage @relation(fields: [educationStageId], references: [id])
+
+  shortCode String?
+
+  levelNumber Int?
+
+  displayOrder Int @default(1)
+
+  minimumAge Int?
+  maximumAge Int?
+
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Existing
+  bookLevels EducationalBookLevel[]
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  classes EducationalClass[]
+
+  @@index([educationStageId])
+  @@index([displayOrder])
+}
+
+model EducationalAgeGroup {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  minimumAge Int
+  maximumAge Int
+
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([minimumAge])
+  @@index([maximumAge])
+}
+
+model EducationalLanguage {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  isoCode String @unique
+
+  nativeName String?
+
+  direction LanguageDirection @default(LTR)
+
+  isOfficial Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookLanguages EducationalBookLanguage[]
+
+  @@index([isoCode])
+}
+
+model EducationalResourceType {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  category ResourceTypeCategory
+
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookResourceTypes EducationalBookResourceType[]
+
+  @@index([category])
+}
+
+model EducationalConcept {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  description String? @db.Text
+
+  parentConceptId String?
+  parentConcept   EducationalConcept? @relation("ConceptHierarchy", fields: [parentConceptId], references: [id])
+
+  childConcepts EducationalConcept[] @relation("ConceptHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookConcepts      EducationalBookConcept[]
+  indicatorConcepts EducationalIndicatorConcept[]
+
+  @@index([parentConceptId])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// RELATIONSHIP MODELS
+// ============================================================================
+
+model EducationalRelationship {
+  id String @id @default(cuid())
+
+  fromEntityId String
+  fromEntity   EducationalEntity @relation("RelationshipFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+
+  toEntityId String
+  toEntity   EducationalEntity @relation("RelationshipTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+
+  relationshipType EducationalRelationshipType
+
+  confidence Int @default(100)
+
+  source EducationalClassificationSource @default(MANUAL)
+
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fromEntityId, toEntityId, relationshipType])
+  @@index([fromEntityId])
+  @@index([toEntityId])
+  @@index([relationshipType])
+}
+
+model EducationalBookSubject {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   EducationalSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, subjectId])
+  @@index([bookId])
+  @@index([subjectId])
+}
+
+model EducationalBookLevel {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  levelId String
+  level   EducationalLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, levelId])
+  @@index([bookId])
+  @@index([levelId])
+}
+
+model EducationalBookLanguage {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  languageId String
+  language   EducationalLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, languageId])
+  @@index([bookId])
+  @@index([languageId])
+}
+
+model EducationalBookResourceType {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  resourceTypeId String
+  resourceType   EducationalResourceType @relation(fields: [resourceTypeId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, resourceTypeId])
+  @@index([bookId])
+  @@index([resourceTypeId])
+}
+
+model EducationalBookCurriculumVersion {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  curriculumVersionId String
+  curriculumVersion   EducationalCurriculumVersion @relation(fields: [curriculumVersionId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, curriculumVersionId])
+  @@index([bookId])
+  @@index([curriculumVersionId])
+}
+
+model EducationalBookConcept {
+  id String @id @default(cuid())
+
+  bookId String
+  book   EducationalBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  conceptId String
+  concept   EducationalConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  relevanceScore Int @default(100)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, conceptId])
+  @@index([bookId])
+  @@index([conceptId])
+}
+
+model EducationalIndicatorConcept {
+  id String @id @default(cuid())
+
+  indicatorId String
+  indicator   EducationalIndicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  conceptId String
+  concept   EducationalConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  relevanceScore Int @default(100)
+
+  createdAt DateTime @default(now())
+
+  @@unique([indicatorId, conceptId])
+  @@index([indicatorId])
+  @@index([conceptId])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// APPROVAL & GOVERNANCE MODELS
+// ============================================================================
+
+model EducationalApprovalBody {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  shortName String?
+
+  legalName String?
+
+  country String?
+
+  website String?
+
+  email String?
+
+  phone String?
+
+  isGovernment Boolean @default(false)
+
+  approvedTextbooks ApprovedTextbook[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([country])
+  @@index([isGovernment])
+}
+
+model ApprovedTextbook {
+  id String @id @default(cuid())
+
+  educationalEditionId String
+  educationalEdition   EducationalEdition @relation(fields: [educationalEditionId], references: [id], onDelete: Cascade)
+
+  curriculumVersionId String
+  curriculumVersion   EducationalCurriculumVersion @relation(fields: [curriculumVersionId], references: [id], onDelete: Cascade)
+
+  approvalBodyId String
+  approvalBody   EducationalApprovalBody @relation(fields: [approvalBodyId], references: [id])
+
+  approvalStatus ApprovalStatus @default(PENDING)
+
+  approvalReference String?
+
+  approvalDate DateTime?
+
+  expiryDate DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([educationalEditionId, curriculumVersionId, approvalBodyId])
+  @@index([approvalStatus])
+  @@index([approvalDate])
+  @@index([curriculumVersionId])
+}
+
+model EducationalAuditLog {
+  id String @id @default(cuid())
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  action AuditAction
+
+  performedBy String?
+
+  source EducationalClassificationSource
+
+  previousValue Json?
+
+  newValue Json?
+
+  notes String? @db.Text
+
+  ipAddress String?
+
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model EducationalConflict {
+  id String @id @default(cuid())
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  fieldName String
+
+  existingValue Json?
+
+  proposedValue Json?
+
+  existingSource EducationalClassificationSource
+
+  proposedSource EducationalClassificationSource
+
+  confidence ConfidenceLevel
+
+  resolutionStatus ConflictResolutionStatus @default(PENDING)
+
+  resolvedBy String?
+
+  resolvedAt DateTime?
+
+  resolutionNotes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityId])
+  @@index([resolutionStatus])
+  @@index([confidence])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// SYNCHRONISATION & AI MODELS
+// ============================================================================
+
+model EducationalSource {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  sourceType EducationalSourceType
+
+  systemName String
+
+  baseUrl String?
+
+  apiVersion String?
+
+  authenticationType String?
+
+  isEnabled Boolean @default(true)
+
+  lastSuccessfulSync DateTime?
+
+  lastFailedSync DateTime?
+
+  syncJobs EducationalSyncJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceType])
+  @@index([systemName])
+  @@index([isEnabled])
+}
+
+model EducationalSyncJob {
+  id String @id @default(cuid())
+
+  sourceId String
+  source   EducationalSource @relation(fields: [sourceId], references: [id])
+
+  jobName String
+
+  status EducationalSyncJobStatus @default(NEW)
+
+  startedAt DateTime?
+
+  completedAt DateTime?
+
+  totalRecords      Int @default(0)
+  processedRecords  Int @default(0)
+  successfulRecords Int @default(0)
+  failedRecords     Int @default(0)
+
+  errorMessage String? @db.Text
+
+  syncItems EducationalSyncItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EducationalSyncItem {
+  id String @id @default(cuid())
+
+  syncJobId String
+  syncJob   EducationalSyncJob @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+
+  entityId String?
+  entity   EducationalEntity? @relation(fields: [entityId], references: [id])
+
+  externalId String?
+
+  operation String
+
+  success Boolean @default(true)
+
+  message String? @db.Text
+
+  payload Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([syncJobId])
+  @@index([entityId])
+  @@index([externalId])
+}
+
+model EducationalClassificationJob {
+  id String @id @default(cuid())
+
+  jobName String
+
+  source EducationalClassificationSource
+
+  status EducationalSyncJobStatus @default(NEW)
+
+  startedAt DateTime?
+
+  completedAt DateTime?
+
+  totalItems     Int @default(0)
+  processedItems Int @default(0)
+
+  classificationResults EducationalClassificationResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([source])
+}
+
+model EducationalClassificationResult {
+  id String @id @default(cuid())
+
+  classificationJobId String
+  classificationJob   EducationalClassificationJob @relation(fields: [classificationJobId], references: [id], onDelete: Cascade)
+
+  entityId String
+  entity   EducationalEntity @relation(fields: [entityId], references: [id])
+
+  fieldName String
+
+  predictedValue String?
+
+  confidenceScore Float
+
+  confidenceLevel ConfidenceLevel
+
+  accepted Boolean @default(false)
+
+  reviewedBy String?
+
+  reviewedAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([classificationJobId])
+  @@index([entityId])
+  @@index([accepted])
+}
+
+model EducationalEmbedding {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  embeddingModel String
+
+  embeddingVersion String?
+
+  dimensions Int
+
+  embedding Json
+
+  fingerprintHash String?
+
+  generatedAt DateTime @default(now())
+
+  @@index([embeddingModel])
+  @@index([fingerprintHash])
+}
+
+model EducationalSearchIndex {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  searchableText String @db.Text
+
+  keywords Json?
+
+  metadata Json?
+
+  rankingScore Float @default(1)
+
+  lastIndexedAt DateTime @default(now())
+
+  @@index([rankingScore])
+  @@index([lastIndexedAt])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// INSTITUTION MODELS
+// ============================================================================
+
+model EducationalCountry {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  iso2 String  @unique
+  iso3 String? @unique
+
+  regions EducationalRegion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([iso2])
+}
+
+model EducationalRegion {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  countryId String
+  country   EducationalCountry @relation(fields: [countryId], references: [id])
+
+  regionCode String?
+
+  districts EducationalDistrict[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryId])
+}
+
+model EducationalDistrict {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  regionId String
+  region   EducationalRegion @relation(fields: [regionId], references: [id])
+
+  districtCode String?
+
+  circuits EducationalCircuit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([regionId])
+}
+
+model EducationalCircuit {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  districtId String
+  district   EducationalDistrict @relation(fields: [districtId], references: [id])
+
+  circuitCode String?
+
+  schools EducationalSchool[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([districtId])
+}
+
+model EducationalSchool {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  circuitId String?
+  circuit   EducationalCircuit? @relation(fields: [circuitId], references: [id])
+
+  emisCode String? @unique
+
+  schoolType String?
+  ownership  String?
+
+  address String?
+  town    String?
+
+  latitude  Float?
+  longitude Float?
+
+  website String?
+  email   String?
+  phone   String?
+
+  isActive Boolean @default(true)
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  classes EducationalClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([circuitId])
+  @@index([emisCode])
+}
+
+model EducationalAcademicYear {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  startYear Int
+  endYear   Int
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  isCurrent Boolean @default(false)
+
+  classes EducationalClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([startYear, endYear])
+  @@index([isCurrent])
+}
+
+model EducationalClass {
+  id String @id @default(cuid())
+
+  entityId String            @unique
+  entity   EducationalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  academicYear   EducationalAcademicYear @relation(fields: [academicYearId], references: [id])
+
+  schoolId String?
+  school   EducationalSchool? @relation(fields: [schoolId], references: [id])
+
+  levelId String?
+  level   EducationalLevel? @relation(fields: [levelId], references: [id])
+
+  classCode String?
+  className String?
+
+  stream String?
+
+  teacherName String?
+
+  capacity Int?
+
+  // ==========================================================
+  // BACK RELATIONS
+  // ==========================================================
+
+  estimateRequests EstimateRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([academicYearId])
+  @@index([schoolId])
+  @@index([levelId])
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// PRODUCT & COMMERCE INTEGRATION
+//
+// These changes integrate the EKP with the existing commercial system
+// without affecting current shop functionality.
+// ============================================================================
+
+//
+// --------------------------------------------------------------------------
+// UPDATE EXISTING Product MODEL
+// Add the following fields to your existing Product model.
+// --------------------------------------------------------------------------
+//
+
+// =========================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM LINKS
+// =========================================================================
+
+// OCR / Classification
+
+//
+// --------------------------------------------------------------------------
+// UPDATE EXISTING EstimateRequest MODEL
+// --------------------------------------------------------------------------
+//
+
+//
+// --------------------------------------------------------------------------
+// UPDATE EXISTING EstimateItem MODEL
+// --------------------------------------------------------------------------
+//
+
+//
+// --------------------------------------------------------------------------
+// UPDATE EXISTING KnowledgeNode MODEL
+// --------------------------------------------------------------------------
+//
+
+//
+// --------------------------------------------------------------------------
+// UPDATE EXISTING ProductFingerprint MODEL
+// --------------------------------------------------------------------------
+//
+
+//
+// --------------------------------------------------------------------------
+// OPTIONAL FUTURE TABLE
+// AI Match History
+// --------------------------------------------------------------------------
+//
+
+model EducationalProductMatch {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  educationalEntityId String
+  educationalEntity   EducationalEntity @relation(fields: [educationalEntityId], references: [id])
+
+  score Float
+
+  confidence ConfidenceLevel
+
+  method EducationalClassificationSource
+
+  accepted Boolean @default(false)
+
+  acceptedBy String?
+
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([educationalEntityId])
+  @@index([score])
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -1140,4 +2665,209 @@ enum SyncStatus {
   SUCCESS
   FAILED
   PARTIAL
+}
+
+// ============================================================================
+// EDUCATIONAL KNOWLEDGE PLATFORM (EKP)
+// ENUMS
+// Add these AFTER your existing enums.
+// Do not remove or modify any existing enums.
+// ============================================================================
+
+enum EducationalEntityType {
+  PUBLISHER
+  BOOK_LINE
+  SERIES
+  BOOK
+  EDITION
+  ISBN
+  AUTHOR
+
+  CURRICULUM
+  CURRICULUM_VERSION
+
+  LEARNING_AREA
+  SUBJECT
+  STRAND
+  SUB_STRAND
+  INDICATOR
+
+  LANGUAGE
+  RESOURCE_TYPE
+
+  EDUCATION_STAGE
+  LEVEL
+  AGE_GROUP
+
+  CONCEPT
+
+  COUNTRY
+  REGION
+  DISTRICT
+  CIRCUIT
+  SCHOOL
+  ACADEMIC_YEAR
+  CLASS
+
+  APPROVAL_BODY
+
+  SOURCE
+}
+
+enum EducationalStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+  ARCHIVED
+}
+
+enum PublisherType {
+  LOCAL
+  INTERNATIONAL
+  GOVERNMENT
+  UNIVERSITY
+  NGO
+  PRIVATE
+  SELF_PUBLISHED
+  OTHER
+}
+
+enum BookBinding {
+  PAPERBACK
+  HARDBACK
+  SPIRAL
+  DIGITAL
+  OTHER
+}
+
+enum ResourceTypeCategory {
+  TEXTBOOK
+  WORKBOOK
+  TEACHER_GUIDE
+  LEARNER_GUIDE
+  REVISION_GUIDE
+  ASSESSMENT
+  STORYBOOK
+  DICTIONARY
+  REFERENCE
+  DIGITAL
+  SUPPLEMENTARY
+  OTHER
+}
+
+enum CurriculumAuthority {
+  NACCA
+  GES
+  WAEC
+  CAMBRIDGE
+  PEARSON
+  IB
+  CUSTOM
+  OTHER
+}
+
+enum EducationalLevelType {
+  EARLY_CHILDHOOD
+  PRIMARY
+  JHS
+  SHS
+  TVET
+  TERTIARY
+  PROFESSIONAL
+  GENERAL
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  EXPIRED
+  REJECTED
+  SUPERSEDED
+}
+
+enum EducationalSourceType {
+  MANUAL
+  GOVERNMENT
+  PUBLISHER
+  ISBN
+  OCR
+  IMPORT
+  API
+  AI
+}
+
+enum EducationalSyncJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+  NEW
+}
+
+enum EducationalAliasType {
+  OFFICIAL_NAME
+  DISPLAY_NAME
+  SHORT_NAME
+  ABBREVIATION
+  LEGACY_NAME
+  SEARCH_NAME
+  CODE
+  ISBN
+  OTHER
+}
+
+enum EducationalRelationshipType {
+  CONTAINS
+  BELONGS_TO
+  PUBLISHED_BY
+  WRITTEN_BY
+  HAS_EDITION
+  HAS_ISBN
+  COVERS
+  REFERENCES
+  APPROVED_FOR
+  SUPERSEDES
+  TRANSLATED_TO
+  RELATED_TO
+}
+
+enum EducationalClassificationSource {
+  MANUAL
+  RULE_ENGINE
+  OCR
+  AI
+  IMPORT
+}
+
+enum LanguageDirection {
+  LTR
+  RTL
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  IMPORT
+  MERGE
+  RESTORE
+  ROLLBACK
+}
+
+enum ConflictResolutionStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  RESOLVED
+  PENDING
+}
+
+enum ConfidenceLevel {
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  VERIFIED
 }

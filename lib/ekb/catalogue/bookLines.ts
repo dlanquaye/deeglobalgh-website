@@ -128,28 +128,66 @@ export const BOOK_LINES: BookLine[] = [
   // ---------------------------------------------------------------------------
 
   {
-    id: "bookline-golden-english",
-    code: "BOOKLINE_GOLDEN_ENGLISH",
-    name: "Golden English for Basic Schools",
-    publisherCode: "PUB_NEW_GOLDEN",
-    aliases: [
-      "golden english",
-      "golden english language",
-    ],
-    active: true,
-  },
+  id: "bookline-golden-english",
+  code: "BOOKLINE_GOLDEN_ENGLISH",
+  name: "Golden English for Basic Schools",
+
+  publisherCode: "PUB_NEW_GOLDEN",
+  subjectCode: "SUB_ENGLISH",
+  curriculumCode: "CURRICULUM_NACCA",
+  languageCode: "LANGUAGE_ENGLISH",
+
+  supportedLevels: [
+    "LEVEL_B1",
+    "LEVEL_B2",
+    "LEVEL_B3",
+    "LEVEL_B4",
+    "LEVEL_B5",
+    "LEVEL_B6",
+  ],
+
+  supportedResourceTypes: [
+    "RESOURCE_LEARNER_BOOK",
+  ],
+
+  aliases: [
+    "golden english",
+    "golden english language",
+  ],
+
+  active: true,
+},
 
   {
-    id: "bookline-golden-mathematics",
-    code: "BOOKLINE_GOLDEN_MATHEMATICS",
-    name: "Golden Mathematics for Basic Schools",
-    publisherCode: "PUB_NEW_GOLDEN",
-    aliases: [
-      "golden mathematics",
-      "golden maths",
-    ],
-    active: true,
-  },
+  id: "bookline-golden-mathematics",
+  code: "BOOKLINE_GOLDEN_MATHEMATICS",
+  name: "Golden Mathematics for Basic Schools",
+
+  publisherCode: "PUB_NEW_GOLDEN",
+  subjectCode: "SUB_MATHEMATICS",
+  curriculumCode: "CURRICULUM_NACCA",
+  languageCode: "LANGUAGE_ENGLISH",
+
+  supportedLevels: [
+    "LEVEL_B1",
+    "LEVEL_B2",
+    "LEVEL_B3",
+    "LEVEL_B4",
+    "LEVEL_B5",
+    "LEVEL_B6",
+  ],
+
+  supportedResourceTypes: [
+    "RESOURCE_LEARNER_BOOK",
+  ],
+
+  aliases: [
+    "golden mathematics",
+    "golden maths",
+  ],
+
+  active: true,
+},
 
   {
     id: "bookline-golden-science",
@@ -190,15 +228,34 @@ export const BOOK_LINES: BookLine[] = [
   },
 
   {
-    id: "bookline-best-brain-science",
-    code: "BOOKLINE_BEST_BRAIN_SCIENCE",
-    name: "Best Brain Science",
-    publisherCode: "PUB_BEST_BRAIN",
-    aliases: [
-      "best brain science",
-    ],
-    active: true,
-  },
+  id: "bookline-best-brain-science",
+  code: "BOOKLINE_BEST_BRAIN_SCIENCE",
+  name: "Best Brain Science",
+
+  publisherCode: "PUB_BEST_BRAIN",
+  subjectCode: "SUB_SCIENCE",
+  curriculumCode: "CURRICULUM_NACCA",
+  languageCode: "LANGUAGE_ENGLISH",
+
+  supportedLevels: [
+    "LEVEL_B1",
+    "LEVEL_B2",
+    "LEVEL_B3",
+    "LEVEL_B4",
+    "LEVEL_B5",
+    "LEVEL_B6",
+  ],
+
+  supportedResourceTypes: [
+    "RESOURCE_LEARNER_BOOK",
+  ],
+
+  aliases: [
+    "best brain science",
+  ],
+
+  active: true,
+},
 
   // ---------------------------------------------------------------------------
   // York Press

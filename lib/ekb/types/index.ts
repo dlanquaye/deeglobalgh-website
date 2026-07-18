@@ -68,17 +68,17 @@ export interface Author {
 export interface BookLine {
   id: string;
   code: string;
-
-  /**
-   * Canonical educational product line.
-   * Examples:
-   *  - Practical Mathematics
-   *  - Golden English for Basic Schools
-   *  - Best Brain English Language
-   */
   name: string;
 
   publisherCode: string;
+
+  subjectCode?: string;
+  curriculumCode?: string;
+  languageCode?: string;
+
+  supportedLevels?: string[];
+
+  supportedResourceTypes?: string[];
 
   aliases: string[];
 
