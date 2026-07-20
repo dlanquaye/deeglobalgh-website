@@ -8,6 +8,8 @@
 export interface NaccaBookRecord {
   publisher: string;
 
+  bookLine?: string;
+
   title: string;
 
   subject: string;

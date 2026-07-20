@@ -1,3 +1,8 @@
+import { prisma } from "@/lib/prisma";
+
+import { AuthorCache } from "./AuthorCache";
+import { BookCache } from "./BookCache";
+import { BookLineCache } from "./BookLineCache";
 import { CurriculumCache } from "./CurriculumCache";
 import { LanguageCache } from "./LanguageCache";
 import { LevelCache } from "./LevelCache";
@@ -18,6 +23,18 @@ export class EducationalCache {
 
   readonly resourceTypes = new ResourceTypeCache();
 
+  readonly bookLines = new BookLineCache(
+    prisma,
+  );
+
+  readonly authors = new AuthorCache(
+    prisma,
+  );
+
+  readonly books = new BookCache(
+    prisma,
+  );
+
   async load(): Promise<void> {
     await Promise.all([
       this.publishers.load(),
@@ -26,6 +43,9 @@ export class EducationalCache {
       this.languages.load(),
       this.curricula.load(),
       this.resourceTypes.load(),
+      this.bookLines.load(),
+      this.authors.load(),
+      this.books.load(),
     ]);
   }
 
@@ -36,7 +56,11 @@ export class EducationalCache {
       levels: this.levels.getStats(),
       languages: this.languages.getStats(),
       curricula: this.curricula.getStats(),
-      resourceTypes: this.resourceTypes.getStats(),
+      resourceTypes:
+        this.resourceTypes.getStats(),
+      bookLines: this.bookLines.getStats(),
+      authors: this.authors.getStats(),
+      books: this.books.getStats(),
     };
   }
 }

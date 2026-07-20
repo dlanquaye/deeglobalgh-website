@@ -1,4 +1,7 @@
 import { EducationalCache } from "../../cache/EducationalCache";
+import { AuthorPlanningResolver } from "./AuthorPlanningResolver";
+import { BookLinePlanningResolver } from "./BookLinePlanningResolver";
+import { BookPlanningResolver } from "./BookPlanningResolver";
 import { ReferencePlanningResolver } from "./ReferencePlanningResolver";
 
 export class PlanningResolverFactory {
@@ -38,6 +41,18 @@ export class PlanningResolverFactory {
           "ResourceType",
           this.cache.resourceTypes,
         ),
+
+      bookLine: new BookLinePlanningResolver(
+        this.cache.bookLines,
+      ),
+
+      author: new AuthorPlanningResolver(
+        this.cache.authors,
+      ),
+
+      book: new BookPlanningResolver(
+        this.cache.books,
+      ),
     };
   }
 }

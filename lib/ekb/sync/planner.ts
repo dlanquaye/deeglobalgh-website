@@ -1,4 +1,3 @@
-import { SyncPreview } from "./types";
 import {
   ResolutionAction,
   ResolutionResult,
@@ -7,6 +6,7 @@ import {
   PlannedRecord,
   SyncPlan,
 } from "./syncPlan";
+import { SyncPreview } from "./types";
 import { PlanningResolverFactory } from "./resolvers/PlanningResolverFactory";
 
 type PlanningResolvers = ReturnType<
@@ -148,27 +148,46 @@ export function buildSyncPlan(
               "No curriculum supplied",
             );
 
-    const bookLine = staged.valid
-      ? keep(
-          "BookLine",
-          "Book line resolution is not connected yet",
-        )
-      : error(
-          "BookLine",
-          validationMessage,
-        );
+    const bookLine =
+      !staged.valid
+        ? error(
+            "BookLine",
+            validationMessage,
+          )
+        : record.bookLine?.trim()
+          ? resolvers.bookLine.resolve({
+              name: record.bookLine,
+              publisherId:
+                publisher.existingId,
+            })
+          : keep(
+              "BookLine",
+              "No book line supplied",
+            );
+
+    const author: ResolutionResult[] =
+      staged.valid
+        ? resolvers.author.resolve(
+            record.authors,
+          )
+        : [
+            error(
+              "Author",
+              validationMessage,
+            ),
+          ];
 
     const book = staged.valid
-      ? keep(
-          "Book",
-          "Book resolution is not connected yet",
-        )
+      ? resolvers.book.resolve({
+          title: record.title,
+          bookLineId:
+            bookLine.existingId,
+          isbn: record.isbn,
+        })
       : error(
           "Book",
           validationMessage,
         );
-
-    const author: ResolutionResult[] = [];
 
     const results = [
       publisher,
@@ -178,8 +197,8 @@ export function buildSyncPlan(
       language,
       curriculum,
       bookLine,
-      book,
       ...author,
+      book,
     ];
 
     for (const result of results) {
