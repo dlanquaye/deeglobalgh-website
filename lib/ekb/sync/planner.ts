@@ -148,22 +148,21 @@ export function buildSyncPlan(
               "No curriculum supplied",
             );
 
+    const bookLineName =
+      record.bookLine?.trim() ||
+      record.title.trim();
+
     const bookLine =
-      !staged.valid
-        ? error(
+      staged.valid
+        ? resolvers.bookLine.resolve({
+            name: bookLineName,
+            publisherId:
+              publisher.existingId,
+          })
+        : error(
             "BookLine",
             validationMessage,
-          )
-        : record.bookLine?.trim()
-          ? resolvers.bookLine.resolve({
-              name: record.bookLine,
-              publisherId:
-                publisher.existingId,
-            })
-          : keep(
-              "BookLine",
-              "No book line supplied",
-            );
+          );
 
     const author: ResolutionResult[] =
       staged.valid

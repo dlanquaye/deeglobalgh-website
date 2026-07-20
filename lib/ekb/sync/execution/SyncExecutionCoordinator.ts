@@ -6,6 +6,9 @@ import { ExecutionResultBuilder } from "./ExecutionResultBuilder";
 import { PlannedRecordExecutor } from "./PlannedRecordExecutor";
 import { SyncExecutionResult } from "./types";
 
+const TRANSACTION_MAX_WAIT_MS = 20_000;
+const TRANSACTION_TIMEOUT_MS = 120_000;
+
 export class SyncExecutionCoordinator {
   constructor(
     private readonly prisma: PrismaClient,
@@ -67,6 +70,13 @@ export class SyncExecutionCoordinator {
                 plannedRecord,
                 recordNumber,
               );
+            },
+            {
+              maxWait:
+                TRANSACTION_MAX_WAIT_MS,
+
+              timeout:
+                TRANSACTION_TIMEOUT_MS,
             },
           );
 

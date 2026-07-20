@@ -10,6 +10,7 @@ import { BookExecutionOperations } from "./BookExecutionOperations";
 import { BookExecutor } from "./BookExecutor";
 import { BookLineExecutionOperations } from "./BookLineExecutionOperations";
 import { BookLineExecutor } from "./BookLineExecutor";
+import { BookPublicationExecutor } from "./BookPublicationExecutor";
 import { BookRelationshipExecutor } from "./BookRelationshipExecutor";
 import { CurriculumExecutionOperations } from "./CurriculumExecutionOperations";
 import { CurriculumVersionExecutionOperations } from "./CurriculumVersionExecutionOperations";
@@ -410,6 +411,21 @@ export class PlannedRecordExecutor {
       curriculumVersionId,
 
       authorResults,
+    });
+
+    const bookPublicationExecutor =
+      new BookPublicationExecutor(
+        this.prisma,
+      );
+
+    await bookPublicationExecutor.execute({
+      bookId,
+
+      bookTitle:
+        record.title,
+
+      isbn:
+        record.isbn,
     });
 
     return {

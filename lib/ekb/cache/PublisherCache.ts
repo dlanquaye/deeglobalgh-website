@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+
 import { BaseReferenceCache } from "./BaseReferenceCache";
 
 const prisma = new PrismaClient();
@@ -7,22 +8,38 @@ export class PublisherCache extends BaseReferenceCache {
   async load(): Promise<void> {
     this.clear();
 
-    const publishers = await prisma.publisher.findMany();
+    const publishers =
+      await prisma.educationalPublisher.findMany({
+        include: {
+          entity: {
+            include: {
+              aliases: true,
+            },
+          },
+        },
+      });
 
     this.loadRecords(
       publishers.map((publisher) => ({
         id: publisher.id,
-        name: publisher.name,
+
+        name:
+          publisher.entity.canonicalName,
       })),
     );
 
-    const aliases = await prisma.publisherAlias.findMany();
-
     this.loadAliases(
-      aliases.map((alias) => ({
-        alias: alias.alias,
-        targetId: alias.publisherId,
-      })),
+      publishers.flatMap((publisher) =>
+        publisher.entity.aliases.map(
+          (alias) => ({
+            alias:
+              alias.alias,
+
+            targetId:
+              publisher.id,
+          }),
+        ),
+      ),
     );
   }
 }
