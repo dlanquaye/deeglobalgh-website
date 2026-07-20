@@ -59,3 +59,5 @@ uploads/
 .env
 .env.local
 .env.production
+# EKB import cache
+.cache/
