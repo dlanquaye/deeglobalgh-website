@@ -33,6 +33,10 @@
  */
 
 import { NaccaBookRecord } from "./types";
+import { NaccaResourceTypeClassifier } from "./classifiers/NaccaResourceTypeClassifier";
+
+const resourceTypeClassifier =
+  new NaccaResourceTypeClassifier();
 
 interface StructuredNaccaRecord {
   title: unknown;
@@ -129,11 +133,22 @@ function parseNaccaRecord(
       value.bookLine,
     );
 
-  const resourceType =
-    readOptionalString(
-      value.resourceType,
-    ) ??
-    DEFAULT_RESOURCE_TYPE;
+const suppliedResourceType =
+  readOptionalString(
+    value.resourceType,
+  );
+
+const classifiedResourceType =
+  resourceTypeClassifier.classify(
+    title,
+  );
+
+const resourceType =
+  classifiedResourceType !==
+  DEFAULT_RESOURCE_TYPE
+    ? classifiedResourceType
+    : suppliedResourceType ??
+      DEFAULT_RESOURCE_TYPE;
 
   const language =
     readOptionalString(
@@ -156,6 +171,8 @@ function parseNaccaRecord(
     readAuthors(
       value.authors,
     );
+
+    
 
   return {
     publisher,

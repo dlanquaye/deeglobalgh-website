@@ -637,6 +637,8 @@ async function loadSelectedRecords(
   };
 }
 
+
+
 async function main():
 Promise<void> {
   console.log(
@@ -652,7 +654,7 @@ Promise<void> {
   } =
     await loadSelectedRecords(
       configuration,
-    );
+    );   
 
   const totalRecords =
     selectedRecords.length;

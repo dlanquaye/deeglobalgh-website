@@ -5,8 +5,15 @@
  * ============================================================
  *
  * Walks through extracted NaCCA PDF lines in document order,
- * detects textbook subject sections, reconstructs logical rows
- * and attaches the active subject context to each parsed book.
+ * detects textbook subject sections, publication-form headings,
+ * reconstructs logical rows and attaches the active document
+ * context to each parsed book.
+ *
+ * Context attached to every successfully parsed record:
+ *
+ * - subject;
+ * - resource type;
+ * - source subject heading.
  *
  * This component does not:
  *
@@ -49,12 +56,21 @@ export type NaccaTextbookSubjectCode =
   | "SUB_PHYSICAL_EDUCATION"
   | "SUB_CAREER_TECHNOLOGY";
 
+export type NaccaResourceTypeName =
+  | "Textbook"
+  | "Learner Book"
+  | "Workbook"
+  | "Teacher's Guide";
+
 export interface NaccaTextbookSubject {
-  code: NaccaTextbookSubjectCode;
+  code:
+    NaccaTextbookSubjectCode;
 
-  name: string;
+  name:
+    string;
 
-  sourceHeading: string;
+  sourceHeading:
+    string;
 }
 
 export interface NaccaSubjectBookRecord
@@ -62,9 +78,14 @@ export interface NaccaSubjectBookRecord
   subjectCode:
     NaccaTextbookSubjectCode;
 
-  subjectName: string;
+  subjectName:
+    string;
 
-  subjectHeading: string;
+  subjectHeading:
+    string;
+
+  resourceType:
+    NaccaResourceTypeName;
 }
 
 export interface NaccaSubjectSection {
@@ -77,9 +98,11 @@ export interface NaccaSubjectSection {
   failures:
     NaccaBookRowParseFailure[];
 
-  startLineIndex: number;
+  startLineIndex:
+    number;
 
-  endLineIndex: number;
+  endLineIndex:
+    number;
 }
 
 export interface NaccaDocumentSectionParseResult {
@@ -112,15 +135,19 @@ interface MutableSubjectSection {
   failures:
     NaccaBookRowParseFailure[];
 
-  startLineIndex: number;
+  startLineIndex:
+    number;
 
-  endLineIndex: number;
+  endLineIndex:
+    number;
 }
 
 interface NumberedRowMatch {
-  serialNumber: number;
+  serialNumber:
+    number;
 
-  content: string;
+  content:
+    string;
 }
 
 interface SubjectDefinition {
@@ -129,6 +156,14 @@ interface SubjectDefinition {
 
   name:
     string;
+
+  patterns:
+    RegExp[];
+}
+
+interface ResourceTypeDefinition {
+  name:
+    NaccaResourceTypeName;
 
   patterns:
     RegExp[];
@@ -148,10 +183,6 @@ const TEXTBOOK_SECTION_PATTERN =
   /^3\.0\s+LIST\s+OF\s+APPROVED\s+TEXTBOOKS\s+FROM\s+KINDERGARTEN\s+TO\s+JHS\b/i;
 
 /**
- * This heading is only evaluated after the real textbook
- * section has already been entered.
- */
-/**
  * Some NaCCA editions include the 4.0 heading before the
  * supplementary tables, while others jump directly into
  * subsection headings such as:
@@ -166,6 +197,7 @@ const TEXTBOOK_SECTION_PATTERN =
  */
 const SUPPLEMENTARY_SECTION_PATTERN =
   /^4(?:\.0\b.*SUPPLEMENTARY|\.[1-9]\b)/i;
+
 const PAGE_HEADING_PATTERN =
   /^Page\s*\|\s*\d+$/i;
 
@@ -177,6 +209,54 @@ const TABLE_HEADING_PATTERN =
 
 const NUMBERED_ROW_PATTERN =
   /^(\d{1,4})\.\s*(.*)$/;
+
+const DEFAULT_RESOURCE_TYPE:
+  NaccaResourceTypeName =
+  "Textbook";
+
+const RESOURCE_TYPE_DEFINITIONS:
+  readonly ResourceTypeDefinition[] = [
+    {
+      name:
+        "Teacher's Guide",
+
+      patterns: [
+        /^(?:APPROVED\s+)?TEACHER(?:'S|S)?\s+GUIDES?$/i,
+        /^(?:APPROVED\s+)?TEACHER(?:'S|S)?\s+MANUALS?$/i,
+        /^RESOURCE\s+TYPE\s*[:\-]?\s*TEACHER(?:'S|S)?\s+GUIDES?$/i,
+      ],
+    },
+    {
+      name:
+        "Learner Book",
+
+      patterns: [
+        /^(?:APPROVED\s+)?LEARNER(?:'S|S)?\s+BOOKS?$/i,
+        /^(?:APPROVED\s+)?PUPIL(?:'S|S)?\s+BOOKS?$/i,
+        /^(?:APPROVED\s+)?STUDENT(?:'S|S)?\s+BOOKS?$/i,
+        /^RESOURCE\s+TYPE\s*[:\-]?\s*LEARNER(?:'S|S)?\s+BOOKS?$/i,
+      ],
+    },
+    {
+      name:
+        "Workbook",
+
+      patterns: [
+        /^(?:APPROVED\s+)?WORK\s*BOOKS?$/i,
+        /^(?:APPROVED\s+)?ACTIVITY\s+BOOKS?$/i,
+        /^RESOURCE\s+TYPE\s*[:\-]?\s*WORK\s*BOOKS?$/i,
+      ],
+    },
+    {
+      name:
+        "Textbook",
+
+      patterns: [
+        /^(?:APPROVED\s+)?TEXT\s*BOOKS?$/i,
+        /^RESOURCE\s+TYPE\s*[:\-]?\s*TEXT\s*BOOKS?$/i,
+      ],
+    },
+  ];
 
 const SUBJECT_DEFINITIONS:
   readonly SubjectDefinition[] = [
@@ -308,7 +388,7 @@ const SUBJECT_DEFINITIONS:
 
       patterns: [
         /^PHYSICAL\s+EDUCATION\s+AND\s+HEALTH\b/i,
-        /^PHYSICAL\s+EDUCATION\s*&\s*HEALTH\b/i,
+        /^PHYSICAL\s+EDUCATION\s*&\s+HEALTH\b/i,
       ],
     },
     {
@@ -329,7 +409,8 @@ export class NaccaDocumentSectionParser {
     new NaccaBookRowParser();
 
   parse(
-    lines: readonly string[],
+    lines:
+      readonly string[],
   ): NaccaDocumentSectionParseResult {
     const sections:
       NaccaSubjectSection[] = [];
@@ -352,6 +433,10 @@ export class NaccaDocumentSectionParser {
     let insideTextbookSection =
       false;
 
+    let currentResourceType:
+      NaccaResourceTypeName =
+      DEFAULT_RESOURCE_TYPE;
+
     let currentSection:
       | MutableSubjectSection
       | null = null;
@@ -370,7 +455,8 @@ export class NaccaDocumentSectionParser {
           currentRow,
         );
 
-        currentRow = null;
+        currentRow =
+          null;
 
         return;
       }
@@ -395,8 +481,10 @@ export class NaccaDocumentSectionParser {
               currentSection.subject.name,
 
             subjectHeading:
-              currentSection.subject
-                .sourceHeading,
+              currentSection.subject.sourceHeading,
+
+            resourceType:
+              currentResourceType,
           };
 
         currentSection.records.push(
@@ -411,10 +499,13 @@ export class NaccaDocumentSectionParser {
           result,
         );
 
-        failures.push(result);
+        failures.push(
+          result,
+        );
       }
 
-      currentRow = null;
+      currentRow =
+        null;
     };
 
     const flushSection = (): void => {
@@ -429,10 +520,14 @@ export class NaccaDocumentSectionParser {
           currentSection.subject,
 
         records:
-          [...currentSection.records],
+          [
+            ...currentSection.records,
+          ],
 
         failures:
-          [...currentSection.failures],
+          [
+            ...currentSection.failures,
+          ],
 
         startLineIndex:
           currentSection.startLineIndex,
@@ -441,17 +536,22 @@ export class NaccaDocumentSectionParser {
           currentSection.endLineIndex,
       });
 
-      currentSection = null;
+      currentSection =
+        null;
     };
 
     for (
-      let lineIndex = 0;
-      lineIndex < lines.length;
-      lineIndex += 1
+      let lineIndex =
+        0;
+      lineIndex <
+      lines.length;
+      lineIndex +=
+        1
     ) {
       const line =
         this.cleanLine(
-          lines[lineIndex] ?? "",
+          lines[lineIndex] ??
+            "",
         );
 
       if (!line) {
@@ -471,6 +571,9 @@ export class NaccaDocumentSectionParser {
 
         insideTextbookSection =
           true;
+
+        currentResourceType =
+          DEFAULT_RESOURCE_TYPE;
 
         continue;
       }
@@ -506,8 +609,24 @@ export class NaccaDocumentSectionParser {
         continue;
       }
 
+      const resourceType =
+        this.detectResourceType(
+          line,
+        );
+
+      if (resourceType) {
+        flushRow();
+
+        currentResourceType =
+          resourceType;
+
+        continue;
+      }
+
       const subject =
-        this.detectSubject(line);
+        this.detectSubject(
+          line,
+        );
 
       if (subject) {
         flushSection();
@@ -515,9 +634,11 @@ export class NaccaDocumentSectionParser {
         currentSection = {
           subject,
 
-          records: [],
+          records:
+            [],
 
-          failures: [],
+          failures:
+            [],
 
           startLineIndex:
             lineIndex,
@@ -549,7 +670,9 @@ export class NaccaDocumentSectionParser {
               ? `${numberedRow.serialNumber}. ${numberedRow.content}`
               : `${numberedRow.serialNumber}.`,
 
-          sourceLines: [line],
+          sourceLines: [
+            line,
+          ],
 
           startLineIndex:
             lineIndex,
@@ -613,11 +736,47 @@ export class NaccaDocumentSectionParser {
     };
   }
 
+  private detectResourceType(
+    line:
+      string,
+  ): NaccaResourceTypeName | null {
+    const heading =
+      this.normaliseResourceTypeHeading(
+        line,
+      );
+
+    for (
+      const definition
+      of RESOURCE_TYPE_DEFINITIONS
+    ) {
+      const matches =
+        definition.patterns.some(
+          (
+            pattern,
+          ) =>
+            pattern.test(
+              heading,
+            ),
+        );
+
+      if (!matches) {
+        continue;
+      }
+
+      return definition.name;
+    }
+
+    return null;
+  }
+
   private detectSubject(
-    line: string,
+    line:
+      string,
   ): NaccaTextbookSubject | null {
     const heading =
-      this.normaliseHeading(line);
+      this.normaliseHeading(
+        line,
+      );
 
     for (
       const definition
@@ -625,8 +784,12 @@ export class NaccaDocumentSectionParser {
     ) {
       const matches =
         definition.patterns.some(
-          (pattern) =>
-            pattern.test(heading),
+          (
+            pattern,
+          ) =>
+            pattern.test(
+              heading,
+            ),
         );
 
       if (!matches) {
@@ -649,7 +812,8 @@ export class NaccaDocumentSectionParser {
   }
 
   private matchNumberedRow(
-    line: string,
+    line:
+      string,
   ): NumberedRowMatch | null {
     const match =
       line.match(
@@ -662,7 +826,8 @@ export class NaccaDocumentSectionParser {
 
     const serialNumber =
       Number.parseInt(
-        match[1] ?? "",
+        match[1] ??
+          "",
         10,
       );
 
@@ -670,7 +835,8 @@ export class NaccaDocumentSectionParser {
       !Number.isInteger(
         serialNumber,
       ) ||
-      serialNumber < 1
+      serialNumber <
+        1
     ) {
       return null;
     }
@@ -680,13 +846,15 @@ export class NaccaDocumentSectionParser {
 
       content:
         this.normaliseSpacing(
-          match[2] ?? "",
+          match[2] ??
+            "",
         ),
     };
   }
 
   private isIgnoredStructuralLine(
-    line: string,
+    line:
+      string,
   ): boolean {
     return (
       PAGE_HEADING_PATTERN.test(
@@ -702,18 +870,29 @@ export class NaccaDocumentSectionParser {
   }
 
   private cleanLine(
-    value: string,
+    value:
+      string,
   ): string {
     return this.normaliseSpacing(
       value
-        .replace(/\u00a0/g, " ")
-        .replace(/\u200b/g, "")
-        .replace(/\ufeff/g, ""),
+        .replace(
+          /\u00a0/g,
+          " ",
+        )
+        .replace(
+          /\u200b/g,
+          "",
+        )
+        .replace(
+          /\ufeff/g,
+          "",
+        ),
     );
   }
 
   private cleanContinuation(
-    value: string,
+    value:
+      string,
   ): string {
     return this.normaliseSpacing(
       value.replace(
@@ -723,8 +902,34 @@ export class NaccaDocumentSectionParser {
     );
   }
 
+  private normaliseResourceTypeHeading(
+    value:
+      string,
+  ): string {
+    return this.normaliseSpacing(
+      value
+        .replace(
+          /^[A-Z]?\d+(?:\.\d+)*[.)]?\s*/,
+          "",
+        )
+        .replace(
+          /\([^)]*\)/g,
+          " ",
+        )
+        .replace(
+          /[,:;]+/g,
+          " ",
+        )
+        .replace(
+          /[’‘]/g,
+          "'",
+        ),
+    );
+  }
+
   private normaliseHeading(
-    value: string,
+    value:
+      string,
   ): string {
     return this.normaliseSpacing(
       value
@@ -740,10 +945,14 @@ export class NaccaDocumentSectionParser {
   }
 
   private normaliseSpacing(
-    value: string,
+    value:
+      string,
   ): string {
     return value
-      .replace(/\s+/g, " ")
+      .replace(
+        /\s+/g,
+        " ",
+      )
       .trim();
   }
 }
