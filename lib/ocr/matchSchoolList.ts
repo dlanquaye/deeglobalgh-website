@@ -1,5 +1,6 @@
-import { getProductCatalogue } from "@/lib/knowledge/repository/getProductCatalogue";
-import { findBestMatches } from "@/lib/knowledge/engine/findBestMatches";
+import {
+  EducationalProductMatchCoordinator,
+} from "@/lib/estimator/EducationalProductMatchCoordinator";
 
 export interface SchoolListMatch {
   originalLine: string;
@@ -11,42 +12,49 @@ export interface SchoolListMatch {
   similarity: number;
 }
 
+const educationalProductMatchCoordinator =
+  new EducationalProductMatchCoordinator();
+
 export async function matchSchoolList(
-  lines: string[]
+  lines: string[],
 ): Promise<SchoolListMatch[]> {
-
-  const catalogue =
-    await getProductCatalogue();
-
-  return lines.map((line) => {
-
-    const matches =
-      findBestMatches(
+  return Promise.all(
+    lines.map(
+      async (
         line,
-        catalogue,
-        1
-      );
+      ): Promise<SchoolListMatch> => {
+        const matches =
+          await educationalProductMatchCoordinator.findBestMatches(
+            line,
+            1,
+          );
 
-    if (matches.length === 0) {
-      return {
-        originalLine: line,
-        similarity: 0,
-      };
-    }
+        if (
+          matches.length === 0
+        ) {
+          return {
+            originalLine: line,
 
-    return {
-      originalLine: line,
+            similarity: 0,
+          };
+        }
 
-      matchedProductId:
-        matches[0].product.id,
+        const bestMatch =
+          matches[0];
 
-      matchedProductName:
-        matches[0].product.productName,
+        return {
+          originalLine: line,
 
-      similarity:
-        matches[0].similarity,
-    };
+          matchedProductId:
+            bestMatch.product.id,
 
-  });
+          matchedProductName:
+            bestMatch.product.productName,
 
+          similarity:
+            bestMatch.similarity,
+        };
+      },
+    ),
+  );
 }

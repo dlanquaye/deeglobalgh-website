@@ -38,19 +38,21 @@ export function compareFingerprints(
     const left = first[dimension] as FingerprintDimension | undefined;
     const right = second[dimension] as FingerprintDimension | undefined;
 
-    // Ignore dimensions missing on both products
+    // A dimension missing from both fingerprints provides no evidence.
     if (!left && !right) {
       continue;
     }
 
-    // Record dimensions that exist on only one product
+    const weight = dimensionWeights[dimension];
+
+    // Any dimension present on either side contributes to the possible score.
+    possibleWeight += weight;
+
+    // A dimension present on only one side lowers the similarity.
     if (!left || !right) {
       missingDimensions.push(dimension);
       continue;
     }
-
-    const weight = dimensionWeights[dimension];
-    possibleWeight += weight;
 
     if (left.nodeCode === right.nodeCode) {
       matchedWeight += weight;
@@ -60,12 +62,13 @@ export function compareFingerprints(
     }
   }
 
-  return {
-    similarity:
-      possibleWeight === 0
-        ? 0
-        : Math.round((matchedWeight / possibleWeight) * 100),
+  const similarity =
+    possibleWeight === 0
+      ? 0
+      : Math.round((matchedWeight / possibleWeight) * 100);
 
+  return {
+    similarity,
     matchingDimensions,
     differentDimensions,
     missingDimensions,

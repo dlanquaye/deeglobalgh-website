@@ -65,15 +65,7 @@ export function findBestMatchesByFingerprint(
       requestedFingerprint,
       fingerprint
     );
-    console.log("------------------------------------------------");
-console.log("Requested:", requestedFingerprint);
-
-console.log("Product:", product.productName);
-
-console.log("Fingerprint Used:", fingerprint);
-
-console.log("Comparison:", comparison);
-
+    
     return {
       product,
       similarity: comparison.similarity,
