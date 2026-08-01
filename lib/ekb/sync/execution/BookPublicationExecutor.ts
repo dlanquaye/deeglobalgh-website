@@ -3,10 +3,17 @@ import {
   PrismaClient,
 } from "@prisma/client";
 
-import { EditionService } from "../../services/EditionService";
-import { ISBNService } from "../../services/ISBNService";
+import {
+  EditionService,
+} from "../../services/EditionService";
 
-import { generateEntityCode } from "./generateEntityCode";
+import {
+  ISBNService,
+} from "../../services/ISBNService";
+
+import {
+  generateEntityCode,
+} from "./generateEntityCode";
 
 export interface ExecuteBookPublicationInput {
   bookId: string;
@@ -24,6 +31,13 @@ interface NormalisedISBN {
   isbn13?: string;
 }
 
+/**
+ * Executes publication-level Educational Book data.
+ *
+ * Every valid Educational Book receives a current print Edition.
+ * ISBN creation remains optional because official source records may
+ * identify an approved book without publishing an ISBN.
+ */
 export class BookPublicationExecutor {
   private readonly editionService:
     EditionService;
@@ -62,15 +76,6 @@ export class BookPublicationExecutor {
       throw new Error(
         "Book title is required before executing publication data.",
       );
-    }
-
-    const normalisedISBN =
-      this.normaliseISBN(
-        input.isbn,
-      );
-
-    if (!normalisedISBN) {
-      return;
     }
 
     const editionName =
@@ -116,6 +121,15 @@ export class BookPublicationExecutor {
           true,
       });
 
+    const normalisedISBN =
+      this.normaliseISBN(
+        input.isbn,
+      );
+
+    if (!normalisedISBN) {
+      return;
+    }
+
     await this.isbnService.upsert({
       code:
         generateEntityCode(
@@ -158,11 +172,19 @@ export class BookPublicationExecutor {
 
     const compactValue =
       rawValue
-        .replace(/^isbn(?:-1[03])?\s*:?\s*/i, "")
-        .replace(/[^0-9Xx]/g, "")
+        .replace(
+          /^isbn(?:-1[03])?\s*:?\s*/i,
+          "",
+        )
+        .replace(
+          /[^0-9Xx]/g,
+          "",
+        )
         .toUpperCase();
 
-    if (compactValue.length === 10) {
+    if (
+      compactValue.length === 10
+    ) {
       if (
         !/^[0-9]{9}[0-9X]$/.test(
           compactValue,
@@ -182,7 +204,9 @@ export class BookPublicationExecutor {
       };
     }
 
-    if (compactValue.length === 13) {
+    if (
+      compactValue.length === 13
+    ) {
       if (
         !/^[0-9]{13}$/.test(
           compactValue,
