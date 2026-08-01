@@ -58,10 +58,38 @@ export interface EducationalBookSearchScore {
   breakdown: EducationalBookSearchScoreBreakdown;
 }
 
+const TITLE_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "basic",
+  "book",
+  "books",
+  "edition",
+  "for",
+  "from",
+  "in",
+  "learner",
+  "learners",
+  "of",
+  "primary",
+  "school",
+  "schools",
+  "series",
+  "student",
+  "students",
+  "text",
+  "textbook",
+  "textbooks",
+  "the",
+  "to",
+  "with",
+]);
+
 /**
  * Deterministic educational relevance scorer.
  *
- * Maximum score:
+ * Positive weights:
  *
  * Title               40
  * Code                15
@@ -71,11 +99,8 @@ export interface EducationalBookSearchScore {
  * Curriculum version   5
  * Resource type        5
  * Author               5
- * ----------------------
- * Total              100
  *
- * This scorer contains no database logic. It receives already-extracted
- * educational signals and produces a transparent relevance score.
+ * Explicit subject and level conflicts apply negative evidence.
  */
 export class EducationalBookSearchScorer {
   private static readonly weights = {
@@ -119,16 +144,18 @@ export class EducationalBookSearchScorer {
         EducationalBookSearchScorer.weights.publisher,
       ),
 
-      subject: this.scoreCollections(
+      subject: this.scoreDiscreteValues(
         query.subjects,
         candidate.subjects,
         EducationalBookSearchScorer.weights.subject,
+        true,
       ),
 
-      level: this.scoreCollections(
+      level: this.scoreDiscreteValues(
         query.levels,
         candidate.levels,
         EducationalBookSearchScorer.weights.level,
+        true,
       ),
 
       curriculumVersion: this.scoreCollections(
@@ -137,10 +164,11 @@ export class EducationalBookSearchScorer {
         EducationalBookSearchScorer.weights.curriculumVersion,
       ),
 
-      resourceType: this.scoreCollections(
+      resourceType: this.scoreDiscreteValues(
         query.resourceTypes,
         candidate.resourceTypes,
         EducationalBookSearchScorer.weights.resourceType,
+        false,
       ),
 
       author: this.scoreCollections(
@@ -150,13 +178,16 @@ export class EducationalBookSearchScorer {
       ),
     };
 
+    const rawTotal =
+      Object.values(breakdown).reduce(
+        (total, value) =>
+          total + value,
+        0,
+      );
+
     return {
-      total: this.clampScore(
-        Object.values(breakdown).reduce(
-          (total, value) => total + value,
-          0,
-        ),
-        100,
+      total: this.clampTotalScore(
+        rawTotal,
       ),
 
       breakdown,
@@ -169,10 +200,14 @@ export class EducationalBookSearchScorer {
     maximumScore: number,
   ): number {
     const normalizedQuery =
-      this.normalizeSearchText(queryValue);
+      this.normalizeSearchText(
+        queryValue,
+      );
 
     const normalizedCandidate =
-      this.normalizeSearchText(candidateValue);
+      this.normalizeSearchText(
+        candidateValue,
+      );
 
     if (
       !normalizedQuery
@@ -188,63 +223,56 @@ export class EducationalBookSearchScorer {
       return maximumScore;
     }
 
-    if (
-      normalizedCandidate.includes(
+    const queryTokens =
+      this.getDistinctiveTitleTokens(
         normalizedQuery,
-      )
-    ) {
-      const lengthCoverage =
-        normalizedQuery.length
-        / normalizedCandidate.length;
-
-      return this.clampScore(
-        Math.round(
-          maximumScore
-          * (
-            0.75
-            + Math.min(lengthCoverage, 1) * 0.2
-          ),
-        ),
-        maximumScore,
       );
-    }
 
-    if (
-      normalizedQuery.includes(
-        normalizedCandidate,
-      )
-    ) {
-      const lengthCoverage =
-        normalizedCandidate.length
-        / normalizedQuery.length;
-
-      return this.clampScore(
-        Math.round(
-          maximumScore
-          * (
-            0.65
-            + Math.min(lengthCoverage, 1) * 0.2
-          ),
-        ),
-        maximumScore,
-      );
-    }
-
-    const tokenCoverage =
-      this.calculateTokenCoverage(
-        normalizedQuery,
+    const candidateTokens =
+      this.getDistinctiveTitleTokens(
         normalizedCandidate,
       );
 
-    if (tokenCoverage <= 0) {
+    if (
+      queryTokens.length === 0
+      || candidateTokens.length === 0
+    ) {
       return 0;
     }
 
-    return this.clampScore(
+    const candidateTokenSet =
+      new Set(candidateTokens);
+
+    const matchingQueryTokens =
+      queryTokens.filter(
+        (token) =>
+          candidateTokenSet.has(
+            token,
+          ),
+      );
+
+    if (
+      matchingQueryTokens.length === 0
+    ) {
+      return 0;
+    }
+
+    const queryCoverage =
+      matchingQueryTokens.length
+      / queryTokens.length;
+
+    const candidateCoverage =
+      matchingQueryTokens.length
+      / candidateTokens.length;
+
+    const combinedCoverage =
+      queryCoverage * 0.75
+      + candidateCoverage * 0.25;
+
+    return this.clampDimensionScore(
       Math.round(
         maximumScore
-        * tokenCoverage
-        * 0.75,
+        * combinedCoverage,
       ),
       maximumScore,
     );
@@ -263,10 +291,14 @@ export class EducationalBookSearchScorer {
     }
 
     const normalizedQuery =
-      this.normalizeSearchText(queryValue);
+      this.normalizeSearchText(
+        queryValue,
+      );
 
     const normalizedCandidate =
-      this.normalizeSearchText(candidateValue);
+      this.normalizeSearchText(
+        candidateValue,
+      );
 
     if (
       !normalizedQuery
@@ -275,14 +307,62 @@ export class EducationalBookSearchScorer {
       return 0;
     }
 
-    if (
-      normalizedQuery
+    return normalizedQuery
       === normalizedCandidate
+        ? maximumScore
+        : 0;
+  }
+
+  /**
+   * Scores discrete educational values such as Subject and Level.
+   *
+   * Exact canonical agreement receives the full score.
+   * Explicit disagreement may apply a negative score.
+   * Missing information does not create a conflict.
+   */
+  private scoreDiscreteValues(
+    queryValues: string[] | undefined,
+    candidateValues: string[] | undefined,
+    maximumScore: number,
+    penalizeConflict: boolean,
+  ): number {
+    const normalizedQueryValues =
+      this.normalizeCollection(
+        queryValues,
+      );
+
+    const normalizedCandidateValues =
+      this.normalizeCollection(
+        candidateValues,
+      );
+
+    if (
+      normalizedQueryValues.length === 0
+      || normalizedCandidateValues.length === 0
     ) {
+      return 0;
+    }
+
+    const candidateValueSet =
+      new Set(
+        normalizedCandidateValues,
+      );
+
+    const hasExactMatch =
+      normalizedQueryValues.some(
+        (value) =>
+          candidateValueSet.has(
+            value,
+          ),
+      );
+
+    if (hasExactMatch) {
       return maximumScore;
     }
 
-    return 0;
+    return penalizeConflict
+      ? -maximumScore
+      : 0;
   }
 
   private scoreCollections(
@@ -291,10 +371,14 @@ export class EducationalBookSearchScorer {
     maximumScore: number,
   ): number {
     const normalizedQueryValues =
-      this.normalizeCollection(queryValues);
+      this.normalizeCollection(
+        queryValues,
+      );
 
     const normalizedCandidateValues =
-      this.normalizeCollection(candidateValues);
+      this.normalizeCollection(
+        candidateValues,
+      );
 
     if (
       normalizedQueryValues.length === 0
@@ -320,11 +404,18 @@ export class EducationalBookSearchScorer {
             maximumScore,
           );
 
-        if (currentScore > bestScore) {
-          bestScore = currentScore;
+        if (
+          currentScore
+          > bestScore
+        ) {
+          bestScore =
+            currentScore;
         }
 
-        if (bestScore === maximumScore) {
+        if (
+          bestScore
+          === maximumScore
+        ) {
           return maximumScore;
         }
       }
@@ -346,11 +437,17 @@ export class EducationalBookSearchScorer {
     }
 
     if (
-      candidateValue.includes(queryValue)
-      || queryValue.includes(candidateValue)
+      candidateValue.includes(
+        queryValue,
+      )
+      || queryValue.includes(
+        candidateValue,
+      )
     ) {
-      return this.clampScore(
-        Math.round(maximumScore * 0.8),
+      return this.clampDimensionScore(
+        Math.round(
+          maximumScore * 0.8,
+        ),
         maximumScore,
       );
     }
@@ -361,11 +458,13 @@ export class EducationalBookSearchScorer {
         candidateValue,
       );
 
-    if (tokenCoverage < 0.5) {
+    if (
+      tokenCoverage < 0.5
+    ) {
       return 0;
     }
 
-    return this.clampScore(
+    return this.clampDimensionScore(
       Math.round(
         maximumScore
         * tokenCoverage
@@ -375,29 +474,70 @@ export class EducationalBookSearchScorer {
     );
   }
 
+  private getDistinctiveTitleTokens(
+    normalizedValue: string,
+  ): string[] {
+    return Array.from(
+      new Set(
+        this.tokenize(
+          normalizedValue,
+        ).filter(
+          (token) => {
+            if (
+              TITLE_STOP_WORDS.has(
+                token,
+              )
+            ) {
+              return false;
+            }
+
+            if (
+              /^\d+$/.test(token)
+            ) {
+              return false;
+            }
+
+            return token.length >= 2;
+          },
+        ),
+      ),
+    );
+  }
+
   private calculateTokenCoverage(
     queryValue: string,
     candidateValue: string,
   ): number {
     const queryTokens =
-      this.tokenize(queryValue);
+      this.tokenize(
+        queryValue,
+      );
 
     const candidateTokenSet =
       new Set(
-        this.tokenize(candidateValue),
+        this.tokenize(
+          candidateValue,
+        ),
       );
 
-    if (queryTokens.length === 0) {
+    if (
+      queryTokens.length === 0
+    ) {
       return 0;
     }
 
     const matchedTokens =
       queryTokens.filter(
         (token) =>
-          candidateTokenSet.has(token),
+          candidateTokenSet.has(
+            token,
+          ),
       ).length;
 
-    return matchedTokens / queryTokens.length;
+    return (
+      matchedTokens
+      / queryTokens.length
+    );
   }
 
   private normalizeCollection(
@@ -410,8 +550,11 @@ export class EducationalBookSearchScorer {
     return Array.from(
       new Set(
         values
-          .map((value) =>
-            this.normalizeSearchText(value),
+          .map(
+            (value) =>
+              this.normalizeSearchText(
+                value,
+              ),
           )
           .filter(Boolean),
       ),
@@ -429,7 +572,10 @@ export class EducationalBookSearchScorer {
       )
       .toLocaleLowerCase("en")
       .replace(/&/g, " and ")
-      .replace(/[^a-z0-9]+/g, " ")
+      .replace(
+        /[^a-z0-9]+/g,
+        " ",
+      )
       .trim()
       .replace(/\s+/g, " ");
   }
@@ -439,11 +585,14 @@ export class EducationalBookSearchScorer {
   ): string[] {
     return value
       .split(" ")
-      .map((token) => token.trim())
+      .map(
+        (token) =>
+          token.trim(),
+      )
       .filter(Boolean);
   }
 
-  private clampScore(
+  private clampDimensionScore(
     score: number,
     maximumScore: number,
   ): number {
@@ -453,6 +602,18 @@ export class EducationalBookSearchScorer {
         0,
       ),
       maximumScore,
+    );
+  }
+
+  private clampTotalScore(
+    score: number,
+  ): number {
+    return Math.min(
+      Math.max(
+        Math.round(score),
+        0,
+      ),
+      100,
     );
   }
 }
