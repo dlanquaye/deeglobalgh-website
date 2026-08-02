@@ -11,6 +11,15 @@ export const publisherRules: KnowledgeRule[] = [
   },
 
   {
+    nodeCode: "PUB_YORK",
+    priority: 100,
+    baseScore: 100,
+    patterns: [
+      "york"
+    ]
+  },
+
+  {
     nodeCode: "PUB_BEST_BRAIN",
     priority: 100,
     baseScore: 100,
