@@ -10,21 +10,25 @@ import {
   BookReadService,
 } from "../lib/ekb/services/BookReadService";
 
-const TARGET_SKUS = [
-  "DG-B1-ENG-BB-017",
-  "DG-B1-MTH-BB-024",
-  "DG-B1-SCI-BB-031",
-  "DG-B4-MTH-GOL-000",
-  "DG-B1-ENG-ESS-052",
-];
+const TARGET_PRODUCT_NAME =
+  "Golden History";
 
-async function main(): Promise<void> {
+const PREVIEW_LIMIT = 10;
+
+async function main():
+  Promise<void> {
   console.log(
-    "Previewing selected Product-to-EKB relationships...",
+    "Previewing Golden History Product-to-EKB relationships...",
+  );
+
+  console.log(
+    "Mode: PREVIEW ONLY - no database writes",
   );
 
   const bookReadService =
-    new BookReadService(prisma);
+    new BookReadService(
+      prisma,
+    );
 
   const searchService =
     new EducationalBookSearchService(
@@ -34,21 +38,19 @@ async function main(): Promise<void> {
   const products =
     await prisma.product.findMany({
       where: {
-        OR: [
-          {
-            sku: {
-              in: TARGET_SKUS,
-            },
-          },
-          {
-            name: {
-              contains:
-                "Golden Mathematics Textbook for Basic 4",
+        isActive: true,
 
-              mode: "insensitive",
-            },
-          },
-        ],
+        educationalEntityId: null,
+
+        educationalEditionId: null,
+
+        name: {
+          contains:
+            TARGET_PRODUCT_NAME,
+
+          mode:
+            "insensitive",
+        },
       },
 
       select: {
@@ -58,16 +60,38 @@ async function main(): Promise<void> {
         publisher: true,
         author: true,
         levelSlugs: true,
+
+        fingerprint: {
+          select: {
+            educationalEntityId:
+              true,
+
+            educationalEditionId:
+              true,
+          },
+        },
       },
 
-      orderBy: {
-        name: "asc",
-      },
+      orderBy: [
+        {
+          name:
+            "asc",
+        },
+        {
+          sku:
+            "asc",
+        },
+      ],
+
+      take:
+        PREVIEW_LIMIT,
     });
 
-  if (products.length === 0) {
+  if (
+    products.length === 0
+  ) {
     throw new Error(
-      "None of the selected test Products could be found.",
+      "No active unlinked Golden History Products could be found.",
     );
   }
 
@@ -76,9 +100,22 @@ async function main(): Promise<void> {
     `Selected Products found: ${products.length}`,
   );
 
-  for (const product of products) {
+  if (
+    products.length !== 6
+  ) {
+    console.log(
+      "Review warning: six Golden History Products were expected for Basic 1-6.",
+    );
+  }
+
+  for (
+    const product
+    of products
+  ) {
     const query =
-      buildSearchQuery(product);
+      buildSearchQuery(
+        product,
+      );
 
     const candidates =
       await searchService.search({
@@ -98,6 +135,34 @@ async function main(): Promise<void> {
       `SKU: ${product.sku}`,
     );
     console.log(
+      `Product publisher: ${product.publisher ?? "NONE"}`,
+    );
+    console.log(
+      `Product author: ${product.author ?? "NONE"}`,
+    );
+    console.log(
+      `Product levels: ${
+        product.levelSlugs.join(
+          ", ",
+        )
+        || "NONE"
+      }`,
+    );
+    console.log(
+      `Product entity link: ${
+        product.fingerprint
+          ?.educationalEntityId
+        ?? "NONE"
+      }`,
+    );
+    console.log(
+      `Product edition link: ${
+        product.fingerprint
+          ?.educationalEditionId
+        ?? "NONE"
+      }`,
+    );
+    console.log(
       `Search query: ${query}`,
     );
 
@@ -110,6 +175,30 @@ async function main(): Promise<void> {
 
       continue;
     }
+
+    const bestScore =
+      candidates[0].score;
+
+    const secondScore =
+      candidates[1]?.score
+      ?? null;
+
+    const scoreMargin =
+      secondScore === null
+        ? null
+        : bestScore
+          - secondScore;
+
+    console.log("");
+    console.log(
+      `Best score: ${bestScore}`,
+    );
+    console.log(
+      `Second score: ${secondScore ?? "NONE"}`,
+    );
+    console.log(
+      `Score margin: ${scoreMargin ?? "N/A"}`,
+    );
 
     candidates.forEach(
       (
@@ -136,6 +225,12 @@ async function main(): Promise<void> {
           `Book: ${candidate.book.entity.canonicalName}`,
         );
         console.log(
+          `Book ID: ${candidate.book.id}`,
+        );
+        console.log(
+          `Book entity ID: ${candidate.book.entityId}`,
+        );
+        console.log(
           `Score: ${candidate.score}`,
         );
         console.log(
@@ -143,6 +238,12 @@ async function main(): Promise<void> {
         );
         console.log(
           `Edition ID: ${edition?.id ?? "NONE"}`,
+        );
+        console.log(
+          `Current edition: ${edition?.isCurrentEdition ?? false}`,
+        );
+        console.log(
+          `Active edition: ${edition?.isActive ?? false}`,
         );
 
         if (
@@ -158,11 +259,17 @@ async function main(): Promise<void> {
           `Subjects: ${
             candidate.book.subjects
               .map(
-                (relationship) =>
-                  relationship.subject
-                    .entity.canonicalName,
+                (
+                  relationship,
+                ) =>
+                  relationship
+                    .subject
+                    .entity
+                    .canonicalName,
               )
-              .join(", ")
+              .join(
+                ", ",
+              )
             || "NONE"
           }`,
         );
@@ -171,19 +278,27 @@ async function main(): Promise<void> {
           `Levels: ${
             candidate.book.levels
               .map(
-                (relationship) =>
-                  relationship.level
-                    .entity.canonicalName,
+                (
+                  relationship,
+                ) =>
+                  relationship
+                    .level
+                    .entity
+                    .canonicalName,
               )
-              .join(", ")
+              .join(
+                ", ",
+              )
             || "NONE"
           }`,
         );
 
         console.log(
           `Publisher: ${
-            candidate.book.bookLine
-              .publisher.entity
+            candidate.book
+              .bookLine
+              .publisher
+              .entity
               .canonicalName
           }`,
         );
@@ -193,7 +308,13 @@ async function main(): Promise<void> {
 
   console.log("");
   console.log(
-    "Selected Product-to-EKB preview completed.",
+    "================================================",
+  );
+  console.log(
+    "Golden History Product-to-EKB preview completed.",
+  );
+  console.log(
+    "No Product or ProductFingerprint records were changed.",
   );
 }
 
@@ -221,26 +342,37 @@ function buildSearchQuery(
           (
             value,
           ): value is string =>
-            Boolean(value),
+            Boolean(
+              value,
+            ),
         ),
     ),
-  ).join(" ");
+  ).join(
+    " ",
+  );
 }
 
 main()
   .catch(
-    (error: unknown) => {
+    (
+      error:
+        unknown,
+    ) => {
       console.error("");
       console.error(
-        "Selected Product-to-EKB preview failed.",
+        "Golden History Product-to-EKB preview failed.",
       );
-      console.error(error);
+      console.error(
+        error,
+      );
 
-      process.exitCode = 1;
+      process.exitCode =
+        1;
     },
   )
   .finally(
     async () => {
-      await prisma.$disconnect();
+      await prisma
+        .$disconnect();
     },
   );
