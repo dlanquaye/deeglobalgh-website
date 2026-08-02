@@ -11,6 +11,10 @@ import {
   BookReadService,
 } from "../services/BookReadService";
 
+import {
+  EducationalVocabulary,
+} from "../vocabulary/EducationalVocabulary";
+
 export type EducationalProductLinkStatus =
   | "ELIGIBLE"
   | "LINKED"
@@ -51,6 +55,22 @@ export interface EducationalProductLinkPreview {
 
   editionId?: string;
 
+  productPublisher?: string;
+
+  candidatePublisher?: string;
+
+  candidateSubjects?: string[];
+
+  candidateResourceTypes?: string[];
+
+  productLevels?: string[];
+
+  candidateLevels?: string[];
+
+  matchingLevels?: string[];
+
+  exactLevelCompatible?: boolean;
+
   reason?: string;
 }
 
@@ -76,6 +96,18 @@ interface EducationalProductLinkRecord {
   } | null;
 }
 
+interface EducationalProductLevelReview {
+  productLevels: string[];
+
+  candidateLevels: string[];
+
+  matchingLevels: string[];
+
+  compatible: boolean;
+
+  reason: string;
+}
+
 /**
  * Reusable Product-to-EKB linking service.
  *
@@ -84,6 +116,8 @@ interface EducationalProductLinkRecord {
  * - Build a Product search query.
  * - Rank EKB Educational Books.
  * - Enforce score and margin safeguards.
+ * - Enforce exact Educational Level compatibility.
+ * - Expose publisher, subject and resource-type evidence.
  * - Select an active published Edition.
  * - Preview links without modifying data.
  * - Apply verified Product and fingerprint links transactionally.
@@ -95,20 +129,27 @@ export class EducationalProductLinkService {
   private readonly searchService:
     EducationalBookSearchService;
 
+  private readonly vocabulary:
+    EducationalVocabulary;
+
   private readonly minimumScore: number;
 
   private readonly minimumMargin: number;
 
   constructor(
-  private readonly prisma:
-    PrismaClient,
+    private readonly prisma:
+      PrismaClient,
 
-  options:
-    EducationalProductLinkOptions = {},
-) {
+    options:
+      EducationalProductLinkOptions = {},
+  ) {
+    this.vocabulary =
+      new EducationalVocabulary();
+
     this.searchService =
       new EducationalBookSearchService(
         new BookReadService(prisma),
+        this.vocabulary,
       );
 
     this.minimumScore =
@@ -331,6 +372,10 @@ export class EducationalProductLinkService {
 
         scoreMargin: 0,
 
+        productPublisher:
+          product.publisher
+          ?? undefined,
+
         reason:
           "Product already has an EKB relationship.",
       };
@@ -365,6 +410,10 @@ export class EducationalProductLinkService {
 
         scoreMargin: 0,
 
+        productPublisher:
+          product.publisher
+          ?? undefined,
+
         reason:
           "No EKB Educational Book candidate was found.",
       };
@@ -383,6 +432,43 @@ export class EducationalProductLinkService {
     const scoreMargin =
       bestCandidate.score
       - secondScore;
+
+    const levelReview =
+      this.reviewExactLevelCompatibility(
+        product,
+        bestCandidate,
+      );
+
+    const candidatePublisher =
+      bestCandidate.book
+        .bookLine
+        ?.publisher
+        ?.entity
+        .canonicalName;
+
+    const candidateSubjects =
+      this.uniqueCanonicalValues(
+        bestCandidate.book
+          .subjects
+          .map(
+            (relationship) =>
+              relationship.subject
+                .entity
+                .canonicalName,
+          ),
+      );
+
+    const candidateResourceTypes =
+      this.uniqueCanonicalValues(
+        bestCandidate.book
+          .resourceTypes
+          .map(
+            (relationship) =>
+              relationship.resourceType
+                .entity
+                .canonicalName,
+          ),
+      );
 
     const commonResult = {
       productId: product.id,
@@ -410,6 +496,28 @@ export class EducationalProductLinkService {
       bookName:
         bestCandidate.book.entity
           .canonicalName,
+
+      productPublisher:
+        product.publisher
+        ?? undefined,
+
+      candidatePublisher,
+
+      candidateSubjects,
+
+      candidateResourceTypes,
+
+      productLevels:
+        levelReview.productLevels,
+
+      candidateLevels:
+        levelReview.candidateLevels,
+
+      matchingLevels:
+        levelReview.matchingLevels,
+
+      exactLevelCompatible:
+        levelReview.compatible,
     };
 
     if (
@@ -442,6 +550,18 @@ export class EducationalProductLinkService {
       };
     }
 
+    if (!levelReview.compatible) {
+      return {
+        ...commonResult,
+
+        status:
+          "LOW_CONFIDENCE",
+
+        reason:
+          levelReview.reason,
+      };
+    }
+
     const edition =
       this.selectCurrentEdition(
         bestCandidate,
@@ -469,7 +589,12 @@ export class EducationalProductLinkService {
         edition.id,
 
       reason:
-        "Candidate passed the score, margin and Edition safeguards.",
+        [
+          "Candidate passed the automated score, margin,",
+          "exact-level and Edition safeguards.",
+          "Subject, resource type, publisher and logical",
+          "book identity still require manual review.",
+        ].join(" "),
     };
   }
 
@@ -547,6 +672,238 @@ export class EducationalProductLinkService {
           ),
       ),
     ).join(" ");
+  }
+
+  private reviewExactLevelCompatibility(
+    product:
+      EducationalProductLinkRecord,
+
+    candidate:
+      EducationalBookSearchResult,
+  ): EducationalProductLevelReview {
+    const productLevels =
+      this.extractCanonicalLevels([
+        product.name,
+        ...product.levelSlugs,
+      ]);
+
+    const candidateLevelValues =
+      candidate.book.levels
+        .flatMap(
+          (relationship) => [
+            relationship.level
+              .entity.canonicalName,
+
+            relationship.level
+              .entity.displayName,
+
+            relationship.level
+              .shortCode,
+          ],
+        )
+        .filter(
+          (
+            value,
+          ): value is string =>
+            typeof value === "string"
+            && value.trim().length > 0,
+        );
+
+    const candidateLevels =
+      this.extractCanonicalLevels(
+        candidateLevelValues,
+      );
+
+    const normalizedCandidateLevels =
+      new Set(
+        candidateLevels.map(
+          (level) =>
+            this.normalizeEducationalValue(
+              level,
+            ),
+        ),
+      );
+
+    const matchingLevels =
+      productLevels.filter(
+        (level) =>
+          normalizedCandidateLevels.has(
+            this.normalizeEducationalValue(
+              level,
+            ),
+          ),
+      );
+
+    if (
+      productLevels.length === 0
+    ) {
+      return {
+        productLevels,
+
+        candidateLevels,
+
+        matchingLevels,
+
+        compatible: false,
+
+        reason:
+          "Exact level safeguard failed because no recognised Product level could be identified.",
+      };
+    }
+
+    if (
+      candidateLevels.length === 0
+    ) {
+      return {
+        productLevels,
+
+        candidateLevels,
+
+        matchingLevels,
+
+        compatible: false,
+
+        reason:
+          "Exact level safeguard failed because the selected Educational Book has no recognised level relationship.",
+      };
+    }
+
+    if (
+      matchingLevels.length
+      !== productLevels.length
+    ) {
+      return {
+        productLevels,
+
+        candidateLevels,
+
+        matchingLevels,
+
+        compatible: false,
+
+        reason:
+          [
+            "Exact level safeguard failed.",
+            `Product level(s): ${productLevels.join(", ")}.`,
+            `Candidate level(s): ${candidateLevels.join(", ")}.`,
+          ].join(" "),
+      };
+    }
+
+    return {
+      productLevels,
+
+      candidateLevels,
+
+      matchingLevels,
+
+      compatible: true,
+
+      reason:
+        `Exact level safeguard passed for ${matchingLevels.join(", ")}.`,
+    };
+  }
+
+  private extractCanonicalLevels(
+    values: string[],
+  ): string[] {
+    const levels =
+      new Map<string, string>();
+
+    for (const value of values) {
+      const normalizedValue =
+        value.trim();
+
+      if (!normalizedValue) {
+        continue;
+      }
+
+      const extraction =
+        this.vocabulary.extract(
+          normalizedValue,
+        );
+
+      for (
+        const match
+        of extraction.levels
+      ) {
+        const canonicalValue =
+          match.canonicalValue.trim();
+
+        const normalizedCanonicalValue =
+          this.normalizeEducationalValue(
+            canonicalValue,
+          );
+
+        if (
+          normalizedCanonicalValue
+          && !levels.has(
+            normalizedCanonicalValue,
+          )
+        ) {
+          levels.set(
+            normalizedCanonicalValue,
+            canonicalValue,
+          );
+        }
+      }
+    }
+
+    return Array.from(
+      levels.values(),
+    );
+  }
+
+  private uniqueCanonicalValues(
+    values:
+      Array<
+        string
+        | null
+        | undefined
+      >,
+  ): string[] {
+    const uniqueValues =
+      new Map<string, string>();
+
+    for (const value of values) {
+      const canonicalValue =
+        value?.trim();
+
+      if (!canonicalValue) {
+        continue;
+      }
+
+      const normalizedValue =
+        this.normalizeEducationalValue(
+          canonicalValue,
+        );
+
+      if (
+        normalizedValue
+        && !uniqueValues.has(
+          normalizedValue,
+        )
+      ) {
+        uniqueValues.set(
+          normalizedValue,
+          canonicalValue,
+        );
+      }
+    }
+
+    return Array.from(
+      uniqueValues.values(),
+    );
+  }
+
+  private normalizeEducationalValue(
+    value: string,
+  ): string {
+    return this.vocabulary
+      .normalizeText(value)
+      .toLocaleLowerCase("en")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   private selectCurrentEdition(
