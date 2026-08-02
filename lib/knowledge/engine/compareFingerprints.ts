@@ -12,6 +12,7 @@ export interface FingerprintComparison {
 
 const dimensionWeights = {
   subject: 40,
+  level: 35,
   curriculum: 25,
   resource: 15,
   language: 10,
@@ -25,7 +26,7 @@ const dimensions = Object.keys(dimensionWeights) as Array<
 
 export function compareFingerprints(
   first: EducationalFingerprint,
-  second: EducationalFingerprint
+  second: EducationalFingerprint,
 ): FingerprintComparison {
   const matchingDimensions: string[] = [];
   const differentDimensions: string[] = [];

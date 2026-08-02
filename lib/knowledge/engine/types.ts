@@ -27,6 +27,7 @@ export type EvidenceType =
   | "curriculum"
   | "activity"
   | "language"
+  | "level"
 
 export interface Evidence {
   type: EvidenceType
@@ -36,7 +37,6 @@ export interface Evidence {
   priority: number
   reason: string
 }
-
 
 /**
  * One classified educational dimension.
@@ -57,6 +57,7 @@ export interface EducationalFingerprint {
   curriculum?: FingerprintDimension
   activity?: FingerprintDimension
   language?: FingerprintDimension
+  level?: FingerprintDimension
 
   totalConfidence: number
 }

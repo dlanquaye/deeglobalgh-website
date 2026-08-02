@@ -4,6 +4,7 @@ import { evaluateCurriculum } from "./evaluateCurriculum";
 import { evaluateResource } from "./evaluateResource";
 import { evaluateActivity } from "./evaluateActivity";
 import { evaluateLanguage } from "./evaluateLanguage";
+import { evaluateLevel } from "./evaluateLevel";
 
 export const classifiers = [
   {
@@ -29,5 +30,9 @@ export const classifiers = [
   {
     key: "language",
     evaluate: evaluateLanguage,
+  },
+  {
+    key: "level",
+    evaluate: evaluateLevel,
   },
 ] as const;
