@@ -3,27 +3,48 @@ import { prisma } from "../../../../lib/prisma";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get("q") || "";
+  const query = searchParams.get("q")?.trim() ?? "";
+
+  if (query.length < 2) {
+    return NextResponse.json([]);
+  }
 
   try {
     const products = await prisma.product.findMany({
       where: {
-        name: {
-  contains: query,
-  mode: "insensitive",
-},
-        isActive: true, // ✅ only active products
+        isActive: true,
+        OR: [
+          {
+            name: {
+              contains: query,
+              mode: "insensitive",
+            },
+          },
+          {
+            sku: {
+              contains: query,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+      orderBy: {
+        name: "asc",
       },
       take: 10,
     });
-console.log("SEARCH:", query);
-console.log("RESULTS:", products.length);
 
     return NextResponse.json(products);
   } catch (error) {
+    console.error("POS product search failed:", error);
+
     return NextResponse.json(
-      { error: "Failed to fetch products" },
-      { status: 500 }
+      {
+        error: "Failed to fetch products",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
