@@ -7,7 +7,7 @@ export async function POST(req: Request) {
 
   const { syncItems } = await req.json();
 
-  const report = await synchronizeCatalog(syncItems, true);
+  const report = await synchronizeCatalog(syncItems, false);
 
   return NextResponse.json({
     success: true,
