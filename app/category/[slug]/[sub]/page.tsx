@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "../CategoryClient";
 
@@ -7,7 +8,7 @@ const SITE_URL = "https://shopdeeglobalgh.com";
 function prettifySlug(slug: string) {
   return slug
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 export async function generateMetadata({
@@ -58,6 +59,7 @@ export default async function CategoryPage({
       where: {
         categorySlug: slug,
         subCategorySlug: sub,
+        isActive: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -75,33 +77,46 @@ export default async function CategoryPage({
 
     products = data || [];
   } catch (error) {
-    console.error("Database error (category page):", error);
+    console.error("Database error (nested category page):", error);
     products = [];
   }
 
+  const prettyMain = prettifySlug(slug);
+  const prettySub = prettifySlug(sub);
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
-
-      {/* 🔙 Back Button */}
+      {/* Back button */}
       <div className="mb-4">
-        <a
+        <Link
           href={`/category/${slug}`}
           className="inline-block text-sm text-blue-600 hover:underline"
         >
-          ← Back to {prettifySlug(slug)}
-        </a>
+          ← Back to {prettyMain}
+        </Link>
       </div>
 
-      {/* 📍 Breadcrumb */}
-      <div className="text-sm text-gray-500 mb-3">
-        <a href="/" className="hover:underline">Home</a> {" / "}
-        <a href={`/category/${slug}`} className="hover:underline">
-          {prettifySlug(slug)}
-        </a> {" / "}
-        <span className="text-gray-700 font-medium">
-          {prettifySlug(sub)}
+      {/* Breadcrumb */}
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-3 text-sm text-gray-500"
+      >
+        <Link href="/" className="hover:underline">
+          Home
+        </Link>
+
+        <span aria-hidden="true"> / </span>
+
+        <Link href={`/category/${slug}`} className="hover:underline">
+          {prettyMain}
+        </Link>
+
+        <span aria-hidden="true"> / </span>
+
+        <span className="font-medium text-gray-700" aria-current="page">
+          {prettySub}
         </span>
-      </div>
+      </nav>
 
       <CategoryClient slug={slug} products={products} />
     </main>

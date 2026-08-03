@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 type Product = {
   id: string;
@@ -9,27 +9,19 @@ type Product = {
 };
 
 type Props = {
-  params: {
-    slug?: string;
-  };
+  params: Promise<{
+    slug: string;
+  }>;
 };
 
-/* -------------------------------------------
-   SAFE SLUG FORMATTER
-------------------------------------------- */
-function prettifySlug(slug?: string) {
-  if (!slug) return "";
-
+function prettifySlug(slug: string) {
   return slug
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-/* -------------------------------------------
-   METADATA
-------------------------------------------- */
 export async function generateMetadata({ params }: Props) {
-  const slug = params?.slug || "";
+  const { slug } = await params;
   const pretty = prettifySlug(slug);
 
   return {
@@ -38,83 +30,85 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-/* -------------------------------------------
-   PAGE
-------------------------------------------- */
 export default async function LevelPage({ params }: Props) {
-  const { slug = "" } = await params;
-  const baseLevel = slug.split("-")[0];
+  const { slug } = await params;
   const pretty = prettifySlug(slug);
 
-  const products: Product[] = slug
-  ? await prisma.product.findMany({
+  let products: Product[] = [];
+
+  try {
+    products = await prisma.product.findMany({
       where: {
+        isActive: true,
         levelSlugs: {
-  has: baseLevel,
-}
+          has: slug,
+        },
       },
       take: 40,
-    })
-  : [];
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        retailPrice: true,
+      },
+    });
+  } catch (error) {
+    console.error("Database error (level page):", error);
+    products = [];
+  }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-
-      {/* Title */}
-      <h1 className="text-2xl font-bold mb-2">
-        {pretty || "School Level"} Textbooks
+    <main className="mx-auto max-w-6xl px-4 py-8">
+      <h1 className="mb-2 text-2xl font-bold">
+        {pretty} Textbooks
       </h1>
 
-      <p className="text-gray-600 mb-6">
-        Shop textbooks and school supplies for {pretty || "all levels"} in Ghana.
+      <p className="mb-6 text-gray-600">
+        Shop textbooks and school supplies for {pretty} in Ghana.
       </p>
 
-      {/* CTA Buttons */}
-      <div className="flex gap-3 mb-8 flex-wrap">
-
-        <Link href="/shop">
-          <button className="btn-primary">
-            Shop All Products
-          </button>
+      <div className="mb-8 flex flex-wrap gap-3">
+        <Link
+          href="/shop"
+          className="rounded-xl bg-blue-900 px-4 py-2 font-semibold text-white hover:bg-blue-800"
+        >
+          Shop All Products
         </Link>
 
         <a
           href="https://wa.me/233246011773"
           target="_blank"
           rel="noopener noreferrer"
+          className="rounded-xl bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400"
         >
-          <button className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">
-            Order on WhatsApp
-          </button>
+          Order on WhatsApp
         </a>
-
       </div>
 
-      {/* Products */}
       {products.length === 0 ? (
         <p className="text-gray-500">
-          No products found for this level.
+          No active products found for this level.
         </p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {products.map((product) => (
-            <Link key={product.id} href={`/product/${product.slug}`}>
-              <div className="border p-3 rounded-xl hover:bg-gray-50 cursor-pointer">
-                
-                <div className="font-semibold text-sm">
-                  {product.name}
-                </div>
+            <Link
+              key={product.id}
+              href={`/product/${product.slug}`}
+              className="rounded-xl border p-3 transition hover:bg-gray-50"
+            >
+              <div className="text-sm font-semibold">{product.name}</div>
 
-                <div className="text-blue-900 font-bold mt-1">
-                  GH₵ {product.retailPrice}
-                </div>
-
+              <div className="mt-1 font-bold text-blue-900">
+                GH₵ {product.retailPrice.toFixed(2)}
               </div>
             </Link>
           ))}
         </div>
       )}
-
-    </div>
+    </main>
   );
 }

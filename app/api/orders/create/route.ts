@@ -9,7 +9,7 @@ function getDeliveryFee(location: string) {
 
   if (loc.includes("kasoa")) return 30;
 
-  return 0; // outside Kasoa → handled manually
+  return 0; // Outside Kasoa: handled manually
 }
 
 export async function POST(req: Request) {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const location = customer?.location || "";
 
     /* ===============================
-       🧾 BASIC VALIDATION
+       BASIC VALIDATION
     =============================== */
     if (
       !orderId ||
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     /* ===============================
-       🔒 PREVENT DUPLICATE ORDER ID
+       PREVENT DUPLICATE ORDER ID
     =============================== */
     const existingOrder = await prisma.order.findUnique({
       where: { orderId },
@@ -51,20 +51,25 @@ export async function POST(req: Request) {
     }
 
     /* ===============================
-       📦 FETCH PRODUCTS BY ID
+       FETCH ACTIVE PRODUCTS BY ID
     =============================== */
-    const ids = items.map((i: any) => i.productId);
+    const ids = items.map((item: any) => item.productId);
 
     const products = await prisma.product.findMany({
-      where: { id: { in: ids } },
+      where: {
+        id: {
+          in: ids,
+        },
+        isActive: true,
+      },
     });
 
     /* ===============================
-       🔒 STOCK VALIDATION
+       STOCK AND AVAILABILITY VALIDATION
     =============================== */
     for (const item of items) {
       const product = products.find(
-        (p) => p.id === item.productId
+        (candidate) => candidate.id === item.productId
       );
 
       if (!product) {
@@ -83,16 +88,16 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-    } // ✅ THIS WAS MISSING
+    }
 
     /* ===============================
-       💰 CALCULATE TOTAL FROM DB
+       CALCULATE TOTAL FROM DATABASE
     =============================== */
     let totalAmount = 0;
 
     const preparedItems = items.map((item: any) => {
       const product = products.find(
-        (p) => p.id === item.productId
+        (candidate) => candidate.id === item.productId
       )!;
 
       const unitPrice = Number(product.retailPrice);
@@ -107,30 +112,26 @@ export async function POST(req: Request) {
         totalPrice,
       };
     });
-    
 
     const deliveryFee = getDeliveryFee(location);
 
-totalAmount += deliveryFee;
-
+    totalAmount += deliveryFee;
 
     /* ===============================
-       🔐 ATOMIC TRANSACTION
+       ATOMIC TRANSACTION
     =============================== */
     const result = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
-  data: {
-    orderId,
-    reference: orderId,
-    email: customer.email,
-    phone: customer.phone,
-    amount: Math.round(totalAmount),
-    paymentStatus: PaymentStatus.PENDING,
-
-    // ✅ CRITICAL FIX
-    locationId: "shop-kasoa",
-  },
-});
+        data: {
+          orderId,
+          reference: orderId,
+          email: customer.email,
+          phone: customer.phone,
+          amount: Math.round(totalAmount),
+          paymentStatus: PaymentStatus.PENDING,
+          locationId: "shop-kasoa",
+        },
+      });
 
       for (const item of preparedItems) {
         await tx.orderItem.create({
@@ -152,9 +153,8 @@ totalAmount += deliveryFee;
       orderId: result.orderId,
       amount: result.amount,
     });
-
   } catch (err: any) {
-    console.error("❌ Order creation failed:", err);
+    console.error("Order creation failed:", err);
 
     let message = "Failed to create order";
 
