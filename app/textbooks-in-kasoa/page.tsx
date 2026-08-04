@@ -42,9 +42,10 @@ export default async function TextbooksKasoaPage({
      QUERY BUILD (SAFE + CLEAN)
   ------------------------------------------- */
   const where: any = {
-    isActive: true,
-    AND: [],
-  };
+  isActive: true,
+  websiteVisible: true,
+  AND: [],
+};
 
   /* CATEGORY (default = textbooks) */
   where.AND.push(

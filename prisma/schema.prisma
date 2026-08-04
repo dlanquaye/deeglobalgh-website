@@ -126,6 +126,7 @@ model Product {
   brand              String?
   tags               String[]
   isActive           Boolean             @default(true)
+  websiteVisible     Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   author             String?

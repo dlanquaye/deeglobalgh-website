@@ -8,9 +8,14 @@ export default async function Page() {
 
   try {
     const data = await prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        websiteVisible: true,
+      },
       take: 8,
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
       select: {
         id: true,
         name: true,
@@ -24,7 +29,7 @@ export default async function Page() {
     products = data || [];
   } catch (error) {
     console.error("Database error:", error);
-    products = []; // ✅ ALWAYS fallback
+    products = [];
   }
 
   return <HomeClient products={products} />;

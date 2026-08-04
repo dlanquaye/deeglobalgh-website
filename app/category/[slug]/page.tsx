@@ -63,6 +63,7 @@ export default async function CategoryPage({
       where: {
         categorySlug: slug,
         isActive: true,
+        websiteVisible: true,
       },
       orderBy: {
         createdAt: "desc",

@@ -57,10 +57,11 @@ export default async function CategoryPage({
   try {
     const data = await prisma.product.findMany({
       where: {
-        categorySlug: slug,
-        subCategorySlug: sub,
-        isActive: true,
-      },
+  categorySlug: slug,
+  subCategorySlug: sub,
+  isActive: true,
+  websiteVisible: true,
+},
       orderBy: {
         createdAt: "desc",
       },

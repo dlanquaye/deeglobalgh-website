@@ -39,11 +39,12 @@ export default async function LevelPage({ params }: Props) {
   try {
     products = await prisma.product.findMany({
       where: {
-        isActive: true,
-        levelSlugs: {
-          has: slug,
-        },
-      },
+  isActive: true,
+  websiteVisible: true,
+  levelSlugs: {
+    has: slug,
+  },
+},
       take: 40,
       orderBy: {
         createdAt: "desc",

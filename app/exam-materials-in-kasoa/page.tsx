@@ -17,9 +17,10 @@ export const dynamic = "force-dynamic";
 export default async function ExamMaterialsPage() {
   const products = await prisma.product.findMany({
     where: {
-      isActive: true,
-      categorySlug: "exam-materials",
-    },
+  isActive: true,
+  websiteVisible: true,
+  categorySlug: "exam-materials",
+},
     orderBy: {
       createdAt: "desc",
     },

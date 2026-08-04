@@ -7,9 +7,12 @@ export const dynamic = "force-dynamic";
 export default async function ShopPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; level?: string; category?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    level?: string;
+    category?: string;
+  }>;
 }) {
-  // ✅ unwrap the Promise
   const params = await searchParams;
 
   const rawSearch = params?.search || "";
@@ -24,27 +27,47 @@ export default async function ShopPage({
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
+      websiteVisible: true,
       AND: [
         ...(category ? [{ categorySlug: category }] : []),
+        ...(level ? [{ levelSlugs: { has: level } }] : []),
 
         ...(keywords.length > 0
-  ? keywords.map((word) => ({
-      OR: [
-        {
-          name: {
-            contains: word,
-            mode: "insensitive" as const,
-          },
-        },
-        {
-          brand: {
-            contains: word,
-            mode: "insensitive" as const,
-          },
-        },
-      ],
-    }))
-  : []),
+          ? keywords.map((word) => ({
+              OR: [
+                {
+                  name: {
+                    contains: word,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  sku: {
+                    contains: word,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  brand: {
+                    contains: word,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  author: {
+                    contains: word,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  publisher: {
+                    contains: word,
+                    mode: "insensitive" as const,
+                  },
+                },
+              ],
+            }))
+          : []),
       ],
     },
     orderBy: {
@@ -53,18 +76,17 @@ export default async function ShopPage({
   });
 
   return (
-    <main className="bg-gray-50 min-h-screen">
-
+    <main className="min-h-screen bg-gray-50">
       {/* HERO */}
       <section className="mx-auto max-w-6xl px-4 py-6">
-        <div className="rounded-2xl bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 text-white p-6 shadow-lg">
+        <div className="rounded-2xl bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 p-6 text-white shadow-lg">
           <h1 className="text-2xl font-bold">
             Shop Textbooks, Stationery & School Essentials
           </h1>
 
-          <p className="text-white/90 mt-2">
-            Browse NaCCA approved textbooks, exam materials, and school supplies.
-            Fast delivery across Kasoa, Accra, and Ghana.
+          <p className="mt-2 text-white/90">
+            Browse NaCCA-approved textbooks, exam materials and school supplies.
+            Fast delivery across Kasoa, Accra and Ghana.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
@@ -72,14 +94,14 @@ export default async function ShopPage({
               href="https://wa.me/233246011773"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-yellow-400 text-black px-5 py-2 rounded-xl font-semibold"
+              className="rounded-xl bg-yellow-400 px-5 py-2 font-semibold text-black"
             >
               Order Now via WhatsApp
             </a>
 
             <Link
               href="/school-list-items-kasoa"
-              className="bg-green-500 text-white px-5 py-2 rounded-xl font-semibold"
+              className="rounded-xl bg-green-500 px-5 py-2 font-semibold text-white"
             >
               View Full School List
             </Link>
@@ -88,22 +110,22 @@ export default async function ShopPage({
       </section>
 
       {/* TRUST STRIP */}
-      <section className="mx-auto max-w-6xl px-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="border rounded-xl p-4 text-sm bg-white">
+      <section className="mx-auto mt-2 grid max-w-6xl grid-cols-1 gap-4 px-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-white p-4 text-sm">
           <strong>NaCCA Approved</strong>
           <p className="text-gray-600">
-            All textbooks follow Ghana’s new curriculum.
+            All textbooks follow Ghana&apos;s current curriculum.
           </p>
         </div>
 
-        <div className="border rounded-xl p-4 text-sm bg-white">
+        <div className="rounded-xl border bg-white p-4 text-sm">
           <strong>Complete School Supplies</strong>
           <p className="text-gray-600">
             Everything in one place for students.
           </p>
         </div>
 
-        <div className="border rounded-xl p-4 text-sm bg-white">
+        <div className="rounded-xl border bg-white p-4 text-sm">
           <strong>Fast Delivery</strong>
           <p className="text-gray-600">
             Reliable delivery across Ghana.
@@ -113,7 +135,6 @@ export default async function ShopPage({
 
       {/* MAIN CONTENT */}
       <section className="mx-auto max-w-6xl px-4 py-8">
-
         {/* SEARCH */}
         <form method="GET" className="mb-6 flex gap-3">
           <input
@@ -121,20 +142,21 @@ export default async function ShopPage({
             name="search"
             defaultValue={rawSearch}
             placeholder="Search textbooks..."
-            className="flex-1 border rounded-xl px-4 py-3"
+            className="flex-1 rounded-xl border px-4 py-3"
           />
-          <button className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold">
+
+          {rawLevel && <input type="hidden" name="level" value={rawLevel} />}
+          {rawCategory && (
+            <input type="hidden" name="category" value={rawCategory} />
+          )}
+
+          <button className="rounded-xl bg-blue-900 px-6 py-3 font-bold text-white">
             Search
           </button>
         </form>
 
-        
-
-        
-
         {/* PRODUCTS */}
         <ShopClient products={products} />
-
       </section>
     </main>
   );

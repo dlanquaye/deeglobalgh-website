@@ -46,9 +46,10 @@ export default async function StationeryKasoaPage({
      QUERY BUILD
   ------------------------------------------- */
   const where: any = {
-    isActive: true,
-    AND: [],
-  };
+  isActive: true,
+  websiteVisible: true,
+  AND: [],
+};
 
   /* CATEGORY (default = stationery) */
   where.AND.push(

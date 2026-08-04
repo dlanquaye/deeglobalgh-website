@@ -23,11 +23,12 @@ export default async function ProductPage({
 
   // ✅ Fetch product
   const product = await prisma.product.findFirst({
-    where: {
-      slug: slug,
-      isActive: true,
-    },
-  });
+  where: {
+    slug,
+    isActive: true,
+    websiteVisible: true,
+  },
+});
 
   console.log("FOUND PRODUCT:", product);
 
@@ -39,10 +40,11 @@ export default async function ProductPage({
   // ✅ Related products
   const relatedProducts = await prisma.product.findMany({
   where: {
-    isActive: true,
-    id: {
-      not: product.id,
-    },
+  isActive: true,
+  websiteVisible: true,
+  id: {
+    not: product.id,
+  },
 
     // MATCH CATEGORY
     categorySlug: product.categorySlug,
@@ -65,8 +67,9 @@ export default async function ProductPage({
 
   const bundleItems = await prisma.product.findMany({
   where: {
-    isActive: true,
-    OR: [
+  isActive: true,
+  websiteVisible: true,
+  OR: [
       { name: { contains: "exercise", mode: "insensitive" } },
       { name: { contains: "pen", mode: "insensitive" } },
       { name: { contains: "set", mode: "insensitive" } },
