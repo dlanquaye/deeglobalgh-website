@@ -16,6 +16,9 @@ import type {
 const BRANCH_ID = "cmq4b407s0000g3jg31elgm80";
 const WAREHOUSE_ID = "cmq4b5g1j0001g3jgy501zz76";
 
+const CATALOG_TRANSACTION_MAX_WAIT_MS = 10_000;
+const CATALOG_TRANSACTION_TIMEOUT_MS = 60_000;
+
 export async function synchronizeCatalog(
   items: SyncItem[],
   dryRun = true
@@ -48,63 +51,71 @@ export async function synchronizeCatalog(
     return report;
   }
 
-  await prisma.$transaction(async (tx) => {
-    for (const item of items) {
-      const validation = validateSyncItem(item);
+  await prisma.$transaction(
+    async (tx) => {
+      for (const item of items) {
+        const validation = validateSyncItem(item);
 
-      if (!validation.valid) {
-        report.errors += validation.errors.length;
-        report.messages.push(...validation.errors);
-        continue;
-      }
+        if (!validation.valid) {
+          report.errors += validation.errors.length;
+          report.messages.push(...validation.errors);
+          continue;
+        }
 
-      if (item.action === "UPDATE") {
-        if (!item.existingId) {
-          report.errors++;
+        if (item.action === "UPDATE") {
+          if (!item.existingId) {
+            report.errors++;
 
-          report.messages.push(
-            `Missing existingId for UPDATE: ${
-              item.product.sku ?? "Unknown SKU"
-            }`
-          );
+            report.messages.push(
+              `Missing existingId for UPDATE: ${
+                item.product.sku ?? "Unknown SKU"
+              }`
+            );
+
+            continue;
+          }
+
+          await tx.product.update({
+            where: {
+              id: item.existingId,
+            },
+            data: buildProductUpdate(item),
+          });
 
           continue;
         }
 
-        await tx.product.update({
-          where: {
-            id: item.existingId,
-          },
-          data: buildProductUpdate(item),
-        });
-      }
+        if (item.action === "INSERT") {
+          const createdProduct = await tx.product.create({
+            data: buildProductCreate(
+              item
+            ) as Prisma.ProductCreateInput,
+          });
 
-      if (item.action === "INSERT") {
-        const createdProduct = await tx.product.create({
-          data: buildProductCreate(
-            item
-          ) as Prisma.ProductCreateInput,
-        });
-
-        await tx.inventory.createMany({
-          data: [
-            {
-              productId: createdProduct.id,
-              locationType: LocationType.BRANCH,
-              locationId: BRANCH_ID,
-              quantity: createdProduct.stockQty,
-            },
-            {
-              productId: createdProduct.id,
-              locationType: LocationType.WAREHOUSE,
-              locationId: WAREHOUSE_ID,
-              quantity: 0,
-            },
-          ],
-        });
+          await tx.inventory.createMany({
+            data: [
+              {
+                productId: createdProduct.id,
+                locationType: LocationType.BRANCH,
+                locationId: BRANCH_ID,
+                quantity: createdProduct.stockQty,
+              },
+              {
+                productId: createdProduct.id,
+                locationType: LocationType.WAREHOUSE,
+                locationId: WAREHOUSE_ID,
+                quantity: 0,
+              },
+            ],
+          });
+        }
       }
+    },
+    {
+      maxWait: CATALOG_TRANSACTION_MAX_WAIT_MS,
+      timeout: CATALOG_TRANSACTION_TIMEOUT_MS,
     }
-  });
+  );
 
   return report;
 }
