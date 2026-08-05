@@ -199,6 +199,12 @@ export async function POST(req: NextRequest) {
       costPrice: Number(row["Cost Price"] ?? 0),
       stockQty: Number(row["Stock Quantity"] ?? 0),
 
+      isActive:
+  String(row["Is Active"] ?? "TRUE").trim().toUpperCase() === "TRUE",
+
+websiteVisible:
+  String(row["Website Visible"] ?? "TRUE").trim().toUpperCase() === "TRUE",
+
       action: item.action,
       matchType: item.matchType,
       existingId: item.existingId,
@@ -335,6 +341,9 @@ export async function POST(req: NextRequest) {
 
       costPrice: item.costPrice,
       stockQty: item.stockQty,
+
+      isActive: item.isActive,
+websiteVisible: item.websiteVisible,
     },
   }));
 

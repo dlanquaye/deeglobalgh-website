@@ -78,6 +78,19 @@ export const SEO_FIELDS = [
 ] as const;
 
 /**
+ * Public storefront visibility.
+ *
+ * websiteVisible determines whether an active operational product
+ * appears on the public website.
+ *
+ * isActive is deliberately excluded because catalogue updates must
+ * not automatically deactivate products used by POS and inventory.
+ */
+export const VISIBILITY_FIELDS = [
+  "websiteVisible",
+] as const;
+
+/**
  * Existing product slugs should never be overwritten automatically.
  */
 export const PROTECTED_FIELDS = [
@@ -93,4 +106,5 @@ export const EDITABLE_FIELDS = [
   ...CLASSIFICATION_FIELDS,
   ...MEDIA_FIELDS,
   ...SEO_FIELDS,
+  ...VISIBILITY_FIELDS,
 ] as const;
