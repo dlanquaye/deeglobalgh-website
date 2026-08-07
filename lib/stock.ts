@@ -10,7 +10,13 @@ export async function applyStockMovement(
     throw new Error("Movement not found");
   }
 
+  if (!Number.isInteger(movement.quantity) || movement.quantity <= 0) {
+    throw new Error("Movement quantity must be greater than zero");
+  }
+
+  // ==============================
   // REMOVE STOCK
+  // ==============================
   if (movement.fromLocationType && movement.fromLocationId) {
     const inventory = await db.inventory.findFirst({
       where: {
@@ -18,46 +24,57 @@ export async function applyStockMovement(
         locationType: movement.fromLocationType,
         locationId: movement.fromLocationId,
       },
+      select: {
+        id: true,
+      },
     });
 
-    if (!inventory || inventory.quantity < movement.quantity) {
+    if (!inventory) {
       throw new Error("Insufficient stock");
     }
 
-    await db.inventory.update({
-      where: { id: inventory.id },
+    const deduction = await db.inventory.updateMany({
+      where: {
+        id: inventory.id,
+        quantity: {
+          gte: movement.quantity,
+        },
+      },
       data: {
-        quantity: inventory.quantity - movement.quantity,
+        quantity: {
+          decrement: movement.quantity,
+        },
       },
     });
+
+    if (deduction.count !== 1) {
+      throw new Error("Insufficient stock");
+    }
   }
 
+  // ==============================
   // ADD STOCK
+  // ==============================
   if (movement.toLocationType && movement.toLocationId) {
-    const inventory = await db.inventory.findFirst({
+    await db.inventory.upsert({
       where: {
-        productId: movement.productId,
-        locationType: movement.toLocationType,
-        locationId: movement.toLocationId,
-      },
-    });
-
-    if (inventory) {
-      await db.inventory.update({
-        where: { id: inventory.id },
-        data: {
-          quantity: inventory.quantity + movement.quantity,
-        },
-      });
-    } else {
-      await db.inventory.create({
-        data: {
+        productId_locationType_locationId: {
           productId: movement.productId,
           locationType: movement.toLocationType,
           locationId: movement.toLocationId,
-          quantity: movement.quantity,
         },
-      });
-    }
+      },
+      update: {
+        quantity: {
+          increment: movement.quantity,
+        },
+      },
+      create: {
+        productId: movement.productId,
+        locationType: movement.toLocationType,
+        locationId: movement.toLocationId,
+        quantity: movement.quantity,
+      },
+    });
   }
 }
