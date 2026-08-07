@@ -1,144 +1,291 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { applyStockMovement } from "@/lib/stock";
+import { cookies } from "next/headers";
 import { LocationType } from "@prisma/client";
 
-export async function POST(req: Request) {
+import { prisma } from "@/lib/prisma";
+import { applyStockMovement } from "@/lib/stock";
+
+type AdminSession = {
+  adminId?: string;
+  role?: string;
+  staffId?: string | null;
+  branchId?: string | null;
+  staffName?: string | null;
+};
+
+type CheckoutItem = {
+  id: string;
+  quantity: number;
+};
+
+class CheckoutError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "CheckoutError";
+    this.status = status;
+  }
+}
+
+async function getAdminSession(): Promise<AdminSession | null> {
+  const cookieStore = await cookies();
+  const rawCookie = cookieStore.get("dg_admin")?.value;
+
+  if (!rawCookie) {
+    return null;
+  }
+
   try {
-    const body = await req.json();
+    return JSON.parse(
+      decodeURIComponent(rawCookie)
+    ) as AdminSession;
+  } catch {
+    return null;
+  }
+}
 
-const {
-  items,
-  customerName,
-  customerPhone,
-  paymentMethod,
-} = body;
+function normaliseItems(items: unknown): CheckoutItem[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new CheckoutError("No items provided");
+  }
 
-if (!items || items.length === 0) {
-  return NextResponse.json(
-    { error: "No items provided" },
-    { status: 400 }
+  const quantitiesByProduct = new Map<string, number>();
+
+  for (const item of items) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("id" in item) ||
+      !("quantity" in item)
+    ) {
+      throw new CheckoutError("Invalid checkout item");
+    }
+
+    const id = String(item.id);
+    const quantity = Number(item.quantity);
+
+    if (!id) {
+      throw new CheckoutError("Invalid product");
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new CheckoutError(
+        "Product quantity must be a positive whole number"
+      );
+    }
+
+    quantitiesByProduct.set(
+      id,
+      (quantitiesByProduct.get(id) ?? 0) + quantity
+    );
+  }
+
+  return Array.from(
+    quantitiesByProduct.entries(),
+    ([id, quantity]) => ({
+      id,
+      quantity,
+    })
   );
 }
 
-const result = await prisma.$transaction(async (tx) => {
-  const productIds = items.map((item: any) => item.id);
+export async function POST(req: Request) {
+  try {
+    const session = await getAdminSession();
 
-const products = await tx.product.findMany({
-  where: {
-    id: {
-      in: productIds,
-    },
-  },
-});
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-const productMap = new Map(
-  products.map((product) => [product.id, product])
-);
+    if (!session.branchId) {
+      return NextResponse.json(
+        { error: "No branch is assigned to this account" },
+        { status: 400 }
+      );
+    }
 
-  // Validate branch inventory first
-for (const item of items) {
-  const product = productMap.get(item.id);
+    const actorId = session.staffId ?? session.adminId;
 
-  if (!product) {
-    throw new Error(`Product not found`);
-  }
+    if (!actorId) {
+      return NextResponse.json(
+        { error: "No staff or admin identity is available" },
+        { status: 400 }
+      );
+    }
 
-  const inventory = await tx.inventory.findFirst({
-    where: {
-      productId: item.id,
-      locationType: LocationType.BRANCH,
-      locationId: "cmq4b407s0000g3jg31elgm80",
-    },
-  });
+    const body = await req.json();
 
-  const availableQty = inventory?.quantity || 0;
+    const {
+      items: rawItems,
+      customerName,
+      customerPhone,
+      paymentMethod,
+    } = body;
 
-  if (availableQty < item.quantity) {
-    throw new Error(
-      `Not enough stock for ${product.name}. Available: ${availableQty}`
-    );
-  }
-}
+    const items = normaliseItems(rawItems);
 
-  // Calculate total
-  let total = 0;
+    const branchId = session.branchId;
 
-  for (const item of items) {
-    const product = productMap.get(item.id);
+    const result = await prisma.$transaction(async (tx) => {
+      const productIds = items.map((item) => item.id);
 
-    if (!product) continue;
+      const products = await tx.product.findMany({
+        where: {
+          id: {
+            in: productIds,
+          },
+          isActive: true,
+        },
+      });
 
-    total += product.retailPrice * item.quantity;
-  }
+      const productMap = new Map(
+        products.map((product) => [product.id, product])
+      );
 
-  // Create order
-  const order = await tx.order.create({
-    data: {
-      orderId: `POS-${Date.now()}`,
-      email: "pos@shop.com",
+      for (const item of items) {
+        if (!productMap.has(item.id)) {
+          throw new CheckoutError(
+            "Product not found or inactive",
+            400
+          );
+        }
+      }
 
-      phone: customerPhone || "0000000000",
-      customerName: customerName || null,
-      paymentMethod: paymentMethod || "CASH",
+      const inventories = await tx.inventory.findMany({
+        where: {
+          productId: {
+            in: productIds,
+          },
+          locationType: LocationType.BRANCH,
+          locationId: branchId,
+        },
+      });
 
-      amount: Math.round(total),
-      paymentStatus: "PAID",
-      
-      locationId: "cmq4b407s0000g3jg31elgm80",
-    },
-  });
+      const inventoryMap = new Map(
+        inventories.map((inventory) => [
+          inventory.productId,
+          inventory,
+        ])
+      );
 
-  // Process each item
-  for (const item of items) {
-    const product = productMap.get(item.id);
+      // Friendly stock validation before creating the order.
+      // applyStockMovement() performs the final atomic protection.
+      for (const item of items) {
+        const product = productMap.get(item.id)!;
+        const inventory = inventoryMap.get(item.id);
+        const availableQty = inventory?.quantity ?? 0;
 
-    if (!product) continue;
+        if (availableQty < item.quantity) {
+          throw new CheckoutError(
+            `Not enough stock for ${product.name}. Available: ${availableQty}`,
+            409
+          );
+        }
+      }
 
-    // Deduct stock
-    await tx.product.update({
-      where: { id: item.id },
-      data: {
-        stockQty: product.stockQty - item.quantity,
-      },
+      let total = 0;
+
+      for (const item of items) {
+        const product = productMap.get(item.id)!;
+
+        total += product.retailPrice * item.quantity;
+      }
+
+      const order = await tx.order.create({
+        data: {
+          orderId: `POS-${Date.now()}`,
+          email: "pos@shop.com",
+          phone: customerPhone || "0000000000",
+          customerName: customerName || null,
+          paymentMethod: paymentMethod || "CASH",
+          amount: Math.round(total),
+          paymentStatus: "PAID",
+          locationId: branchId,
+        },
+      });
+
+      for (const item of items) {
+        const product = productMap.get(item.id)!;
+
+        const movement = await tx.stockMovement.create({
+          data: {
+            productId: product.id,
+            quantity: item.quantity,
+            type: "SALE",
+            fromLocationType: LocationType.BRANCH,
+            fromLocationId: branchId,
+            createdByStaffId: actorId,
+          },
+        });
+
+        // Atomically deduct from the actual Branch Inventory.
+        await applyStockMovement(tx, movement.id);
+
+        // Read the authoritative Branch quantity after deduction.
+        const updatedInventory = await tx.inventory.findUnique({
+          where: {
+            productId_locationType_locationId: {
+              productId: product.id,
+              locationType: LocationType.BRANCH,
+              locationId: branchId,
+            },
+          },
+          select: {
+            quantity: true,
+          },
+        });
+
+        if (!updatedInventory) {
+          throw new CheckoutError(
+            `Inventory record missing for ${product.name}`,
+            409
+          );
+        }
+
+        // Product.stockQty is maintained as the operational mirror
+        // of this Branch Inventory quantity.
+        await tx.product.update({
+          where: {
+            id: product.id,
+          },
+          data: {
+            stockQty: updatedInventory.quantity,
+          },
+        });
+
+        await tx.orderItem.create({
+          data: {
+            orderId: order.id,
+            productId: product.id,
+            quantity: item.quantity,
+            unitPrice: product.retailPrice,
+            totalPrice:
+              product.retailPrice * item.quantity,
+          },
+        });
+      }
+
+      return order;
     });
 
-    // Create order item
-    await tx.orderItem.create({
-      data: {
-        orderId: order.id,
-        productId: product.id,
-        quantity: item.quantity,
-        unitPrice: product.retailPrice,
-        totalPrice:
-         product.retailPrice * item.quantity,
-       },
-     });
-
-    // Inventory movement
-    const movement = await tx.stockMovement.create({
-  data: {
-    productId: product.id,
-    quantity: item.quantity,
-    type: "SALE",
-    fromLocationType: LocationType.BRANCH,
-    fromLocationId: "cmq4b407s0000g3jg31elgm80",
-    createdByStaffId: "DG001",
-  },
-});
-
-await applyStockMovement(tx, movement.id);
-  }
-
-  return order;
-});
-
-return NextResponse.json({
-  success: true,
-  orderId: result.orderId,
-});
-
+    return NextResponse.json({
+      success: true,
+      orderId: result.orderId,
+    });
   } catch (error) {
+    console.error("POS checkout error:", error);
+
+    if (error instanceof CheckoutError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+
     return NextResponse.json(
       { error: "Checkout failed" },
       { status: 500 }
