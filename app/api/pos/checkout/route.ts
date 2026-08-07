@@ -155,6 +155,23 @@ export async function POST(req: Request) {
         }
       }
 
+      // ==============================
+      // SELLING PRICE PROTECTION
+      // ==============================
+      for (const item of items) {
+        const product = productMap.get(item.id)!;
+
+        if (
+          !Number.isFinite(product.retailPrice) ||
+          product.retailPrice <= 0
+        ) {
+          throw new CheckoutError(
+            "This product has no selling price configured. Update the price before selling.",
+            400
+          );
+        }
+      }
+
       const inventories = await tx.inventory.findMany({
         where: {
           productId: {
@@ -222,10 +239,8 @@ export async function POST(req: Request) {
           },
         });
 
-        // Atomically deduct from the actual Branch Inventory.
         await applyStockMovement(tx, movement.id);
 
-        // Read the authoritative Branch quantity after deduction.
         const updatedInventory = await tx.inventory.findUnique({
           where: {
             productId_locationType_locationId: {
@@ -246,8 +261,6 @@ export async function POST(req: Request) {
           );
         }
 
-        // Product.stockQty is maintained as the operational mirror
-        // of this Branch Inventory quantity.
         await tx.product.update({
           where: {
             id: product.id,
