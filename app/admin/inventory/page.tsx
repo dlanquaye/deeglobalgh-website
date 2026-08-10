@@ -107,7 +107,7 @@ const inventorySummary = await prisma.inventory.groupBy({
         Inventory Dashboard
       </h1>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
   <a
     href="/admin/inventory/receive"
     className="bg-green-600 text-white px-4 py-2 rounded"
@@ -155,6 +155,20 @@ const inventorySummary = await prisma.inventory.groupBy({
   className="bg-indigo-600 text-white px-4 py-2 rounded"
 >
   View Adjustments
+</a>
+
+<a
+  href="/admin/inventory/break-bulk"
+  className="bg-teal-600 text-white px-4 py-2 rounded"
+>
+  Break Bulk
+</a>
+
+<a
+  href="/admin/inventory/break-bulk/history"
+  className="bg-slate-700 text-white px-4 py-2 rounded"
+>
+  Break Bulk History
 </a>
 
 
