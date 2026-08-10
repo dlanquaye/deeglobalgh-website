@@ -139,6 +139,11 @@ model Product {
   orderItems         OrderItem[]
   returnItems        ReturnItem[]
 
+  breakBulkSourceRules            BreakBulkRule[]       @relation("BreakBulkSourceProduct")
+  breakBulkDestinationRules       BreakBulkRule[]       @relation("BreakBulkDestinationProduct")
+  breakBulkSourceConversions      BreakBulkConversion[] @relation("BreakBulkConversionSourceProduct")
+  breakBulkDestinationConversions BreakBulkConversion[] @relation("BreakBulkConversionDestinationProduct")
+
   fingerprint ProductFingerprint?
 
   estimateItems EstimateItem[]
@@ -334,6 +339,65 @@ model StockMovement {
   createdByStaffId String
   createdAt        DateTime      @default(now())
   status           String        @default("PENDING")
+}
+
+model BreakBulkRule {
+  id                   String   @id @default(cuid())
+  sourceProductId      String
+  destinationProductId String
+  conversionRatio      Int
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  sourceProduct Product @relation("BreakBulkSourceProduct", fields: [sourceProductId], references: [id], onDelete: Restrict)
+
+  destinationProduct Product @relation("BreakBulkDestinationProduct", fields: [destinationProductId], references: [id], onDelete: Restrict)
+
+  conversions BreakBulkConversion[]
+
+  @@unique([sourceProductId, destinationProductId])
+  @@index([sourceProductId])
+  @@index([destinationProductId])
+  @@index([isActive])
+}
+
+model BreakBulkConversion {
+  id                   String       @id @default(cuid())
+  ruleId               String
+  sourceProductId      String
+  destinationProductId String
+  locationType         LocationType
+  locationId           String
+
+  sourceQuantityConverted    Int
+  conversionRatio            Int
+  destinationQuantityCreated Int
+
+  sourceQuantityBefore      Int
+  sourceQuantityAfter       Int
+  destinationQuantityBefore Int
+  destinationQuantityAfter  Int
+
+  sourceMovementId      String
+  destinationMovementId String
+
+  createdByStaffId String
+  createdAt        DateTime @default(now())
+  note             String?
+
+  rule BreakBulkRule @relation(fields: [ruleId], references: [id], onDelete: Restrict)
+
+  sourceProduct Product @relation("BreakBulkConversionSourceProduct", fields: [sourceProductId], references: [id], onDelete: Restrict)
+
+  destinationProduct Product @relation("BreakBulkConversionDestinationProduct", fields: [destinationProductId], references: [id], onDelete: Restrict)
+
+  @@index([ruleId])
+  @@index([sourceProductId])
+  @@index([destinationProductId])
+  @@index([locationType, locationId])
+  @@index([createdByStaffId])
+  @@index([createdAt])
 }
 
 model DailyClosing {
@@ -2510,6 +2574,8 @@ enum MovementType {
   SALE
   ADJUSTMENT
   RETURN
+  BREAK_BULK_OUT
+  BREAK_BULK_IN
 }
 
 enum Supplier {
