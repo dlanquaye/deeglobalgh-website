@@ -9,6 +9,7 @@ import {
 import {
   LocationType,
   MovementType,
+  Prisma,
 } from "@prisma/client";
 
 const {
@@ -79,6 +80,55 @@ const activeRule = {
   },
 };
 
+function configureSuccessfulTransaction(
+  tx: ReturnType<
+    typeof createTransactionClient
+  >
+) {
+  tx.breakBulkRule.findUnique.mockResolvedValue(
+    activeRule
+  );
+
+  /*
+   * inventory.findUnique calls:
+   *
+   * 1. Source stock before conversion
+   * 2. Source stock after conversion
+   * 3. Destination stock after conversion
+   */
+  tx.inventory.findUnique
+    .mockResolvedValueOnce({
+      id: "source-inventory",
+      quantity: 1,
+    })
+    .mockResolvedValueOnce({
+      quantity: 0,
+    })
+    .mockResolvedValueOnce({
+      quantity: 20,
+    });
+
+  tx.stockMovement.create
+    .mockResolvedValueOnce({
+      id: "movement-out",
+    })
+    .mockResolvedValueOnce({
+      id: "movement-in",
+    });
+
+  tx.product.update.mockResolvedValue({});
+
+  tx.breakBulkConversion.create.mockResolvedValue(
+    {
+      id: "conversion-1",
+    }
+  );
+
+  applyStockMovementMock.mockResolvedValue(
+    undefined
+  );
+}
+
 describe("breakBulkInventory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -90,50 +140,7 @@ describe("breakBulkInventory", () => {
       const tx =
         createTransactionClient();
 
-      tx.breakBulkRule.findUnique.mockResolvedValue(
-        activeRule
-      );
-
-      /*
-       * inventory.findUnique calls:
-       *
-       * 1. Source stock before conversion
-       * 2. Source stock after conversion
-       * 3. Destination stock after conversion
-       */
-      tx.inventory.findUnique
-        .mockResolvedValueOnce({
-          id: "source-inventory",
-          quantity: 1,
-        })
-        .mockResolvedValueOnce({
-          quantity: 0,
-        })
-        .mockResolvedValueOnce({
-          quantity: 20,
-        });
-
-      tx.stockMovement.create
-        .mockResolvedValueOnce({
-          id: "movement-out",
-        })
-        .mockResolvedValueOnce({
-          id: "movement-in",
-        });
-
-      tx.product.update.mockResolvedValue(
-        {}
-      );
-
-      tx.breakBulkConversion.create.mockResolvedValue(
-        {
-          id: "conversion-1",
-        }
-      );
-
-      applyStockMovementMock.mockResolvedValue(
-        undefined
-      );
+      configureSuccessfulTransaction(tx);
 
       transactionMock.mockImplementation(
         async (
@@ -153,6 +160,20 @@ describe("breakBulkInventory", () => {
           createdByStaffId: "staff-1",
           note: "Unit test conversion",
         });
+
+      expect(
+        transactionMock
+      ).toHaveBeenCalledWith(
+        expect.any(Function),
+        {
+          maxWait: 10_000,
+          timeout: 30_000,
+          isolationLevel:
+            Prisma
+              .TransactionIsolationLevel
+              .Serializable,
+        }
+      );
 
       expect(
         tx.breakBulkRule.findUnique
@@ -259,31 +280,41 @@ describe("breakBulkInventory", () => {
       ).toHaveBeenCalledWith({
         data: {
           ruleId: "rule-1",
+
           sourceProductId:
             "source-product",
+
           destinationProductId:
             "destination-product",
+
           locationType:
             LocationType.BRANCH,
+
           locationId: "branch-1",
 
           sourceQuantityConverted: 1,
+
           conversionRatio: 20,
+
           destinationQuantityCreated: 20,
 
           sourceQuantityBefore: 1,
+
           sourceQuantityAfter: 0,
 
           destinationQuantityBefore: 0,
+
           destinationQuantityAfter: 20,
 
           sourceMovementId:
             "movement-out",
+
           destinationMovementId:
             "movement-in",
 
           createdByStaffId:
             "staff-1",
+
           note: "Unit test conversion",
         },
       });
@@ -386,6 +417,100 @@ describe("breakBulkInventory", () => {
       expect(
         tx.breakBulkConversion.create
       ).not.toHaveBeenCalled();
+    }
+  );
+
+  it(
+    "retries a serializable transaction after a P2034 conflict",
+    async () => {
+      const tx =
+        createTransactionClient();
+
+      configureSuccessfulTransaction(tx);
+
+      const transactionConflict =
+        new Prisma.PrismaClientKnownRequestError(
+          "Transaction conflict",
+          {
+            code: "P2034",
+            clientVersion: "6.19.3",
+          }
+        );
+
+      transactionMock
+        .mockRejectedValueOnce(
+          transactionConflict
+        )
+        .mockImplementationOnce(
+          async (
+            callback: (
+              client: typeof tx
+            ) => unknown
+          ) => callback(tx)
+        );
+
+      const result =
+        await breakBulkInventory({
+          ruleId: "rule-1",
+          locationType:
+            LocationType.BRANCH,
+          locationId: "branch-1",
+          sourceQuantity: 1,
+          createdByStaffId: "staff-1",
+          note: "Retry test",
+        });
+
+      expect(
+        transactionMock
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        transactionMock
+      ).toHaveBeenNthCalledWith(
+        1,
+        expect.any(Function),
+        {
+          maxWait: 10_000,
+          timeout: 30_000,
+          isolationLevel:
+            Prisma
+              .TransactionIsolationLevel
+              .Serializable,
+        }
+      );
+
+      expect(
+        transactionMock
+      ).toHaveBeenNthCalledWith(
+        2,
+        expect.any(Function),
+        {
+          maxWait: 10_000,
+          timeout: 30_000,
+          isolationLevel:
+            Prisma
+              .TransactionIsolationLevel
+              .Serializable,
+        }
+      );
+
+      expect(
+        tx.stockMovement.create
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        applyStockMovementMock
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        tx.breakBulkConversion.create
+      ).toHaveBeenCalledTimes(1);
+
+      expect(result.success).toBe(true);
+
+      expect(result.conversionId).toBe(
+        "conversion-1"
+      );
     }
   );
 });
