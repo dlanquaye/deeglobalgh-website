@@ -28,15 +28,13 @@ model Order {
   locationId       String?
   customerName     String?
   paymentMethod    String?
-
-  // Secure public digital receipt identifier.
-  // Existing orders may remain null.
-  receiptToken String? @unique
+  receiptToken     String?       @unique
 
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]
   orderItems         OrderItem[]
   returns            ReturnRequest[]
+  payments           OrderPayment[]
 
   @@index([orderId])
   @@index([reference])
@@ -56,6 +54,30 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model OrderPayment {
+  id            String             @id @default(cuid())
+  orderId       String
+  method        PaymentMethod
+  amountPesewas Int
+  status        OrderPaymentStatus @default(PENDING)
+
+  provider          String?
+  providerReference String? @unique
+  providerCode      String?
+  phone             String?
+  providerStatus    String?
+
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([method])
+  @@index([status])
 }
 
 model ImportShipment {
@@ -2515,6 +2537,13 @@ enum ImportSourceApp {
 enum ShippingMode {
   AIR
   SEA
+}
+
+enum OrderPaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
 }
 
 enum PaymentMethod {
