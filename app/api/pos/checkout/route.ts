@@ -502,6 +502,7 @@ export async function POST(
             result.paymentMethod
           )}\n` +
           `Receipt: ${digitalReceiptUrl}\n` +
+          `Help: 0246 011 773\n` +
           `Review: https://www.shopdeeglobalgh.com/review\n` +
           `Thank you.`;
 
