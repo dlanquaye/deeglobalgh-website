@@ -4,6 +4,7 @@ import { LocationType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { applyStockMovement } from "@/lib/stock";
+import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
 type AdminSession = {
   adminId?: string;
@@ -30,7 +31,8 @@ class CheckoutError extends Error {
 
 async function getAdminSession(): Promise<AdminSession | null> {
   const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("dg_admin")?.value;
+  const rawCookie =
+    cookieStore.get("dg_admin")?.value;
 
   if (!rawCookie) {
     return null;
@@ -45,12 +47,20 @@ async function getAdminSession(): Promise<AdminSession | null> {
   }
 }
 
-function normaliseItems(items: unknown): CheckoutItem[] {
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new CheckoutError("No items provided");
+function normaliseItems(
+  items: unknown
+): CheckoutItem[] {
+  if (
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
+    throw new CheckoutError(
+      "No items provided"
+    );
   }
 
-  const quantitiesByProduct = new Map<string, number>();
+  const quantitiesByProduct =
+    new Map<string, number>();
 
   for (const item of items) {
     if (
@@ -59,17 +69,26 @@ function normaliseItems(items: unknown): CheckoutItem[] {
       !("id" in item) ||
       !("quantity" in item)
     ) {
-      throw new CheckoutError("Invalid checkout item");
+      throw new CheckoutError(
+        "Invalid checkout item"
+      );
     }
 
     const id = String(item.id);
-    const quantity = Number(item.quantity);
+    const quantity = Number(
+      item.quantity
+    );
 
     if (!id) {
-      throw new CheckoutError("Invalid product");
+      throw new CheckoutError(
+        "Invalid product"
+      );
     }
 
-    if (!Number.isInteger(quantity) || quantity <= 0) {
+    if (
+      !Number.isInteger(quantity) ||
+      quantity <= 0
+    ) {
       throw new CheckoutError(
         "Product quantity must be a positive whole number"
       );
@@ -77,7 +96,8 @@ function normaliseItems(items: unknown): CheckoutItem[] {
 
     quantitiesByProduct.set(
       id,
-      (quantitiesByProduct.get(id) ?? 0) + quantity
+      (quantitiesByProduct.get(id) ??
+        0) + quantity
     );
   }
 
@@ -90,34 +110,73 @@ function normaliseItems(items: unknown): CheckoutItem[] {
   );
 }
 
-export async function POST(req: Request) {
+function formatPaymentMethod(
+  value: string | null | undefined
+) {
+  switch (value) {
+    case "MOMO":
+      return "Mobile Money";
+
+    case "BANK_TRANSFER":
+      return "Bank Transfer";
+
+    case "ONLINE_CARD":
+      return "Card";
+
+    case "CASH":
+    default:
+      return "Cash";
+  }
+}
+
+export async function POST(
+  req: Request
+) {
   try {
-    const session = await getAdminSession();
+    const session =
+      await getAdminSession();
 
     if (!session) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        {
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
     if (!session.branchId) {
       return NextResponse.json(
-        { error: "No branch is assigned to this account" },
-        { status: 400 }
+        {
+          error:
+            "No branch is assigned to this account",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const actorId = session.staffId ?? session.adminId;
+    const actorId =
+      session.staffId ??
+      session.adminId;
 
     if (!actorId) {
       return NextResponse.json(
-        { error: "No staff or admin identity is available" },
-        { status: 400 }
+        {
+          error:
+            "No staff or admin identity is available",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const body = await req.json();
+    const body =
+      await req.json();
 
     const {
       items: rawItems,
@@ -126,182 +185,379 @@ export async function POST(req: Request) {
       paymentMethod,
     } = body;
 
-    const items = normaliseItems(rawItems);
+    const items =
+      normaliseItems(rawItems);
 
-    const branchId = session.branchId;
+    const branchId =
+      session.branchId;
 
-    const result = await prisma.$transaction(async (tx) => {
-      const productIds = items.map((item) => item.id);
+    const cleanCustomerPhone =
+      typeof customerPhone ===
+      "string"
+        ? customerPhone.trim()
+        : "";
 
-      const products = await tx.product.findMany({
-        where: {
-          id: {
-            in: productIds,
-          },
-          isActive: true,
-        },
-      });
+    const result =
+      await prisma.$transaction(
+        async (tx) => {
+          const productIds =
+            items.map(
+              (item) => item.id
+            );
 
-      const productMap = new Map(
-        products.map((product) => [product.id, product])
+          const products =
+            await tx.product.findMany({
+              where: {
+                id: {
+                  in: productIds,
+                },
+                isActive: true,
+              },
+            });
+
+          const productMap =
+            new Map(
+              products.map(
+                (product) => [
+                  product.id,
+                  product,
+                ]
+              )
+            );
+
+          for (const item of items) {
+            if (
+              !productMap.has(
+                item.id
+              )
+            ) {
+              throw new CheckoutError(
+                "Product not found or inactive",
+                400
+              );
+            }
+          }
+
+          // ==============================
+          // SELLING PRICE PROTECTION
+          // ==============================
+          for (const item of items) {
+            const product =
+              productMap.get(
+                item.id
+              )!;
+
+            if (
+              !Number.isFinite(
+                product.retailPrice
+              ) ||
+              product.retailPrice <=
+                0
+            ) {
+              throw new CheckoutError(
+                "This product has no selling price configured. Update the price before selling.",
+                400
+              );
+            }
+          }
+
+          const inventories =
+            await tx.inventory.findMany({
+              where: {
+                productId: {
+                  in: productIds,
+                },
+                locationType:
+                  LocationType.BRANCH,
+                locationId:
+                  branchId,
+              },
+            });
+
+          const inventoryMap =
+            new Map(
+              inventories.map(
+                (inventory) => [
+                  inventory.productId,
+                  inventory,
+                ]
+              )
+            );
+
+          // Friendly stock validation before creating
+          // the order. applyStockMovement() performs
+          // the final atomic protection.
+          for (const item of items) {
+            const product =
+              productMap.get(
+                item.id
+              )!;
+
+            const inventory =
+              inventoryMap.get(
+                item.id
+              );
+
+            const availableQty =
+              inventory?.quantity ??
+              0;
+
+            if (
+              availableQty <
+              item.quantity
+            ) {
+              throw new CheckoutError(
+                `Not enough stock for ${product.name}. Available: ${availableQty}`,
+                409
+              );
+            }
+          }
+
+          let total = 0;
+
+          for (const item of items) {
+            const product =
+              productMap.get(
+                item.id
+              )!;
+
+            total +=
+              product.retailPrice *
+              item.quantity;
+          }
+
+          const order =
+            await tx.order.create({
+              data: {
+                orderId:
+                  `POS-${Date.now()}`,
+
+                email:
+                  "pos@shop.com",
+
+                phone:
+                  cleanCustomerPhone ||
+                  "0000000000",
+
+                customerName:
+                  customerName ||
+                  null,
+
+                paymentMethod:
+                  paymentMethod ||
+                  "CASH",
+
+                amount:
+                  Math.round(total),
+
+                paymentStatus:
+                  "PAID",
+
+                locationId:
+                  branchId,
+              },
+            });
+
+          for (const item of items) {
+            const product =
+              productMap.get(
+                item.id
+              )!;
+
+            const movement =
+              await tx.stockMovement.create({
+                data: {
+                  productId:
+                    product.id,
+
+                  quantity:
+                    item.quantity,
+
+                  type:
+                    "SALE",
+
+                  fromLocationType:
+                    LocationType.BRANCH,
+
+                  fromLocationId:
+                    branchId,
+
+                  createdByStaffId:
+                    actorId,
+                },
+              });
+
+            await applyStockMovement(
+              tx,
+              movement.id
+            );
+
+            const updatedInventory =
+              await tx.inventory.findUnique({
+                where: {
+                  productId_locationType_locationId:
+                    {
+                      productId:
+                        product.id,
+
+                      locationType:
+                        LocationType.BRANCH,
+
+                      locationId:
+                        branchId,
+                    },
+                },
+                select: {
+                  quantity: true,
+                },
+              });
+
+            if (!updatedInventory) {
+              throw new CheckoutError(
+                `Inventory record missing for ${product.name}`,
+                409
+              );
+            }
+
+            await tx.product.update({
+              where: {
+                id: product.id,
+              },
+              data: {
+                stockQty:
+                  updatedInventory.quantity,
+              },
+            });
+
+            await tx.orderItem.create({
+              data: {
+                orderId:
+                  order.id,
+
+                productId:
+                  product.id,
+
+                quantity:
+                  item.quantity,
+
+                unitPrice:
+                  product.retailPrice,
+
+                totalPrice:
+                  product.retailPrice *
+                  item.quantity,
+              },
+            });
+          }
+
+          return order;
+        }
       );
 
-      for (const item of items) {
-        if (!productMap.has(item.id)) {
-          throw new CheckoutError(
-            "Product not found or inactive",
-            400
+    // ==========================================
+    // PAPERLESS POS RECEIPT SMS
+    // ==========================================
+    //
+    // IMPORTANT:
+    // The sale, order and inventory transaction
+    // above has already committed successfully.
+    //
+    // SMS failure must NEVER reverse the sale.
+    let smsSent = false;
+
+    if (cleanCustomerPhone) {
+      try {
+        const totalItems =
+          items.reduce(
+            (sum, item) =>
+              sum +
+              item.quantity,
+            0
           );
-        }
-      }
 
-      // ==============================
-      // SELLING PRICE PROTECTION
-      // ==============================
-      for (const item of items) {
-        const product = productMap.get(item.id)!;
+        const message =
+          `DeeGlobalGH Receipt\n` +
+          `Order: ${result.orderId}\n` +
+          `Items: ${totalItems}\n` +
+          `Total: GHS ${result.amount.toFixed(
+            2
+          )}\n` +
+          `Paid: ${formatPaymentMethod(
+            result.paymentMethod
+          )}\n` +
+          `Review: https://www.shopdeeglobalgh.com/review\n` +
+          `Thank you for shopping with us.`;
 
-        if (
-          !Number.isFinite(product.retailPrice) ||
-          product.retailPrice <= 0
-        ) {
-          throw new CheckoutError(
-            "This product has no selling price configured. Update the price before selling.",
-            400
-          );
-        }
-      }
-
-      const inventories = await tx.inventory.findMany({
-        where: {
-          productId: {
-            in: productIds,
-          },
-          locationType: LocationType.BRANCH,
-          locationId: branchId,
-        },
-      });
-
-      const inventoryMap = new Map(
-        inventories.map((inventory) => [
-          inventory.productId,
-          inventory,
-        ])
-      );
-
-      // Friendly stock validation before creating the order.
-      // applyStockMovement() performs the final atomic protection.
-      for (const item of items) {
-        const product = productMap.get(item.id)!;
-        const inventory = inventoryMap.get(item.id);
-        const availableQty = inventory?.quantity ?? 0;
-
-        if (availableQty < item.quantity) {
-          throw new CheckoutError(
-            `Not enough stock for ${product.name}. Available: ${availableQty}`,
-            409
-          );
-        }
-      }
-
-      let total = 0;
-
-      for (const item of items) {
-        const product = productMap.get(item.id)!;
-
-        total += product.retailPrice * item.quantity;
-      }
-
-      const order = await tx.order.create({
-        data: {
-          orderId: `POS-${Date.now()}`,
-          email: "pos@shop.com",
-          phone: customerPhone || "0000000000",
-          customerName: customerName || null,
-          paymentMethod: paymentMethod || "CASH",
-          amount: Math.round(total),
-          paymentStatus: "PAID",
-          locationId: branchId,
-        },
-      });
-
-      for (const item of items) {
-        const product = productMap.get(item.id)!;
-
-        const movement = await tx.stockMovement.create({
-          data: {
-            productId: product.id,
-            quantity: item.quantity,
-            type: "SALE",
-            fromLocationType: LocationType.BRANCH,
-            fromLocationId: branchId,
-            createdByStaffId: actorId,
-          },
+        await sendOrderSMS({
+          phone:
+            cleanCustomerPhone,
+          message,
         });
 
-        await applyStockMovement(tx, movement.id);
-
-        const updatedInventory = await tx.inventory.findUnique({
+        await prisma.order.update({
           where: {
-            productId_locationType_locationId: {
-              productId: product.id,
-              locationType: LocationType.BRANCH,
-              locationId: branchId,
-            },
-          },
-          select: {
-            quantity: true,
-          },
-        });
-
-        if (!updatedInventory) {
-          throw new CheckoutError(
-            `Inventory record missing for ${product.name}`,
-            409
-          );
-        }
-
-        await tx.product.update({
-          where: {
-            id: product.id,
+            orderId:
+              result.orderId,
           },
           data: {
-            stockQty: updatedInventory.quantity,
+            smsSent: true,
           },
         });
 
-        await tx.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: product.id,
-            quantity: item.quantity,
-            unitPrice: product.retailPrice,
-            totalPrice:
-              product.retailPrice * item.quantity,
-          },
-        });
+        smsSent = true;
+      } catch (smsError) {
+        console.error(
+          "POS receipt SMS failed:",
+          smsError
+        );
       }
-
-      return order;
-    });
+    }
 
     return NextResponse.json({
       success: true,
-      orderId: result.orderId,
+      orderId:
+        result.orderId,
+
+      sms: {
+        requested:
+          Boolean(
+            cleanCustomerPhone
+          ),
+
+        sent:
+          smsSent,
+      },
     });
   } catch (error) {
-    console.error("POS checkout error:", error);
+    console.error(
+      "POS checkout error:",
+      error
+    );
 
-    if (error instanceof CheckoutError) {
+    if (
+      error instanceof
+      CheckoutError
+    ) {
       return NextResponse.json(
-        { error: error.message },
-        { status: error.status }
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.status,
+        }
       );
     }
 
     return NextResponse.json(
-      { error: "Checkout failed" },
-      { status: 500 }
+      {
+        error:
+          "Checkout failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
