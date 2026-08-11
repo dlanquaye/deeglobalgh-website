@@ -2551,6 +2551,7 @@ enum PaymentMethod {
   BANK_TRANSFER
   MOMO
   ONLINE_CARD
+  SPLIT
   OTHER
 }
 
