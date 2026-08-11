@@ -729,13 +729,16 @@ export default function POSPage() {
       payment: PendingMomoPayment
     ) => {
       /*
-       * Five-second intervals avoid
-       * aggressive verification traffic
-       * while still giving the cashier
-       * prompt feedback.
-       */
+ * Paystack webhooks are the primary
+ * confirmation path.
+ *
+ * Verification is only a fallback,
+ * so checks are deliberately spaced
+ * to avoid aggressive Paystack API
+ * polling.
+ */
       const intervalSeconds =
-        5;
+  30;
 
       let remaining =
         payment.expiresInSeconds >
