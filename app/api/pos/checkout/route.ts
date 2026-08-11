@@ -477,6 +477,9 @@ export async function POST(
 
                   createdByStaffId:
                     actorId,
+
+                    status:
+  "COMPLETED",
                 },
               });
 

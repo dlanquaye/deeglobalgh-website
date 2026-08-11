@@ -675,6 +675,9 @@ export async function finalizePosMomoPayment(
 
                       createdByStaffId:
   actorId,
+
+  status:
+  "COMPLETED",
                     },
                   });
 
