@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { LocationType } from "@prisma/client";
@@ -129,6 +131,12 @@ function formatPaymentMethod(
   }
 }
 
+function createReceiptToken() {
+  return randomBytes(24).toString(
+    "base64url"
+  );
+}
+
 export async function POST(
   req: Request
 ) {
@@ -196,6 +204,9 @@ export async function POST(
       "string"
         ? customerPhone.trim()
         : "";
+
+    const receiptToken =
+      createReceiptToken();
 
     const result =
       await prisma.$transaction(
@@ -331,6 +342,8 @@ export async function POST(
               data: {
                 orderId:
                   `POS-${Date.now()}`,
+
+                receiptToken,
 
                 email:
                   "pos@shop.com",
