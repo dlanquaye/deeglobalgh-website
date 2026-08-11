@@ -10,24 +10,29 @@ datasource db {
 }
 
 model Order {
-  id                 String              @id @default(cuid())
-  orderId            String              @unique
-  reference          String?             @unique
-  email              String
-  phone              String
-  amount             Int
-  paymentStatus      PaymentStatus       @default(PENDING)
-  smsSent            Boolean             @default(false)
-  createdAt          DateTime            @default(now())
-  adminNotes         String?
-  deliveryFee        Int?
-  completedSmsSent   Boolean             @default(false)
-  deliverySmsSent    Boolean             @default(false)
-  stockReduced       Boolean             @default(false)
-  status             String              @default("PENDING")
-  locationId         String?
-  customerName       String?
-  paymentMethod      String?
+  id               String        @id @default(cuid())
+  orderId          String        @unique
+  reference        String?       @unique
+  email            String
+  phone            String
+  amount           Int
+  paymentStatus    PaymentStatus @default(PENDING)
+  smsSent          Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  adminNotes       String?
+  deliveryFee      Int?
+  completedSmsSent Boolean       @default(false)
+  deliverySmsSent  Boolean       @default(false)
+  stockReduced     Boolean       @default(false)
+  status           String        @default("PENDING")
+  locationId       String?
+  customerName     String?
+  paymentMethod    String?
+
+  // Secure public digital receipt identifier.
+  // Existing orders may remain null.
+  receiptToken String? @unique
+
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]
   orderItems         OrderItem[]
