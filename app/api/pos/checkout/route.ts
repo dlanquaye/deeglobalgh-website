@@ -24,7 +24,10 @@ type CheckoutItem = {
 class CheckoutError extends Error {
   status: number;
 
-  constructor(message: string, status = 400) {
+  constructor(
+    message: string,
+    status = 400
+  ) {
     super(message);
     this.name = "CheckoutError";
     this.status = status;
@@ -32,9 +35,13 @@ class CheckoutError extends Error {
 }
 
 async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore = await cookies();
+  const cookieStore =
+    await cookies();
+
   const rawCookie =
-    cookieStore.get("dg_admin")?.value;
+    cookieStore.get(
+      "dg_admin"
+    )?.value;
 
   if (!rawCookie) {
     return null;
@@ -42,7 +49,9 @@ async function getAdminSession(): Promise<AdminSession | null> {
 
   try {
     return JSON.parse(
-      decodeURIComponent(rawCookie)
+      decodeURIComponent(
+        rawCookie
+      )
     ) as AdminSession;
   } catch {
     return null;
@@ -67,7 +76,8 @@ function normaliseItems(
   for (const item of items) {
     if (
       !item ||
-      typeof item !== "object" ||
+      typeof item !==
+        "object" ||
       !("id" in item) ||
       !("quantity" in item)
     ) {
@@ -76,10 +86,13 @@ function normaliseItems(
       );
     }
 
-    const id = String(item.id);
-    const quantity = Number(
-      item.quantity
-    );
+    const id =
+      String(item.id);
+
+    const quantity =
+      Number(
+        item.quantity
+      );
 
     if (!id) {
       throw new CheckoutError(
@@ -88,7 +101,9 @@ function normaliseItems(
     }
 
     if (
-      !Number.isInteger(quantity) ||
+      !Number.isInteger(
+        quantity
+      ) ||
       quantity <= 0
     ) {
       throw new CheckoutError(
@@ -98,8 +113,9 @@ function normaliseItems(
 
     quantitiesByProduct.set(
       id,
-      (quantitiesByProduct.get(id) ??
-        0) + quantity
+      (quantitiesByProduct.get(
+        id
+      ) ?? 0) + quantity
     );
   }
 
@@ -113,7 +129,10 @@ function normaliseItems(
 }
 
 function formatPaymentMethod(
-  value: string | null | undefined
+  value:
+    | string
+    | null
+    | undefined
 ) {
   switch (value) {
     case "MOMO":
@@ -132,9 +151,9 @@ function formatPaymentMethod(
 }
 
 function createReceiptToken() {
-  return randomBytes(24).toString(
-    "base64url"
-  );
+  return randomBytes(
+    24
+  ).toString("base64url");
 }
 
 export async function POST(
@@ -147,7 +166,8 @@ export async function POST(
     if (!session) {
       return NextResponse.json(
         {
-          error: "Unauthorized",
+          error:
+            "Unauthorized",
         },
         {
           status: 401,
@@ -193,8 +213,44 @@ export async function POST(
       paymentMethod,
     } = body;
 
+    // ==========================================
+    // MOBILE MONEY BYPASS PROTECTION
+    // ==========================================
+    //
+    // Mobile Money must NEVER pass through
+    // this legacy checkout route because this
+    // route immediately marks the order PAID
+    // and reduces stock.
+    //
+    // All POS MoMo sales must instead use:
+    //
+    //   /api/pos/momo/initiate
+    //
+    // followed by independent Paystack
+    // confirmation through the webhook and/or
+    // status verification endpoint.
+    //
+    // Case-insensitive comparison prevents a
+    // manually altered request such as "momo"
+    // from bypassing this protection.
+    if (
+      typeof paymentMethod ===
+        "string" &&
+      paymentMethod
+        .trim()
+        .toUpperCase() ===
+        "MOMO"
+    ) {
+      throw new CheckoutError(
+        "Mobile Money payments must be confirmed through Paystack before the sale can be completed.",
+        400
+      );
+    }
+
     const items =
-      normaliseItems(rawItems);
+      normaliseItems(
+        rawItems
+      );
 
     const branchId =
       session.branchId;
@@ -213,7 +269,8 @@ export async function POST(
         async (tx) => {
           const productIds =
             items.map(
-              (item) => item.id
+              (item) =>
+                item.id
             );
 
           const products =
@@ -222,7 +279,9 @@ export async function POST(
                 id: {
                   in: productIds,
                 },
-                isActive: true,
+
+                isActive:
+                  true,
               },
             });
 
@@ -236,7 +295,10 @@ export async function POST(
               )
             );
 
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             if (
               !productMap.has(
                 item.id
@@ -252,7 +314,10 @@ export async function POST(
           // ==============================
           // SELLING PRICE PROTECTION
           // ==============================
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -278,8 +343,10 @@ export async function POST(
                 productId: {
                   in: productIds,
                 },
+
                 locationType:
                   LocationType.BRANCH,
+
                 locationId:
                   branchId,
               },
@@ -295,10 +362,15 @@ export async function POST(
               )
             );
 
-          // Friendly stock validation before creating
-          // the order. applyStockMovement() performs
-          // the final atomic protection.
-          for (const item of items) {
+          // Friendly stock validation before
+          // creating the order.
+          //
+          // applyStockMovement() performs the
+          // final atomic protection.
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -326,7 +398,10 @@ export async function POST(
 
           let total = 0;
 
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -361,7 +436,9 @@ export async function POST(
                   "CASH",
 
                 amount:
-                  Math.round(total),
+                  Math.round(
+                    total
+                  ),
 
                 paymentStatus:
                   "PAID",
@@ -371,7 +448,10 @@ export async function POST(
               },
             });
 
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -420,12 +500,16 @@ export async function POST(
                         branchId,
                     },
                 },
+
                 select: {
-                  quantity: true,
+                  quantity:
+                    true,
                 },
               });
 
-            if (!updatedInventory) {
+            if (
+              !updatedInventory
+            ) {
               throw new CheckoutError(
                 `Inventory record missing for ${product.name}`,
                 409
@@ -434,8 +518,10 @@ export async function POST(
 
             await tx.product.update({
               where: {
-                id: product.id,
+                id:
+                  product.id,
               },
+
               data: {
                 stockQty:
                   updatedInventory.quantity,
@@ -476,13 +562,19 @@ export async function POST(
     // above has already committed successfully.
     //
     // SMS failure must NEVER reverse the sale.
-    let smsSent = false;
+    let smsSent =
+      false;
 
-    if (cleanCustomerPhone) {
+    if (
+      cleanCustomerPhone
+    ) {
       try {
         const totalItems =
           items.reduce(
-            (sum, item) =>
+            (
+              sum,
+              item
+            ) =>
               sum +
               item.quantity,
             0
@@ -509,6 +601,7 @@ export async function POST(
         await sendOrderSMS({
           phone:
             cleanCustomerPhone,
+
           message,
         });
 
@@ -517,13 +610,18 @@ export async function POST(
             orderId:
               result.orderId,
           },
+
           data: {
-            smsSent: true,
+            smsSent:
+              true,
           },
         });
 
-        smsSent = true;
-      } catch (smsError) {
+        smsSent =
+          true;
+      } catch (
+        smsError
+      ) {
         console.error(
           "POS receipt SMS failed:",
           smsError
@@ -532,7 +630,9 @@ export async function POST(
     }
 
     return NextResponse.json({
-      success: true,
+      success:
+        true,
+
       orderId:
         result.orderId,
 
