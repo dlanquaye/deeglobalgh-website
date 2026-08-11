@@ -79,41 +79,21 @@ function getString(
     : null;
 }
 
-export async function POST(
-  req: NextRequest
+/**
+ * Verify Paystack's HMAC SHA-512
+ * webhook signature.
+ *
+ * timingSafeEqual avoids a normal
+ * string-comparison timing leak.
+ */
+function verifyPaystackSignature(
+  body: string,
+  signature: string | null,
+  secret: string
 ) {
-  console.log(
-    "PAYSTACK WEBHOOK HIT"
-  );
-
-  const secret =
-    process.env
-      .PAYSTACK_SECRET_KEY;
-
-  if (!secret) {
-    console.error(
-      "Missing PAYSTACK_SECRET_KEY"
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          "Server misconfigured",
-      },
-      {
-        status: 500,
-      }
-    );
+  if (!signature) {
+    return false;
   }
-
-  /*
-   * IMPORTANT:
-   *
-   * Paystack signature validation must
-   * use the exact raw request body.
-   */
-  const body =
-    await req.text();
 
   const computedSignature =
     crypto
@@ -124,30 +104,59 @@ export async function POST(
       .update(body)
       .digest("hex");
 
-  const paystackSignature =
-    req.headers.get(
-      "x-paystack-signature"
+  const expected =
+    Buffer.from(
+      computedSignature,
+      "utf8"
+    );
+
+  const received =
+    Buffer.from(
+      signature.trim(),
+      "utf8"
     );
 
   if (
-    computedSignature !==
-    paystackSignature
+    expected.length !==
+    received.length
   ) {
-    console.error(
-      "Invalid Paystack signature"
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          "Invalid signature",
-      },
-      {
-        status: 401,
-      }
-    );
+    return false;
   }
 
+  return crypto.timingSafeEqual(
+    expected,
+    received
+  );
+}
+
+export async function POST(
+  req: NextRequest
+) {
+  console.log(
+    "PAYSTACK WEBHOOK HIT"
+  );
+
+  /*
+   * ==========================================
+   * READ RAW BODY
+   * ==========================================
+   *
+   * Signature validation must use the exact
+   * original request body sent by Paystack.
+   */
+  const body =
+    await req.text();
+
+  /*
+   * We parse the raw body only to determine
+   * which Paystack environment this event
+   * belongs to.
+   *
+   * IMPORTANT:
+   * Nothing from this unverified event is
+   * trusted or processed until its signature
+   * has been validated below.
+   */
   let event:
     PaystackWebhookEvent;
 
@@ -166,6 +175,122 @@ export async function POST(
       }
     );
   }
+
+  const metadata =
+    event.data?.metadata ??
+    null;
+
+  const source =
+    getString(
+      metadata?.source
+    );
+
+  /*
+   * ==========================================
+   * SELECT REQUIRED SECRET
+   * ==========================================
+   *
+   * Website payments continue using:
+   *
+   *   PAYSTACK_SECRET_KEY
+   *
+   * POS MoMo uses:
+   *
+   *   PAYSTACK_POS_SECRET_KEY
+   *
+   * when configured.
+   *
+   * The fallback preserves backwards
+   * compatibility after testing when the
+   * separate POS key is not configured.
+   */
+  const websiteSecret =
+    process.env
+      .PAYSTACK_SECRET_KEY;
+
+  const posSecret =
+    process.env
+      .PAYSTACK_POS_SECRET_KEY;
+
+  let requiredSecret:
+    string | undefined;
+
+  if (
+    source === "POS_MOMO"
+  ) {
+    requiredSecret =
+      posSecret ??
+      websiteSecret;
+  } else {
+    requiredSecret =
+      websiteSecret;
+  }
+
+  if (!requiredSecret) {
+    console.error(
+      source === "POS_MOMO"
+        ? "Missing Paystack secret for POS MoMo webhook"
+        : "Missing PAYSTACK_SECRET_KEY"
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Server misconfigured",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+
+  const paystackSignature =
+    req.headers.get(
+      "x-paystack-signature"
+    );
+
+  /*
+   * ==========================================
+   * VERIFY SIGNATURE
+   * ==========================================
+   *
+   * When PAYSTACK_POS_SECRET_KEY exists,
+   * POS_MOMO events MUST validate against
+   * that key.
+   *
+   * They cannot silently fall back to the
+   * website key merely because the website
+   * signature would validate.
+   */
+  const signatureValid =
+    verifyPaystackSignature(
+      body,
+      paystackSignature,
+      requiredSecret
+    );
+
+  if (!signatureValid) {
+    console.error(
+      source === "POS_MOMO"
+        ? "Invalid POS MoMo Paystack signature"
+        : "Invalid website Paystack signature"
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Invalid signature",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  /*
+   * From this point onward the payload has
+   * passed Paystack signature validation.
+   */
 
   /*
    * We only deliver value for an
@@ -202,15 +327,6 @@ export async function POST(
     );
   }
 
-  const metadata =
-    event.data?.metadata ??
-    null;
-
-  const source =
-    getString(
-      metadata?.source
-    );
-
   /*
    * ==========================================
    * POS MOBILE MONEY
@@ -220,7 +336,7 @@ export async function POST(
    * OrderPayment, not Order.orderId.
    *
    * These transactions therefore use the
-   * new authoritative finalisation service.
+   * authoritative POS finalisation service.
    */
   if (
     source === "POS_MOMO"

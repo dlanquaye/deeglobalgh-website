@@ -283,8 +283,10 @@ export async function POST(
     }
 
     const secret =
-      process.env
-        .PAYSTACK_SECRET_KEY;
+  process.env
+    .PAYSTACK_POS_SECRET_KEY ??
+  process.env
+    .PAYSTACK_SECRET_KEY;
 
     if (!secret) {
       return NextResponse.json(

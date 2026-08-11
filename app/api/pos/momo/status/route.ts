@@ -166,8 +166,10 @@ export async function GET(
     }
 
     const secret =
-      process.env
-        .PAYSTACK_SECRET_KEY;
+  process.env
+    .PAYSTACK_POS_SECRET_KEY ??
+  process.env
+    .PAYSTACK_SECRET_KEY;
 
     if (!secret) {
       return NextResponse.json(
