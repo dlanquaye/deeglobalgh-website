@@ -18,19 +18,37 @@ export const metadata: Metadata = {
   },
 };
 
+const CUSTOMER_CARE_DISPLAY =
+  "0246 011 773";
+
+const CUSTOMER_CARE_TEL =
+  "+233246011773";
+
+const WHATSAPP_URL =
+  "https://wa.me/233246011773";
+
+const WEBSITE_URL =
+  "https://www.shopdeeglobalgh.com";
+
 function formatMoney(value: number) {
-  return `GHS ${value.toLocaleString("en-GH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `GHS ${value.toLocaleString(
+    "en-GH",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  )}`;
 }
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Africa/Accra",
-  }).format(value);
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Africa/Accra",
+    }
+  ).format(value);
 }
 
 function formatPaymentMethod(
@@ -390,9 +408,130 @@ export default async function DigitalReceiptPage(
               </div>
             </div>
 
+            {/* CUSTOMER CARE */}
             <div
               style={{
                 marginTop: "30px",
+                padding: "20px",
+                background:
+                  "#f9fafb",
+                border:
+                  "1px solid #e5e7eb",
+                borderRadius: "12px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "17px",
+                  fontWeight: 800,
+                  marginBottom: "8px",
+                }}
+              >
+                Need help with this
+                purchase?
+              </div>
+
+              <div
+                style={{
+                  color: "#6b7280",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  marginBottom: "16px",
+                }}
+              >
+                Contact DeeGlobalGH
+                Customer Care if you
+                need to verify an item,
+                price, quantity or
+                receipt.
+              </div>
+
+              <a
+                href={`tel:${CUSTOMER_CARE_TEL}`}
+                style={{
+                  display: "block",
+                  fontSize: "18px",
+                  fontWeight: 800,
+                  color: "#111827",
+                  textDecoration:
+                    "none",
+                  marginBottom: "14px",
+                }}
+              >
+                Call:{" "}
+                {
+                  CUSTOMER_CARE_DISPLAY
+                }
+              </a>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent:
+                    "center",
+                  gap: "10px",
+                }}
+              >
+                <a
+                  href={
+                    WHATSAPP_URL
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display:
+                      "inline-block",
+                    padding:
+                      "11px 16px",
+                    borderRadius:
+                      "8px",
+                    background:
+                      "#111827",
+                    color:
+                      "#ffffff",
+                    textDecoration:
+                      "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  WhatsApp Customer Care
+                </a>
+
+                <a
+                  href={
+                    WEBSITE_URL
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display:
+                      "inline-block",
+                    padding:
+                      "11px 16px",
+                    borderRadius:
+                      "8px",
+                    border:
+                      "1px solid #d1d5db",
+                    background:
+                      "#ffffff",
+                    color:
+                      "#111827",
+                    textDecoration:
+                      "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  Visit Our Website
+                </a>
+              </div>
+            </div>
+
+            {/* GOOGLE REVIEW */}
+            <div
+              style={{
+                marginTop: "20px",
                 padding: "20px",
                 background:
                   "#f9fafb",
@@ -452,10 +591,15 @@ export default async function DigitalReceiptPage(
               textAlign: "center",
               color: "#6b7280",
               fontSize: "13px",
-              lineHeight: 1.6,
+              lineHeight: 1.7,
             }}
           >
-            <div>
+            <div
+              style={{
+                fontWeight: 700,
+                color: "#374151",
+              }}
+            >
               DeeGlobalGH
             </div>
 
@@ -464,6 +608,45 @@ export default async function DigitalReceiptPage(
             </div>
 
             <div>
+              Customer Care:{" "}
+              <a
+                href={`tel:${CUSTOMER_CARE_TEL}`}
+                style={{
+                  color: "#374151",
+                  textDecoration:
+                    "none",
+                  fontWeight: 600,
+                }}
+              >
+                {
+                  CUSTOMER_CARE_DISPLAY
+                }
+              </a>
+            </div>
+
+            <div>
+              <a
+                href={
+                  WEBSITE_URL
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#374151",
+                  textDecoration:
+                    "underline",
+                  fontWeight: 600,
+                }}
+              >
+                www.shopdeeglobalgh.com
+              </a>
+            </div>
+
+            <div
+              style={{
+                marginTop: "6px",
+              }}
+            >
               Keep this link as your
               digital proof of purchase.
             </div>
