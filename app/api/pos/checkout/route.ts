@@ -488,6 +488,9 @@ export async function POST(
             0
           );
 
+        const digitalReceiptUrl =
+          `https://www.shopdeeglobalgh.com/r/${result.receiptToken}`;
+
         const message =
           `DeeGlobalGH Receipt\n` +
           `Order: ${result.orderId}\n` +
@@ -498,8 +501,9 @@ export async function POST(
           `Paid: ${formatPaymentMethod(
             result.paymentMethod
           )}\n` +
+          `Receipt: ${digitalReceiptUrl}\n` +
           `Review: https://www.shopdeeglobalgh.com/review\n` +
-          `Thank you for shopping with us.`;
+          `Thank you.`;
 
         await sendOrderSMS({
           phone:
