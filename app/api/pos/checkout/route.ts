@@ -214,39 +214,51 @@ export async function POST(
     } = body;
 
     // ==========================================
-    // MOBILE MONEY BYPASS PROTECTION
+    // ==========================================
+    // PAYSTACK / SPLIT PAYMENT BYPASS PROTECTION
     // ==========================================
     //
-    // Mobile Money must NEVER pass through
-    // this legacy checkout route because this
-    // route immediately marks the order PAID
-    // and reduces stock.
+    // Mobile Money and Split payments must
+    // NEVER pass through this standard checkout
+    // route because this route immediately marks
+    // the order PAID and reduces stock.
     //
-    // All POS MoMo sales must instead use:
+    // POS MoMo must use:
     //
     //   /api/pos/momo/initiate
     //
-    // followed by independent Paystack
-    // confirmation through the webhook and/or
-    // status verification endpoint.
+    // Cash + MoMo split tender must use:
     //
-    // Case-insensitive comparison prevents a
-    // manually altered request such as "momo"
-    // from bypassing this protection.
+    //   /api/pos/split/initiate
+    //
+    // Both flows require independent Paystack
+    // confirmation before the sale and stock
+    // movement can be finalised.
+    //
+    // Case-insensitive comparison also prevents
+    // manually altered requests such as "momo"
+    // or "split" from bypassing this protection.
+    const protectedPaymentMethod =
+      typeof paymentMethod === "string"
+        ? paymentMethod
+            .trim()
+            .toUpperCase()
+        : "";
+
     if (
-      typeof paymentMethod ===
-        "string" &&
-      paymentMethod
-        .trim()
-        .toUpperCase() ===
-        "MOMO"
+      protectedPaymentMethod ===
+        "MOMO" ||
+      protectedPaymentMethod ===
+        "SPLIT"
     ) {
       throw new CheckoutError(
-        "Mobile Money payments must be confirmed through Paystack before the sale can be completed.",
+        protectedPaymentMethod ===
+          "SPLIT"
+          ? "Split payments must be confirmed through the controlled split-payment workflow before the sale can be completed."
+          : "Mobile Money payments must be confirmed through Paystack before the sale can be completed.",
         400
       );
     }
-
     const items =
       normaliseItems(
         rawItems
