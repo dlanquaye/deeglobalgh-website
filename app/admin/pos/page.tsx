@@ -29,11 +29,31 @@ type MomoProvider =
   | "atl"
   | "vod";
 
+type PaymentMode =
+  | "MOMO"
+  | "SPLIT";
+
 type PendingMomoPayment = {
   orderId: string;
   paymentId: string;
   reference: string;
   expiresInSeconds: number;
+
+  /*
+   * Existing pure MoMo payments do not need
+   * split allocation values, so these remain
+   * optional.
+   */
+  mode?: PaymentMode;
+
+  cashAmountPesewas?: number;
+  momoAmountPesewas?: number;
+};
+
+type FailedSplitPayment = {
+  orderId: string;
+  cashAmountPesewas: number;
+  momoAmountPesewas: number;
 };
 
 type MomoInitiateResponse = {
@@ -47,9 +67,22 @@ type MomoInitiateResponse = {
 
   paymentStatus?: string;
   providerStatus?: string;
+  paymentMethod?: string;
 
   displayText?: string;
   expiresInSeconds?: number;
+
+  orderAmountPesewas?: number;
+  requiredAmountPesewas?: number;
+  confirmedAmountPesewas?: number;
+
+  cashAmountPesewas?: number;
+  momoAmountPesewas?: number;
+
+  cashPaymentStatus?: string;
+  momoPaymentStatus?: string;
+
+  existingPayment?: boolean;
 };
 
 type MomoStatusResponse = {
@@ -63,7 +96,6 @@ type MomoStatusResponse = {
   paymentStatus?: string;
   providerStatus?: string;
   orderStatus?: string;
-
   orderFinalized?: boolean;
   alreadyFinalized?: boolean;
   requiresAttention?: boolean;
@@ -79,7 +111,6 @@ type MomoCheckResult =
   | "PENDING"
   | "FAILED"
   | "ATTENTION";
-
 function sleep(
   milliseconds: number
 ) {
@@ -163,6 +194,19 @@ export default function POSPage() {
     );
 
   const [
+    splitCashAmount,
+    setSplitCashAmount,
+  ] = useState("");
+
+  const [
+    failedSplitPayment,
+    setFailedSplitPayment,
+  ] =
+    useState<FailedSplitPayment | null>(
+      null
+    );
+
+  const [
     momoMessage,
     setMomoMessage,
   ] = useState("");
@@ -183,8 +227,21 @@ export default function POSPage() {
     setMomoSecondsRemaining,
   ] = useState(0);
 
+  /*
+   * The cart must remain locked while:
+   *
+   * 1. any MoMo payment is unresolved, OR
+   * 2. a split payment has a confirmed Cash
+   *    allocation but its MoMo allocation
+   *    failed and requires recovery.
+   *
+   * This prevents the cashier from modifying
+   * the cart or accidentally creating another
+   * split order for Cash already received.
+   */
   const momoPaymentLocked =
-    pendingMomo !== null;
+    pendingMomo !== null ||
+    failedSplitPayment !== null;
 
   // ==========================================
   // NORMAL PRODUCT SEARCH
@@ -693,10 +750,42 @@ export default function POSPage() {
           "error"
         );
 
-        setMomoMessage(
-          data.message ||
-            "The Mobile Money payment was not completed."
-        );
+        /*
+         * Pure MoMo:
+         * the failed attempt can simply end.
+         *
+         * Split tender:
+         * Cash has already been recorded as
+         * CONFIRMED, so retain the split order
+         * for the controlled retry workflow.
+         */
+        if (
+          payment.mode ===
+          "SPLIT"
+        ) {
+          setFailedSplitPayment({
+            orderId:
+              payment.orderId,
+
+            cashAmountPesewas:
+              payment.cashAmountPesewas ??
+              0,
+
+            momoAmountPesewas:
+              payment.momoAmountPesewas ??
+              0,
+          });
+
+          setMomoMessage(
+            data.message ||
+              "The Mobile Money part of this split payment failed. The Cash payment is still recorded. Retry the remaining Mobile Money balance for this same order."
+          );
+        } else {
+          setMomoMessage(
+            data.message ||
+              "The Mobile Money payment was not completed."
+          );
+        }
 
         setPendingMomo(
           null
@@ -1074,6 +1163,667 @@ export default function POSPage() {
     };
 
   // ==========================================
+  // START CASH + MOMO SPLIT PAYMENT
+  // ==========================================
+  const handleSplitCheckout =
+    async () => {
+      if (
+        isProcessing ||
+        pendingMomo ||
+        failedSplitPayment
+      ) {
+        return;
+      }
+
+      if (
+        cart.length === 0
+      ) {
+        alert(
+          "Cart is empty"
+        );
+
+        return;
+      }
+
+      if (
+        !momoProvider
+      ) {
+        alert(
+          "Select the customer's Mobile Money network"
+        );
+
+        return;
+      }
+
+      if (
+        !customerPhone.trim()
+      ) {
+        alert(
+          "Enter the customer's Mobile Money number"
+        );
+
+        return;
+      }
+
+      const cashText =
+        splitCashAmount.trim();
+
+      if (
+        !/^\d+(\.\d{1,2})?$/.test(
+          cashText
+        )
+      ) {
+        alert(
+          "Enter a valid Cash amount with no more than two decimal places"
+        );
+
+        return;
+      }
+
+      const [
+        cashCedisText,
+        cashPesewasText = "",
+      ] =
+        cashText.split(".");
+
+      const cashAmountPesewas =
+        Number(
+          cashCedisText
+        ) *
+          100 +
+        Number(
+          cashPesewasText.padEnd(
+            2,
+            "0"
+          )
+        );
+
+      /*
+       * Match the current backend Order.amount
+       * architecture, which stores whole GHS.
+       *
+       * This is only an early cashier-side
+       * validation. The backend recalculates
+       * the authoritative order total from the
+       * database before creating the payment.
+       */
+      const orderAmountPesewas =
+        Math.round(
+          total
+        ) * 100;
+
+      if (
+        !Number.isSafeInteger(
+          cashAmountPesewas
+        ) ||
+        cashAmountPesewas <=
+          0
+      ) {
+        alert(
+          "Cash amount must be greater than zero"
+        );
+
+        return;
+      }
+
+      if (
+        cashAmountPesewas >=
+        orderAmountPesewas
+      ) {
+        alert(
+          "Cash amount must be less than the order total for a split payment"
+        );
+
+        return;
+      }
+
+      setIsProcessing(
+        true
+      );
+
+      setMomoMessage("");
+      setMomoMessageType(
+        "info"
+      );
+
+      setMomoSecondsRemaining(
+        180
+      );
+
+      try {
+        const res =
+          await fetch(
+            "/api/pos/split/initiate",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  customerName,
+
+                  customerPhone,
+
+                  provider:
+                    momoProvider,
+
+                  cashAmount:
+                    splitCashAmount,
+
+                  items:
+                    cart.map(
+                      (
+                        item
+                      ) => ({
+                        id:
+                          item.id,
+
+                        quantity:
+                          item.quantity,
+                      })
+                    ),
+                }),
+            }
+          );
+
+        let data:
+          MomoInitiateResponse;
+
+        try {
+          data =
+            (await res.json()) as
+              MomoInitiateResponse;
+        } catch {
+          throw new Error(
+            "Split payment service returned an invalid response"
+          );
+        }
+
+        const returnedCashPesewas =
+          data.cashAmountPesewas ??
+          cashAmountPesewas;
+
+        const returnedMomoPesewas =
+          data.momoAmountPesewas ??
+          Math.max(
+            0,
+            orderAmountPesewas -
+              returnedCashPesewas
+          );
+
+        /*
+         * The split endpoint may have already
+         * recorded the Cash allocation before
+         * Paystack returns an error.
+         *
+         * We must distinguish:
+         *
+         * 1. ambiguous/network response:
+         *    MoMo remains PENDING -> verify it.
+         *
+         * 2. definitive Paystack failure:
+         *    Cash remains CONFIRMED -> retain the
+         *    same split order for controlled retry.
+         */
+        if (!res.ok) {
+          if (
+            data.orderId &&
+            data.paymentId &&
+            data.reference
+          ) {
+            if (
+              data.momoPaymentStatus ===
+                "FAILED" ||
+              data.paymentStatus ===
+                "FAILED"
+            ) {
+              setFailedSplitPayment({
+                orderId:
+                  data.orderId,
+
+                cashAmountPesewas:
+                  returnedCashPesewas,
+
+                momoAmountPesewas:
+                  returnedMomoPesewas,
+              });
+
+              setPendingMomo(
+                null
+              );
+
+              setMomoSecondsRemaining(
+                0
+              );
+
+              setMomoMessageType(
+                "error"
+              );
+
+              setMomoMessage(
+                data.error ||
+                  data.details ||
+                  "The Mobile Money part of the split payment failed. The Cash payment is still recorded. Retry the remaining Mobile Money balance for this same order."
+              );
+
+              return;
+            }
+
+            const payment:
+              PendingMomoPayment =
+              {
+                orderId:
+                  data.orderId,
+
+                paymentId:
+                  data.paymentId,
+
+                reference:
+                  data.reference,
+
+                expiresInSeconds:
+                  data.expiresInSeconds ??
+                  180,
+
+                mode:
+                  "SPLIT",
+
+                cashAmountPesewas:
+                  returnedCashPesewas,
+
+                momoAmountPesewas:
+                  returnedMomoPesewas,
+              };
+
+            setPendingMomo(
+              payment
+            );
+
+            setMomoMessageType(
+              "warning"
+            );
+
+            setMomoMessage(
+              data.error ||
+                "The Paystack request could not be confirmed. The Cash payment is recorded. Checking this same Mobile Money payment before any retry."
+            );
+
+            await pollMomoStatus(
+              payment
+            );
+
+            return;
+          }
+
+          setMomoMessageType(
+            "error"
+          );
+
+          setMomoMessage(
+            data.error ||
+              data.details ||
+              "Unable to start the split payment."
+          );
+
+          return;
+        }
+
+        if (
+          !data.orderId ||
+          !data.paymentId ||
+          !data.reference
+        ) {
+          throw new Error(
+            "Split payment was started without a complete payment reference"
+          );
+        }
+
+        const payment:
+          PendingMomoPayment =
+          {
+            orderId:
+              data.orderId,
+
+            paymentId:
+              data.paymentId,
+
+            reference:
+              data.reference,
+
+            expiresInSeconds:
+              data.expiresInSeconds ??
+              180,
+
+            mode:
+              "SPLIT",
+
+            cashAmountPesewas:
+              returnedCashPesewas,
+
+            momoAmountPesewas:
+              returnedMomoPesewas,
+          };
+
+        setPendingMomo(
+          payment
+        );
+
+        setFailedSplitPayment(
+          null
+        );
+
+        setMomoSecondsRemaining(
+          payment.expiresInSeconds
+        );
+
+        setMomoMessageType(
+          "info"
+        );
+
+        setMomoMessage(
+          data.displayText ||
+            "Cash has been recorded. Please ask the customer to approve the remaining Mobile Money balance on their phone."
+        );
+
+        await pollMomoStatus(
+          payment
+        );
+      } catch (error) {
+        setMomoMessageType(
+          "error"
+        );
+
+        setMomoMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to start split payment"
+        );
+      } finally {
+        setIsProcessing(
+          false
+        );
+      }
+    };
+
+  // ==========================================
+  // RETRY FAILED SPLIT MOMO BALANCE
+  // ==========================================
+  const handleSplitRetry =
+    async () => {
+      if (
+        isProcessing ||
+        pendingMomo ||
+        !failedSplitPayment
+      ) {
+        return;
+      }
+
+      if (
+        !momoProvider
+      ) {
+        alert(
+          "Select the customer's Mobile Money network"
+        );
+
+        return;
+      }
+
+      if (
+        !customerPhone.trim()
+      ) {
+        alert(
+          "Enter the customer's Mobile Money number"
+        );
+
+        return;
+      }
+
+      setIsProcessing(
+        true
+      );
+
+      setMomoMessageType(
+        "info"
+      );
+
+      setMomoMessage(
+        "Requesting the remaining Mobile Money balance..."
+      );
+
+      setMomoSecondsRemaining(
+        180
+      );
+
+      try {
+        const res =
+          await fetch(
+            "/api/pos/split/retry",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  orderId:
+                    failedSplitPayment.orderId,
+
+                  provider:
+                    momoProvider,
+
+                  customerPhone,
+                }),
+            }
+          );
+
+        let data:
+          MomoInitiateResponse;
+
+        try {
+          data =
+            (await res.json()) as
+              MomoInitiateResponse;
+        } catch {
+          throw new Error(
+            "Split payment retry service returned an invalid response"
+          );
+        }
+
+        const retryCashPesewas =
+          data.cashAmountPesewas ??
+          failedSplitPayment.cashAmountPesewas;
+
+        const retryMomoPesewas =
+          data.momoAmountPesewas ??
+          failedSplitPayment.momoAmountPesewas;
+
+        /*
+         * The retry endpoint deliberately
+         * refuses to create another payment if
+         * one is already PENDING.
+         *
+         * If it returns that existing payment,
+         * adopt the same reference and verify it.
+         */
+        if (!res.ok) {
+          if (
+            data.orderId &&
+            data.paymentId &&
+            data.reference &&
+            (
+              data.existingPayment ||
+              data.paymentStatus ===
+                "PENDING"
+            )
+          ) {
+            const payment:
+              PendingMomoPayment =
+              {
+                orderId:
+                  data.orderId,
+
+                paymentId:
+                  data.paymentId,
+
+                reference:
+                  data.reference,
+
+                expiresInSeconds:
+                  data.expiresInSeconds ??
+                  180,
+
+                mode:
+                  "SPLIT",
+
+                cashAmountPesewas:
+                  retryCashPesewas,
+
+                momoAmountPesewas:
+                  retryMomoPesewas,
+              };
+
+            setPendingMomo(
+              payment
+            );
+
+            setFailedSplitPayment(
+              null
+            );
+
+            setMomoMessageType(
+              "warning"
+            );
+
+            setMomoMessage(
+              data.error ||
+                "An existing Mobile Money payment is still pending. Checking that same payment instead of creating another one."
+            );
+
+            await pollMomoStatus(
+              payment
+            );
+
+            return;
+          }
+
+          /*
+           * A retry can itself fail
+           * definitively.
+           *
+           * Keep failedSplitPayment intact so
+           * the confirmed Cash allocation stays
+           * represented and the cart stays
+           * locked for another controlled retry.
+           */
+          setMomoSecondsRemaining(
+            0
+          );
+
+          setMomoMessageType(
+            "error"
+          );
+
+          setMomoMessage(
+            data.error ||
+              data.details ||
+              "Unable to retry the remaining Mobile Money balance."
+          );
+
+          return;
+        }
+
+        if (
+          !data.orderId ||
+          !data.paymentId ||
+          !data.reference
+        ) {
+          throw new Error(
+            "Split payment retry started without a complete payment reference"
+          );
+        }
+
+        const payment:
+          PendingMomoPayment =
+          {
+            orderId:
+              data.orderId,
+
+            paymentId:
+              data.paymentId,
+
+            reference:
+              data.reference,
+
+            expiresInSeconds:
+              data.expiresInSeconds ??
+              180,
+
+            mode:
+              "SPLIT",
+
+            cashAmountPesewas:
+              retryCashPesewas,
+
+            momoAmountPesewas:
+              retryMomoPesewas,
+          };
+
+        /*
+         * We now have another active Paystack
+         * allocation, so the pending-payment
+         * lock replaces the failed-split lock.
+         */
+        setPendingMomo(
+          payment
+        );
+
+        setFailedSplitPayment(
+          null
+        );
+
+        setMomoSecondsRemaining(
+          payment.expiresInSeconds
+        );
+
+        setMomoMessageType(
+          "info"
+        );
+
+        setMomoMessage(
+          data.displayText ||
+            "Please ask the customer to approve the remaining Mobile Money balance on their phone."
+        );
+
+        await pollMomoStatus(
+          payment
+        );
+      } catch (error) {
+        setMomoMessageType(
+          "error"
+        );
+
+        setMomoMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to retry split Mobile Money payment"
+        );
+      } finally {
+        setIsProcessing(
+          false
+        );
+      }
+    };
+
+  // ==========================================
   // CHECKOUT ROUTER
   // ==========================================
   const handleCheckout =
@@ -1083,6 +1833,15 @@ export default function POSPage() {
         "MOMO"
       ) {
         await handleMomoCheckout();
+
+        return;
+      }
+
+      if (
+        paymentMethod ===
+        "SPLIT"
+      ) {
+        await handleSplitCheckout();
 
         return;
       }
@@ -1102,6 +1861,38 @@ export default function POSPage() {
       0
     );
 
+  /*
+   * Cashier-facing split-payment preview.
+   *
+   * The backend remains authoritative and
+   * recalculates the order amount from the
+   * database before accepting payment.
+   */
+  const splitOrderAmount =
+    Math.round(
+      total
+    );
+
+  const splitCashNumber =
+    splitCashAmount.trim() &&
+    /^\d+(\.\d{1,2})?$/.test(
+      splitCashAmount.trim()
+    )
+      ? Number(
+          splitCashAmount
+        )
+      : 0;
+
+  const splitMomoBalance =
+    Math.max(
+      0,
+      Math.round(
+        (
+          splitOrderAmount -
+          splitCashNumber
+        ) * 100
+      ) / 100
+    );
   const momoMessageClass =
     momoMessageType ===
     "success"
@@ -1435,7 +2226,8 @@ export default function POSPage() {
                 )
               }
               disabled={
-                momoPaymentLocked
+                pendingMomo !==
+                null
               }
               className="w-full border p-2 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
@@ -1467,14 +2259,107 @@ export default function POSPage() {
                 Mobile Money
               </option>
 
+              <option value="SPLIT">
+                Split Payment
+                (Cash + MoMo)
+              </option>
+
               <option value="BANK_TRANSFER">
                 Bank Transfer
               </option>
             </select>
 
-            {paymentMethod ===
-              "MOMO" && (
+            {(
+              paymentMethod ===
+                "MOMO" ||
+              paymentMethod ===
+                "SPLIT"
+            ) && (
               <div className="space-y-3 border rounded-lg p-3 bg-gray-50">
+                {paymentMethod ===
+                  "SPLIT" && (
+                  <div className="space-y-2 border-b pb-3">
+                    <label className="block text-sm font-medium">
+                      Cash Amount
+                      (GHS)
+                    </label>
+
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={
+                        splitCashAmount
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setSplitCashAmount(
+                          e.target
+                            .value
+                        )
+                      }
+                      placeholder="e.g. 40.00"
+                      disabled={
+                        pendingMomo !==
+                          null ||
+                        failedSplitPayment !==
+                          null
+                      }
+                      className="w-full border p-2 rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+
+                    <div className="rounded-lg border bg-white p-3 space-y-2 text-sm">
+                      <div className="flex justify-between gap-3">
+                        <span>
+                          Order Total
+                        </span>
+
+                        <span className="font-semibold">
+                          GHS{" "}
+                          {splitOrderAmount.toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3">
+                        <span>
+                          Cash
+                        </span>
+
+                        <span className="font-semibold">
+                          GHS{" "}
+                          {splitCashNumber.toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3 border-t pt-2">
+                        <span>
+                          MoMo Balance
+                        </span>
+
+                        <span className="font-bold">
+                          GHS{" "}
+                          {splitMomoBalance.toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-600">
+                      Enter only the
+                      Cash physically
+                      received. The POS
+                      calculates the
+                      remaining Mobile
+                      Money balance
+                      automatically.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Mobile Money
@@ -1495,7 +2380,8 @@ export default function POSPage() {
                       )
                     }
                     disabled={
-                      momoPaymentLocked
+                      pendingMomo !==
+                      null
                     }
                     className="w-full border p-2 rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
@@ -1532,14 +2418,140 @@ export default function POSPage() {
               </div>
             )}
 
+            {failedSplitPayment && (
+              <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded-lg p-3 space-y-3">
+                <div className="font-semibold">
+                  Split Payment
+                  Requires Recovery
+                </div>
+
+                <div className="text-sm">
+                  Order:{" "}
+                  {
+                    failedSplitPayment.orderId
+                  }
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span>
+                      Cash already
+                      recorded
+                    </span>
+
+                    <span className="font-semibold">
+                      GHS{" "}
+                      {(
+                        failedSplitPayment.cashAmountPesewas /
+                        100
+                      ).toFixed(
+                        2
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-3">
+                    <span>
+                      MoMo still
+                      required
+                    </span>
+
+                    <span className="font-bold">
+                      GHS{" "}
+                      {(
+                        failedSplitPayment.momoAmountPesewas /
+                        100
+                      ).toFixed(
+                        2
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm">
+                  The Cash portion is
+                  already confirmed.
+                  Do not create a new
+                  sale and do not take
+                  the Cash again.
+                  Correct the customer's
+                  Mobile Money number or
+                  network if necessary,
+                  then retry only the
+                  outstanding MoMo
+                  balance.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSplitRetry
+                  }
+                  disabled={
+                    isProcessing ||
+                    pendingMomo !==
+                      null
+                  }
+                  className="w-full bg-amber-700 text-white px-3 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing
+                    ? "Requesting MoMo..."
+                    : "Retry Remaining MoMo"}
+                </button>
+              </div>
+            )}
+
             {pendingMomo && (
               <div
                 className={`border rounded-lg p-3 ${momoMessageClass}`}
               >
                 <div className="font-semibold">
-                  Mobile Money
-                  Payment
+                  {pendingMomo.mode ===
+                  "SPLIT"
+                    ? "Split Payment — Mobile Money Balance"
+                    : "Mobile Money Payment"}
                 </div>
+
+                {pendingMomo.mode ===
+                  "SPLIT" && (
+                  <div className="mt-2 rounded-lg border border-current/20 p-2 text-sm space-y-1">
+                    <div className="flex justify-between gap-3">
+                      <span>
+                        Cash
+                      </span>
+
+                      <span className="font-medium">
+                        GHS{" "}
+                        {(
+                          (
+                            pendingMomo.cashAmountPesewas ??
+                            0
+                          ) / 100
+                        ).toFixed(
+                          2
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span>
+                        MoMo
+                      </span>
+
+                      <span className="font-medium">
+                        GHS{" "}
+                        {(
+                          (
+                            pendingMomo.momoAmountPesewas ??
+                            0
+                          ) / 100
+                        ).toFixed(
+                          2
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="text-sm mt-1">
                   Order:{" "}
@@ -1642,9 +2654,14 @@ export default function POSPage() {
                 ? isProcessing
                   ? "Waiting for Payment..."
                   : "Request MoMo Payment"
-                : isProcessing
-                  ? "Processing..."
-                  : "Complete Sale"}
+                : paymentMethod ===
+                    "SPLIT"
+                  ? isProcessing
+                    ? "Waiting for Split Payment..."
+                    : "Request Split Payment"
+                  : isProcessing
+                    ? "Processing..."
+                    : "Complete Sale"}
             </button>
           </div>
         </div>
