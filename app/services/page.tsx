@@ -21,7 +21,7 @@ type Service = {
 /* =========================
    Constants
 ========================= */
-const WHATSAPP_NUMBER = "233246011773"; // Ghana
+const WHATSAPP_NUMBER = "233270030000"; // Ghana
 const TIKTOK_URL = "https://www.tiktok.com/@ChineseWithDeeAndKids";
 
 /* =========================

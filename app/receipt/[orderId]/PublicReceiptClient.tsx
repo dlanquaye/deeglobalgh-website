@@ -313,9 +313,24 @@ export default function PublicReceiptClient({
         </h3>
 
         <p className="mt-3">
-          WhatsApp Support:
-          {" "}
+          <strong>
+            WhatsApp:
+          </strong>{" "}
+          027 003 0000
+        </p>
+
+        <p>
+          <strong>
+            Customer Care Calls:
+          </strong>{" "}
           0246 011 773
+        </p>
+
+        <p>
+          <strong>
+            Shop Line:
+          </strong>{" "}
+          030 398 2358
         </p>
 
         {/*

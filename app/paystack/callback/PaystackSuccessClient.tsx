@@ -62,7 +62,7 @@ export default function PaystackSuccessClient({
         "Please confirm delivery fee and delivery time when convenient. Thank you."
       );
 
-      const waNumber = "233246011773";
+      const waNumber = "233270030000";
       const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(
         lines.join("\n")
       )}`;

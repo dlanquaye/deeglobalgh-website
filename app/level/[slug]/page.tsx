@@ -80,7 +80,7 @@ export default async function LevelPage({ params }: Props) {
         </Link>
 
         <a
-          href="https://wa.me/233246011773"
+          href="https://wa.me/233270030000"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400"

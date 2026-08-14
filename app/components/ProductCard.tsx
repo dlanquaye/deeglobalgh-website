@@ -179,7 +179,7 @@ return (
   onClick={(e) => {
     e.stopPropagation();
     window.open(
-      `https://wa.me/233246011773?text=${encodeURIComponent(
+      `https://wa.me/233270030000?text=${encodeURIComponent(
         `Hello, I want to order:
 Product: ${product.name}
 Price: GH₵ ${product.retailPrice}

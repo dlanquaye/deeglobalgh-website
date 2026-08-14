@@ -110,7 +110,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 
   {/* PRIMARY CTA */}
   <Link
-    href="https://wa.me/233246011773"
+    href="https://wa.me/233270030000"
     target="_blank"
     className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold shadow-lg"
   >
@@ -146,7 +146,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
     </p>
 
     <a
-      href="https://wa.me/233246011773"
+      href="https://wa.me/233270030000"
       target="_blank"
       className="bg-white text-green-700 px-4 py-2 rounded-xl font-bold"
     >
@@ -320,7 +320,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
       <button
         onClick={() =>
           window.open(
-            `https://wa.me/233246011773?text=${encodeURIComponent(
+            `https://wa.me/233270030000?text=${encodeURIComponent(
               `Hello, I want to order:
 Product: ${p.name}
 Price: GH₵ ${p.retailPrice}

@@ -107,7 +107,7 @@ ${order.orderItems
 
 
   const encoded = encodeURIComponent(message);
-  const url = `https://wa.me/233246011773?text=${encoded}`;
+  const url = `https://wa.me/233270030000?text=${encoded}`;
 
   window.open(url, "_blank");
 }, [order]);

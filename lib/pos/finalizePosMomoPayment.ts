@@ -969,7 +969,8 @@ export async function finalizePosMomoPayment(
         (digitalReceiptUrl
           ? `Receipt: ${digitalReceiptUrl}\n`
           : "") +
-        `Help: 0246 011 773\n` +
+        `Call: 0246 011 773\n` +
+        `WhatsApp: 027 003 0000\n` +
         `Review: https://www.shopdeeglobalgh.com/review\n` +
         `Thank you.`;
 

@@ -91,7 +91,7 @@ export default async function ShopPage({
 
           <div className="mt-4 flex flex-wrap gap-3">
             <a
-              href="https://wa.me/233246011773"
+              href="https://wa.me/233270030000"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl bg-yellow-400 px-5 py-2 font-semibold text-black"

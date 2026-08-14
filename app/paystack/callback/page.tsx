@@ -94,7 +94,7 @@ export default async function PaystackCallbackPage({
             </Link>
 
             <Link
-              href="https://wa.me/233246011773"
+              href="https://wa.me/233270030000"
               className="rounded bg-green-600 px-4 py-2 text-white"
             >
               Contact WhatsApp

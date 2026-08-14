@@ -531,9 +531,23 @@ export default function OrderReceiptClient({
 
         <div className="mt-4">
           <strong>
-            WhatsApp Support:
+            WhatsApp:
+          </strong>{" "}
+          027 003 0000
+        </div>
+
+        <div>
+          <strong>
+            Customer Care Calls:
           </strong>{" "}
           0246 011 773
+        </div>
+
+        <div>
+          <strong>
+            Shop Line:
+          </strong>{" "}
+          030 398 2358
         </div>
 
         {/*

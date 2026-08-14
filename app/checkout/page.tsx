@@ -192,7 +192,7 @@ Area: ${area}`;
     const encoded = encodeURIComponent(message);
 
     window.open(
-      `https://wa.me/233246011773?text=${encoded}`,
+      `https://wa.me/233270030000?text=${encoded}`,
       "_blank"
     );
   };

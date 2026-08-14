@@ -18,5 +18,5 @@ Ready for delivery.
 
 export function buildWhatsAppLink(message: string) {
   const encoded = encodeURIComponent(message)
-  return `https://wa.me/233246011773?text=${encoded}`
+  return `https://wa.me/233270030000?text=${encoded}`
 }

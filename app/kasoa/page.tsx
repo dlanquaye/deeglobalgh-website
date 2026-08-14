@@ -25,7 +25,7 @@ export default function KasoaPage() {
         </Link>
 
         <a
-          href="https://wa.me/233246011773"
+          href="https://wa.me/233270030000"
           target="_blank"
           className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold"
         >

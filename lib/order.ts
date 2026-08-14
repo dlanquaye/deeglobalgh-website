@@ -208,7 +208,7 @@ export async function createOrderAndWhatsAppLink(
   message += `Please confirm availability and delivery.`;
 
   const encoded = encodeURIComponent(message);
-  const link = `https://wa.me/233246011773?text=${encoded}`;
+  const link = `https://wa.me/233270030000?text=${encoded}`;
 
   return { order, link };
 }

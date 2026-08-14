@@ -28,7 +28,7 @@ export default function SchoolListPage() {
       {/* CTA */}
       <div className="flex gap-3 mb-8 flex-wrap">
         <a
-  href="https://wa.me/233246011773"
+  href="https://wa.me/233270030000"
   target="_blank"
   rel="noopener noreferrer"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"

@@ -170,7 +170,7 @@ export default async function ProductPage({
           {/* Continue */}
           {/* WHATSAPP ORDER */}
 <a
-  href={`https://wa.me/233246011773?text=${encodeURIComponent(
+  href={`https://wa.me/233270030000?text=${encodeURIComponent(
   `Hello, I want to order:
 Product: ${product.name}
 Price: GH₵ ${price.toFixed(2)}
@@ -317,7 +317,7 @@ className="border rounded-2xl p-3 md:p-4 bg-white hover:shadow-xl hover:-transla
 {/* STICKY WHATSAPP BAR */}
 <div className="fixed bottom-0 left-0 w-full bg-white border-t p-3 z-50">
   <a
-    href={`https://wa.me/233246011773?text=${encodeURIComponent(
+    href={`https://wa.me/233270030000?text=${encodeURIComponent(
       `Hello, I want to order:
 Product: ${product.name}
 Price: GH₵ ${price.toFixed(2)}
