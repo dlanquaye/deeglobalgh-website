@@ -16,6 +16,7 @@ model Order {
   email            String
   phone            String
   amount           Int
+  amountPesewas    Int?
   paymentStatus    PaymentStatus @default(PENDING)
   smsSent          Boolean       @default(false)
   createdAt        DateTime      @default(now())
