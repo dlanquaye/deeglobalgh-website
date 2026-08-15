@@ -920,6 +920,27 @@ export default function POSPage() {
         };
       }
 
+      /*
+       * Protect every discount type from a
+       * cashier-side preview that rounds the
+       * sale to zero.
+       *
+       * The server remains authoritative and
+       * independently enforces this rule.
+       */
+      if (
+        previewDiscountPesewas >=
+        retailSubtotalPesewas
+      ) {
+        alert(
+          "Discount cannot reduce the sale total to zero or below"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
       const reason =
         discountReason as
           Exclude<
@@ -1782,6 +1803,27 @@ export default function POSPage() {
         return;
       }
 
+      /*
+       * A Split discount must be fixed before
+       * Cash is accepted.
+       *
+       * This is especially important because
+       * the backend records the Cash allocation
+       * as CONFIRMED before asking Paystack for
+       * the remaining MoMo balance.
+       */
+      const discountResult =
+        buildDiscountRequest();
+
+      if (
+        !discountResult.ok
+      ) {
+        return;
+      }
+
+      const discountRequest =
+        discountResult.discount;
+
       const cashText =
         splitCashAmount.trim();
 
@@ -1821,8 +1863,18 @@ export default function POSPage() {
        *
        * The backend still remains authoritative.
        */
+      /*
+       * When a discount is requested, Cash must
+       * be validated against the discounted
+       * preview total rather than retail total.
+       *
+       * The backend recalculates everything
+       * independently from database prices.
+       */
       const orderAmountPesewas =
-        retailSubtotalPesewas;
+        discountEnabled
+          ? previewFinalPesewas
+          : retailSubtotalPesewas;
 
       if (
         !Number.isSafeInteger(
@@ -1899,6 +1951,9 @@ export default function POSPage() {
                           item.quantity,
                       })
                     ),
+
+                  discount:
+                    discountRequest,
                 }),
             }
           );
@@ -1929,6 +1984,85 @@ export default function POSPage() {
           );
 
         if (!res.ok) {
+          /*
+           * Discount approval is resolved before
+           * the Split order is created.
+           *
+           * Therefore when the backend asks for
+           * manager approval, no Cash has been
+           * recorded and no Paystack request has
+           * been started yet.
+           */
+          if (
+            discountEnabled &&
+            data.error ===
+              "Manager approval is required for this discount."
+          ) {
+            setDiscountNeedsApproval(
+              true
+            );
+
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error
+            );
+
+            setMomoMessage("");
+
+            setMomoSecondsRemaining(
+              0
+            );
+
+            return;
+          }
+
+          /*
+           * Wrong manager credentials or
+           * insufficient manager authority also
+           * happen before the Split order exists.
+           */
+          if (
+            discountEnabled &&
+            discountNeedsApproval &&
+            !data.orderId &&
+            (
+              res.status === 401 ||
+              res.status === 403
+            )
+          ) {
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error ||
+                "Discount approval failed"
+            );
+
+            setMomoMessage("");
+
+            setMomoSecondsRemaining(
+              0
+            );
+
+            return;
+          }
+
+          /*
+           * If an order now exists, approval has
+           * already succeeded and the immutable
+           * audit snapshot has been stored.
+           *
+           * Clear manager credentials before the
+           * Paystack payment enters verification
+           * or recovery.
+           */
+          if (
+            discountEnabled &&
+            data.orderId
+          ) {
+            resetDiscountApproval();
+          }
+
           if (
             data.orderId &&
             data.paymentId &&
@@ -2039,6 +2173,18 @@ export default function POSPage() {
           throw new Error(
             "Split payment was started without a complete payment reference"
           );
+        }
+
+        if (
+          discountEnabled
+        ) {
+          /*
+           * Approval credentials have served
+           * their purpose. The database now
+           * contains only the immutable approval
+           * audit snapshot.
+           */
+          resetDiscountApproval();
         }
 
         const payment:
@@ -2389,8 +2535,13 @@ export default function POSPage() {
    * Cashier-facing split-payment preview.
    * The backend remains authoritative.
    */
+  const splitOrderAmountPesewas =
+    discountEnabled
+      ? previewFinalPesewas
+      : retailSubtotalPesewas;
+
   const splitOrderAmount =
-    retailSubtotalPesewas /
+    splitOrderAmountPesewas /
     100;
 
   const splitCashNumber =
@@ -2407,7 +2558,7 @@ export default function POSPage() {
     Math.max(
       0,
       (
-        retailSubtotalPesewas -
+        splitOrderAmountPesewas -
         (
           parseGhsToPesewasForPreview(
             splitCashAmount
@@ -2434,7 +2585,9 @@ export default function POSPage() {
     paymentMethod ===
       "BANK_TRANSFER" ||
     paymentMethod ===
-      "MOMO";
+      "MOMO" ||
+    paymentMethod ===
+      "SPLIT";
 
   return (
     <div className="p-6">
@@ -3151,26 +3304,15 @@ export default function POSPage() {
                 );
 
                 /*
-                 * MoMo and Split discount wiring
-                 * comes next. Until then, never
-                 * carry a standard-checkout
-                 * discount invisibly into those
-                 * payment modes.
+                 * All current POS payment
+                 * methods now share the same
+                 * controlled discount contract.
+                 *
+                 * Preserve the entered discount
+                 * when the cashier changes
+                 * payment method. The backend
+                 * always recalculates it.
                  */
-                if (
-                  nextMethod ===
-                    "SPLIT"
-                ) {
-                  /*
-                   * Split discount support is the
-                   * next controlled integration.
-                   *
-                   * Until then, never carry a
-                   * discount invisibly into the
-                   * Split workflow.
-                   */
-                  resetDiscountState();
-                }
               }}
               disabled={
                 momoPaymentLocked

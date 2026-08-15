@@ -12,9 +12,29 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+
 import {
   getLegacyOrderAmount,
 } from "@/lib/pos/orderMoney";
+
+import {
+  PosPricingPreparationError,
+  preparePosPricing,
+} from "@/lib/pos/preparePosPricing";
+
+import type {
+  RawPosDiscountInput,
+} from "@/lib/pos/preparePosPricing";
+
+import {
+  PosDiscountActorError,
+  resolvePosDiscountActor,
+} from "@/lib/pos/resolvePosDiscountActor";
+
+import type {
+  DiscountActorInput,
+  DiscountProductInput,
+} from "@/lib/pos/discounts";
 
 type AdminSession = {
   adminId?: string;
@@ -143,9 +163,11 @@ function normaliseItems(
 
     quantitiesByProduct.set(
       id,
-      (quantitiesByProduct.get(
-        id
-      ) ?? 0) + quantity
+      (
+        quantitiesByProduct.get(
+          id
+        ) ?? 0
+      ) + quantity
     );
   }
 
@@ -156,6 +178,32 @@ function normaliseItems(
       quantity,
     })
   );
+}
+
+function normaliseDiscount(
+  value: unknown
+):
+  | RawPosDiscountInput
+  | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  if (
+    typeof value !==
+      "object" ||
+    Array.isArray(value)
+  ) {
+    throw new SplitInitiationError(
+      "Invalid discount request"
+    );
+  }
+
+  return value as
+    RawPosDiscountInput;
 }
 
 function normaliseProvider(
@@ -224,21 +272,15 @@ function normaliseGhanaPhone(
 }
 
 /*
- * Convert a cashier-entered GHS amount
- * to exact integer pesewas without doing
- * financial reconciliation in floating
- * point arithmetic.
- *
- * Accepted examples:
- *   40
- *   40.5
- *   40.50
+ * Convert cashier-entered GHS into exact
+ * integer pesewas.
  */
 function parseGhsToPesewas(
   value: unknown
 ) {
   const text =
-    typeof value === "number"
+    typeof value ===
+      "number"
       ? String(value)
       : typeof value ===
           "string"
@@ -408,12 +450,22 @@ export async function POST(
       provider:
         rawProvider,
       cashAmount,
+      discount:
+        rawDiscount,
     } = body;
 
     const items =
       normaliseItems(
         rawItems
       );
+
+    const discount =
+      normaliseDiscount(
+        rawDiscount
+      );
+
+    const discountRequested =
+      discount !== null;
 
     const provider =
       normaliseProvider(
@@ -442,11 +494,21 @@ export async function POST(
     //
     // IMPORTANT:
     //
-    // Cash is recorded as CONFIRMED.
+    // 1. Product prices are fetched server-side.
     //
-    // MoMo remains PENDING.
+    // 2. Discount authority and selling floors
+    //    are checked server-side.
     //
-    // Stock is NOT reduced here.
+    // 3. The FINAL DISCOUNTED TOTAL is fixed
+    //    before Cash is accepted.
+    //
+    // 4. Cash is then recorded CONFIRMED.
+    //
+    // 5. MoMo is calculated as:
+    //
+    //    discounted total - Cash.
+    //
+    // 6. Stock is NOT reduced here.
     // ==========================================
     const prepared =
       await prisma.$transaction(
@@ -461,7 +523,8 @@ export async function POST(
             await tx.product.findMany({
               where: {
                 id: {
-                  in: productIds,
+                  in:
+                    productIds,
                 },
 
                 isActive:
@@ -521,11 +584,15 @@ export async function POST(
             }
           }
 
+          // ======================================
+          // BRANCH STOCK PRE-CHECK
+          // ======================================
           const inventories =
             await tx.inventory.findMany({
               where: {
                 productId: {
-                  in: productIds,
+                  in:
+                    productIds,
                 },
 
                 locationType:
@@ -546,15 +613,6 @@ export async function POST(
               )
             );
 
-          /*
-           * Confirm sufficient branch stock
-           * before accepting the split payment.
-           *
-           * This is a pre-check only.
-           * Final atomic protection remains in
-           * applyStockMovement() after the MoMo
-           * allocation is confirmed.
-           */
           for (
             const item of
             items
@@ -584,76 +642,188 @@ export async function POST(
             }
           }
 
-          /*
-           * Calculate the authoritative order
-           * total directly in integer pesewas.
-           *
-           * Never round the completed basket to
-           * a whole cedi before allocating Cash
-           * and Mobile Money.
-           */
-          let orderAmountPesewas =
-            0;
+          // ======================================
+          // AUTHORITATIVE PRICING PRODUCTS
+          // ======================================
+          const pricingProducts:
+            DiscountProductInput[] =
+            items.map(
+              (item) => {
+                const product =
+                  productMap.get(
+                    item.id
+                  )!;
 
-          for (
-            const item of
-            items
+                return {
+                  productId:
+                    product.id,
+
+                  productName:
+                    product.name,
+
+                  quantity:
+                    item.quantity,
+
+                  retailPrice:
+                    product.retailPrice,
+
+                  minimumSellingPrice:
+                    product.minimumSellingPrice,
+
+                  costPrice:
+                    product.costPrice,
+                };
+              }
+            );
+
+          // ======================================
+          // DISCOUNT REQUESTER AUTHORITY
+          // ======================================
+          let pricingActor:
+            DiscountActorInput;
+
+          if (
+            discountRequested
           ) {
-            const product =
-              productMap.get(
-                item.id
-              )!;
+            pricingActor =
+              await resolvePosDiscountActor({
+                staffId:
+                  session.staffId,
 
-            const unitPricePesewas =
-              Math.round(
-                product.retailPrice *
-                100
-              );
+                branchId,
 
-            if (
-              !Number.isSafeInteger(
-                unitPricePesewas
-              ) ||
-              unitPricePesewas <=
-                0
-            ) {
-              throw new SplitInitiationError(
-                `Invalid selling price for ${product.name}`,
-                400
-              );
-            }
+                dependencies: {
+                  findStaffById:
+                    async (
+                      staffId
+                    ) =>
+                      tx.staff.findUnique({
+                        where: {
+                          id:
+                            staffId,
+                        },
 
-            const lineTotalPesewas =
-              unitPricePesewas *
-              item.quantity;
+                        select: {
+                          id:
+                            true,
 
-            if (
-              !Number.isSafeInteger(
-                lineTotalPesewas
-              ) ||
-              lineTotalPesewas <=
-                0
-            ) {
-              throw new SplitInitiationError(
-                `Invalid order total for ${product.name}`,
-                400
-              );
-            }
+                          name:
+                            true,
 
-            orderAmountPesewas +=
-              lineTotalPesewas;
+                          role:
+                            true,
 
-            if (
-              !Number.isSafeInteger(
-                orderAmountPesewas
-              )
-            ) {
-              throw new SplitInitiationError(
-                "Order amount is too large",
-                400
-              );
-            }
+                          isActive:
+                            true,
+
+                          branchId:
+                            true,
+
+                          maxDiscountPercent:
+                            true,
+                        },
+                      }),
+                },
+              });
+          } else {
+            /*
+             * No discount:
+             *
+             * preserve the existing Split POS
+             * workflow for the authenticated
+             * actor.
+             */
+            pricingActor = {
+              id:
+                actorId,
+
+              name:
+                session.staffName ??
+                "POS Staff",
+
+              role:
+                session.role ??
+                null,
+
+              maxDiscountPercent:
+                null,
+            };
           }
+
+          // ======================================
+          // SHARED PRICING / DISCOUNT ENGINE
+          // ======================================
+          const pricing =
+            await preparePosPricing({
+              products:
+                pricingProducts,
+
+              actor:
+                pricingActor,
+
+              discount,
+
+              approvalDependencies:
+                discountRequested
+                  ? {
+                      findAdminByEmail:
+                        async (
+                          email
+                        ) =>
+                          tx.admin.findUnique({
+                            where: {
+                              email,
+                            },
+
+                            select: {
+                              id:
+                                true,
+
+                              name:
+                                true,
+
+                              email:
+                                true,
+
+                              pinHash:
+                                true,
+
+                              role:
+                                true,
+
+                              isActive:
+                                true,
+
+                              staff: {
+                                select: {
+                                  id:
+                                    true,
+
+                                  name:
+                                    true,
+
+                                  role:
+                                    true,
+
+                                  isActive:
+                                    true,
+
+                                  maxDiscountPercent:
+                                    true,
+                                },
+                              },
+                            },
+                          }),
+                    }
+                  : undefined,
+            });
+
+          /*
+           * This is now the exact authoritative
+           * discounted order total.
+           */
+          const orderAmountPesewas =
+            pricing.finalSubtotalPesewas;
 
           if (
             !Number.isSafeInteger(
@@ -667,29 +837,18 @@ export async function POST(
             );
           }
 
-          /*
-           * amountPesewas is authoritative for
-           * new POS orders.
-           *
-           * Order.amount remains populated only
-           * for backwards compatibility with
-           * existing parts of the application.
-           */
           const orderAmount =
             getLegacyOrderAmount(
               orderAmountPesewas
             );
 
-          /*
-           * A genuine split must contain
-           * BOTH payment methods.
-           *
-           * Cash = 0 is pure MoMo.
-           * Cash = total is pure Cash.
-           *
-           * Those belong to the existing
-           * single-method checkout paths.
-           */
+          // ======================================
+          // SPLIT ALLOCATION VALIDATION
+          // ======================================
+          //
+          // Cash is validated against the FINAL
+          // discounted total, not retail total.
+          // ======================================
           if (
             cashAmountPesewas <=
             0
@@ -704,7 +863,7 @@ export async function POST(
             orderAmountPesewas
           ) {
             throw new SplitInitiationError(
-              "Cash amount must be less than the order total for a Cash + MoMo split payment"
+              "Cash amount must be less than the final order total for a Cash + MoMo split payment"
             );
           }
 
@@ -717,13 +876,26 @@ export async function POST(
               momoAmountPesewas
             ) ||
             momoAmountPesewas <=
-            0
+              0
           ) {
             throw new SplitInitiationError(
               "Invalid Mobile Money balance"
             );
           }
 
+          const pricingLineMap =
+            new Map(
+              pricing.lines.map(
+                (line) => [
+                  line.productId,
+                  line,
+                ]
+              )
+            );
+
+          // ======================================
+          // CREATE PENDING SPLIT ORDER
+          // ======================================
           const order =
             await tx.order.create({
               data: {
@@ -763,13 +935,25 @@ export async function POST(
                 orderItems: {
                   create:
                     items.map(
-                      (
-                        item
-                      ) => {
+                      (item) => {
                         const product =
                           productMap.get(
                             item.id
                           )!;
+
+                        const pricingLine =
+                          pricingLineMap.get(
+                            product.id
+                          );
+
+                        if (
+                          !pricingLine
+                        ) {
+                          throw new SplitInitiationError(
+                            `Pricing result missing for ${product.name}`,
+                            500
+                          );
+                        }
 
                         return {
                           productId:
@@ -778,12 +962,41 @@ export async function POST(
                           quantity:
                             item.quantity,
 
+                          /*
+                           * Actual final selling
+                           * values.
+                           */
                           unitPrice:
-                            product.retailPrice,
+                            pricingLine.finalUnitPricePesewas /
+                            100,
 
                           totalPrice:
-                            product.retailPrice *
-                            item.quantity,
+                            pricingLine.finalTotalPesewas /
+                            100,
+
+                          /*
+                           * Original retail and
+                           * discount audit values.
+                           */
+                          originalUnitPrice:
+                            pricing.discount
+                              ? pricingLine.originalUnitPricePesewas /
+                                100
+                              : null,
+
+                          discountPerUnit:
+                            pricingLine.discountPerUnitPesewas /
+                            100,
+
+                          originalTotalPrice:
+                            pricing.discount
+                              ? pricingLine.originalTotalPesewas /
+                                100
+                              : null,
+
+                          discountTotal:
+                            pricingLine.discountTotalPesewas /
+                            100,
                         };
                       }
                     ),
@@ -844,6 +1057,79 @@ export async function POST(
               },
             });
 
+          // ======================================
+          // DISCOUNT AUDIT SNAPSHOT
+          // ======================================
+          if (
+            pricing.discount
+          ) {
+            const audit =
+              pricing.discount;
+
+            await tx.orderDiscount.create({
+              data: {
+                orderId:
+                  order.id,
+
+                type:
+                  audit.type,
+
+                value:
+                  audit.value,
+
+                reason:
+                  audit.reason,
+
+                note:
+                  audit.note,
+
+                originalSubtotal:
+                  audit.originalSubtotalPesewas /
+                  100,
+
+                discountAmount:
+                  audit.discountAmountPesewas /
+                  100,
+
+                finalSubtotal:
+                  audit.finalSubtotalPesewas /
+                  100,
+
+                requestedById:
+                  audit.requestedById,
+
+                requestedByName:
+                  audit.requestedByName,
+
+                requestedByRole:
+                  audit.requestedByRole,
+
+                approvalRequired:
+                  audit.approvalRequired,
+
+                approvedById:
+                  audit.approval
+                    ?.approvedById ??
+                  null,
+
+                approvedByName:
+                  audit.approval
+                    ?.approvedByName ??
+                  null,
+
+                approvedByRole:
+                  audit.approval
+                    ?.approvedByRole ??
+                  null,
+
+                approvedAt:
+                  audit.approval
+                    ?.approvedAt ??
+                  null,
+              },
+            });
+          }
+
           const momoPayment =
             order.payments.find(
               (payment) =>
@@ -857,7 +1143,7 @@ export async function POST(
             order.payments.find(
               (payment) =>
                 payment.method ===
-                PaymentMethod.CASH
+                  PaymentMethod.CASH
             );
 
           if (
@@ -874,22 +1160,33 @@ export async function POST(
             order,
             momoPayment,
             cashPayment,
+
             orderAmountPesewas,
+
             cashAmountPesewas,
+
             momoAmountPesewas,
+
+            originalSubtotalPesewas:
+              pricing.originalSubtotalPesewas,
+
+            discountAmountPesewas:
+              pricing.discountAmountPesewas,
           };
         }
       );
 
     // ==========================================
-    // REQUEST THE MOMO BALANCE FROM PAYSTACK
+    // REQUEST MOMO BALANCE FROM PAYSTACK
     // ==========================================
     //
-    // The DB transaction has already committed.
+    // The DB transaction has committed.
     //
-    // This means we never hold a database
-    // transaction open across an external
-    // Paystack network call.
+    // Cash is already CONFIRMED.
+    //
+    // Paystack receives ONLY the exact remaining
+    // MoMo amount calculated from the stored
+    // discounted order total.
     // ==========================================
     let chargeResponse:
       Response;
@@ -967,11 +1264,11 @@ export async function POST(
       /*
        * Do NOT mark the MoMo allocation failed.
        *
-       * A timeout does not prove Paystack did
-       * not receive the charge request.
+       * A network timeout does not prove
+       * Paystack did not receive the request.
        *
        * Cash remains CONFIRMED, MoMo remains
-       * PENDING, and stock remains untouched.
+       * PENDING, stock remains untouched.
        */
       await prisma.orderPayment.update({
         where: {
@@ -1006,11 +1303,26 @@ export async function POST(
           orderAmountPesewas:
             prepared.orderAmountPesewas,
 
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
+
           cashAmountPesewas:
             prepared.cashAmountPesewas,
 
           momoAmountPesewas:
             prepared.momoAmountPesewas,
+
+          cashPaymentStatus:
+            "CONFIRMED",
+
+          momoPaymentStatus:
+            "PENDING",
+
+          expiresInSeconds:
+            180,
         },
         {
           status: 502,
@@ -1027,11 +1339,11 @@ export async function POST(
           PaystackChargeResponse;
     } catch {
       /*
-       * The request reached Paystack, but the
-       * response could not be interpreted.
+       * Paystack was contacted but its response
+       * could not be interpreted.
        *
-       * Preserve the pending allocation so the
-       * reference can be checked safely.
+       * Preserve PENDING so the same reference
+       * can be verified safely.
        */
       await prisma.orderPayment.update({
         where: {
@@ -1066,11 +1378,26 @@ export async function POST(
           orderAmountPesewas:
             prepared.orderAmountPesewas,
 
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
+
           cashAmountPesewas:
             prepared.cashAmountPesewas,
 
           momoAmountPesewas:
             prepared.momoAmountPesewas,
+
+          cashPaymentStatus:
+            "CONFIRMED",
+
+          momoPaymentStatus:
+            "PENDING",
+
+          expiresInSeconds:
+            180,
         },
         {
           status: 502,
@@ -1087,22 +1414,25 @@ export async function POST(
     const providerStatus =
       paystackData.data
         ?.status ??
-      (chargeResponse.ok
-        ? "unknown"
-        : "failed");
+      (
+        chargeResponse.ok
+          ? "unknown"
+          : "failed"
+      );
 
-    /*
-     * Definitive initiation failure:
-     *
-     * Cash remains CONFIRMED.
-     * MoMo becomes FAILED.
-     * Order remains PENDING.
-     * Stock remains untouched.
-     *
-     * This allows a replacement MoMo
-     * allocation to be added later without
-     * destroying the recorded Cash payment.
-     */
+    // ==========================================
+    // DEFINITIVE MOMO INITIATION FAILURE
+    // ==========================================
+    //
+    // Cash remains CONFIRMED.
+    // MoMo becomes FAILED.
+    // Order remains PENDING.
+    // Stock remains untouched.
+    //
+    // Existing split retry then charges the
+    // SAME outstanding balance stored against
+    // this discounted order.
+    // ==========================================
     if (
       !chargeResponse.ok ||
       paystackData.status !==
@@ -1151,6 +1481,12 @@ export async function POST(
           orderAmountPesewas:
             prepared.orderAmountPesewas,
 
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
+
           cashAmountPesewas:
             prepared.cashAmountPesewas,
 
@@ -1172,6 +1508,9 @@ export async function POST(
       );
     }
 
+    // ==========================================
+    // PAYSTACK REQUEST ACCEPTED
+    // ==========================================
     await prisma.orderPayment.update({
       where: {
         id:
@@ -1213,11 +1552,23 @@ export async function POST(
       orderAmountPesewas:
         prepared.orderAmountPesewas,
 
+      originalSubtotalPesewas:
+        prepared.originalSubtotalPesewas,
+
+      discountAmountPesewas:
+        prepared.discountAmountPesewas,
+
       cashAmountPesewas:
         prepared.cashAmountPesewas,
 
       momoAmountPesewas:
         prepared.momoAmountPesewas,
+
+      cashPaymentStatus:
+        "CONFIRMED",
+
+      momoPaymentStatus:
+        "PENDING",
 
       displayText:
         paystackData.data
@@ -1245,6 +1596,38 @@ export async function POST(
         {
           status:
             error.status,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosPricingPreparationError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosDiscountActorError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
         }
       );
     }
