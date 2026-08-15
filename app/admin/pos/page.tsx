@@ -48,6 +48,21 @@ type DiscountReasonOption =
   | "MANAGER_ADJUSTMENT"
   | "OTHER";
 
+type PosDiscountPayload = {
+  type: DiscountTypeOption;
+  value: string | number;
+  reason: Exclude<
+    DiscountReasonOption,
+    ""
+  >;
+  note: string | null;
+
+  approval?: {
+    email: string;
+    pin: string;
+  };
+};
+
 type PendingMomoPayment = {
   orderId: string;
   paymentId: string;
@@ -754,6 +769,200 @@ export default function POSPage() {
       retailSubtotalPesewas;
 
   // ==========================================
+  // BUILD CONTROLLED DISCOUNT REQUEST
+  // ==========================================
+  //
+  // Cash, Bank Transfer and pure MoMo now use
+  // the SAME cashier-side validation and the
+  // SAME backend discount contract.
+  //
+  // The browser preview is never authoritative.
+  // Product floors, staff authority and the
+  // final amount are recalculated server-side.
+  const buildDiscountRequest =
+    ():
+      | {
+          ok: true;
+          discount:
+            | PosDiscountPayload
+            | null;
+        }
+      | {
+          ok: false;
+        } => {
+      if (
+        !discountEnabled
+      ) {
+        return {
+          ok: true,
+          discount: null,
+        };
+      }
+
+      if (
+        !discountValue.trim()
+      ) {
+        alert(
+          "Enter the discount value"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      if (
+        !Number.isFinite(
+          discountNumericValue
+        ) ||
+        discountNumericValue <=
+          0
+      ) {
+        alert(
+          "Discount value must be greater than zero"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      if (
+        discountType ===
+          "PERCENTAGE" &&
+        discountNumericValue >=
+          100
+      ) {
+        alert(
+          "Percentage discount must be less than 100%"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      if (
+        discountType ===
+        "AMOUNT"
+      ) {
+        const exactAmount =
+          parseGhsToPesewasForPreview(
+            discountValue
+          );
+
+        if (
+          exactAmount ===
+          null
+        ) {
+          alert(
+            "Enter a valid discount amount with no more than two decimal places"
+          );
+
+          return {
+            ok: false,
+          };
+        }
+
+        if (
+          exactAmount >=
+          retailSubtotalPesewas
+        ) {
+          alert(
+            "Discount cannot reduce the sale total to zero or below"
+          );
+
+          return {
+            ok: false,
+          };
+        }
+      }
+
+      if (
+        !discountReason
+      ) {
+        alert(
+          "Select a discount reason"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      if (
+        discountReason ===
+          "OTHER" &&
+        !discountNote.trim()
+      ) {
+        alert(
+          "Enter a note for the Other discount reason"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      if (
+        discountNeedsApproval &&
+        (
+          !managerEmail.trim() ||
+          !managerPin.trim()
+        )
+      ) {
+        alert(
+          "Manager email and PIN are required"
+        );
+
+        return {
+          ok: false,
+        };
+      }
+
+      const reason =
+        discountReason as
+          Exclude<
+            DiscountReasonOption,
+            ""
+          >;
+
+      return {
+        ok: true,
+
+        discount: {
+          type:
+            discountType,
+
+          value:
+            discountType ===
+            "AMOUNT"
+              ? discountValue
+              : discountNumericValue,
+
+          reason,
+
+          note:
+            discountNote.trim()
+              ? discountNote.trim()
+              : null,
+
+          ...(discountNeedsApproval
+            ? {
+                approval: {
+                  email:
+                    managerEmail.trim(),
+
+                  pin:
+                    managerPin,
+                },
+              }
+            : {}),
+        },
+      };
+    };
+
+  // ==========================================
   // STANDARD CHECKOUT
   // CASH / BANK TRANSFER
   // ==========================================
@@ -773,165 +982,17 @@ export default function POSPage() {
         return;
       }
 
-      let discountRequest:
-        | {
-            type:
-              DiscountTypeOption;
-            value:
-              string | number;
-            reason:
-              DiscountReasonOption;
-            note:
-              string | null;
-            approval?: {
-              email:
-                string;
-              pin:
-                string;
-            };
-          }
-        | null =
-        null;
+      const discountResult =
+        buildDiscountRequest();
 
       if (
-        discountEnabled
+        !discountResult.ok
       ) {
-        if (
-          !discountValue.trim()
-        ) {
-          alert(
-            "Enter the discount value"
-          );
-
-          return;
-        }
-
-        if (
-          !Number.isFinite(
-            discountNumericValue
-          ) ||
-          discountNumericValue <=
-            0
-        ) {
-          alert(
-            "Discount value must be greater than zero"
-          );
-
-          return;
-        }
-
-        if (
-          discountType ===
-            "PERCENTAGE" &&
-          discountNumericValue >=
-            100
-        ) {
-          alert(
-            "Percentage discount must be less than 100%"
-          );
-
-          return;
-        }
-
-        if (
-          discountType ===
-          "AMOUNT"
-        ) {
-          const exactAmount =
-            parseGhsToPesewasForPreview(
-              discountValue
-            );
-
-          if (
-            exactAmount ===
-            null
-          ) {
-            alert(
-              "Enter a valid discount amount with no more than two decimal places"
-            );
-
-            return;
-          }
-
-          if (
-            exactAmount >=
-            retailSubtotalPesewas
-          ) {
-            alert(
-              "Discount cannot reduce the sale total to zero or below"
-            );
-
-            return;
-          }
-        }
-
-        if (
-          !discountReason
-        ) {
-          alert(
-            "Select a discount reason"
-          );
-
-          return;
-        }
-
-        if (
-          discountReason ===
-            "OTHER" &&
-          !discountNote.trim()
-        ) {
-          alert(
-            "Enter a note for the Other discount reason"
-          );
-
-          return;
-        }
-
-        if (
-          discountNeedsApproval &&
-          (
-            !managerEmail.trim() ||
-            !managerPin.trim()
-          )
-        ) {
-          alert(
-            "Manager email and PIN are required"
-          );
-
-          return;
-        }
-
-        discountRequest = {
-          type:
-            discountType,
-
-          value:
-            discountType ===
-            "AMOUNT"
-              ? discountValue
-              : discountNumericValue,
-
-          reason:
-            discountReason,
-
-          note:
-            discountNote.trim()
-              ? discountNote.trim()
-              : null,
-
-          ...(discountNeedsApproval
-            ? {
-                approval: {
-                  email:
-                    managerEmail.trim(),
-
-                  pin:
-                    managerPin,
-                },
-              }
-            : {}),
-        };
+        return;
       }
+
+      const discountRequest =
+        discountResult.discount;
 
       setIsProcessing(true);
       setDiscountMessage("");
@@ -1357,7 +1418,21 @@ export default function POSPage() {
         return;
       }
 
+      const discountResult =
+        buildDiscountRequest();
+
+      if (
+        !discountResult.ok
+      ) {
+        return;
+      }
+
+      const discountRequest =
+        discountResult.discount;
+
       setIsProcessing(true);
+
+      setDiscountMessage("");
 
       setMomoMessage("");
       setMomoMessageType(
@@ -1402,6 +1477,9 @@ export default function POSPage() {
                           item.quantity,
                       })
                     ),
+
+                  discount:
+                    discountRequest,
                 }),
             }
           );
@@ -1420,6 +1498,82 @@ export default function POSPage() {
         }
 
         if (!res.ok) {
+          /*
+           * Discount approval happens BEFORE
+           * the PENDING MoMo order is created.
+           *
+           * Therefore an approval-required
+           * response has no Paystack payment
+           * reference yet and it is safe to
+           * show the manager fields.
+           */
+          if (
+            discountEnabled &&
+            data.error ===
+              "Manager approval is required for this discount."
+          ) {
+            setDiscountNeedsApproval(
+              true
+            );
+
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error
+            );
+
+            setMomoMessage("");
+            setMomoSecondsRemaining(
+              0
+            );
+
+            return;
+          }
+
+          /*
+           * Wrong manager credentials or
+           * insufficient manager authority
+           * happen before an order/payment is
+           * created as well.
+           */
+          if (
+            discountEnabled &&
+            discountNeedsApproval &&
+            !data.orderId &&
+            (
+              res.status === 401 ||
+              res.status === 403
+            )
+          ) {
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error ||
+                "Discount approval failed"
+            );
+
+            setMomoMessage("");
+            setMomoSecondsRemaining(
+              0
+            );
+
+            return;
+          }
+
+          /*
+           * If an order ID now exists, the
+           * manager approval step has already
+           * succeeded. Never retain the PIN
+           * while a Paystack payment is pending
+           * or after Paystack initiation fails.
+           */
+          if (
+            discountEnabled &&
+            data.orderId
+          ) {
+            resetDiscountApproval();
+          }
+
           if (
             data.orderId &&
             data.paymentId &&
@@ -1482,6 +1636,19 @@ export default function POSPage() {
           throw new Error(
             "Mobile Money payment was started without a complete payment reference"
           );
+        }
+
+        if (
+          discountEnabled
+        ) {
+          /*
+           * The order now contains the immutable
+           * approver snapshot. Credentials have
+           * served their purpose and must not
+           * remain in browser state during
+           * payment polling.
+           */
+          resetDiscountApproval();
         }
 
         const payment: PendingMomoPayment =
@@ -2261,11 +2428,13 @@ export default function POSPage() {
           ? "border-amber-200 bg-amber-50 text-amber-800"
           : "border-blue-200 bg-blue-50 text-blue-800";
 
-  const standardPaymentMethod =
+  const discountSupportedPaymentMethod =
     paymentMethod ===
       "CASH" ||
     paymentMethod ===
-      "BANK_TRANSFER";
+      "BANK_TRANSFER" ||
+    paymentMethod ===
+      "MOMO";
 
   return (
     <div className="p-6">
@@ -2553,7 +2722,7 @@ export default function POSPage() {
             </div>
 
             {/* CONTROLLED DISCOUNT */}
-            {standardPaymentMethod && (
+            {discountSupportedPaymentMethod && (
               <div className="border rounded-lg p-3 bg-amber-50 space-y-3">
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <div>
@@ -2990,10 +3159,16 @@ export default function POSPage() {
                  */
                 if (
                   nextMethod ===
-                    "MOMO" ||
-                  nextMethod ===
                     "SPLIT"
                 ) {
+                  /*
+                   * Split discount support is the
+                   * next controlled integration.
+                   *
+                   * Until then, never carry a
+                   * discount invisibly into the
+                   * Split workflow.
+                   */
                   resetDiscountState();
                 }
               }}

@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
 import {
   LocationType,
   OrderPaymentStatus,
@@ -11,9 +12,29 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+
 import {
   getLegacyOrderAmount,
 } from "@/lib/pos/orderMoney";
+
+import {
+  PosPricingPreparationError,
+  preparePosPricing,
+} from "@/lib/pos/preparePosPricing";
+
+import type {
+  RawPosDiscountInput,
+} from "@/lib/pos/preparePosPricing";
+
+import {
+  PosDiscountActorError,
+  resolvePosDiscountActor,
+} from "@/lib/pos/resolvePosDiscountActor";
+
+import type {
+  DiscountActorInput,
+  DiscountProductInput,
+} from "@/lib/pos/discounts";
 
 type AdminSession = {
   adminId?: string;
@@ -36,6 +57,7 @@ type PaystackProvider =
 type PaystackChargeResponse = {
   status?: boolean;
   message?: string;
+
   data?: {
     reference?: string;
     status?: string;
@@ -54,9 +76,12 @@ class MomoInitiationError extends Error {
     status = 400
   ) {
     super(message);
+
     this.name =
       "MomoInitiationError";
-    this.status = status;
+
+    this.status =
+      status;
   }
 }
 
@@ -102,7 +127,8 @@ function normaliseItems(
   for (const item of items) {
     if (
       !item ||
-      typeof item !== "object" ||
+      typeof item !==
+        "object" ||
       !("id" in item) ||
       !("quantity" in item)
     ) {
@@ -111,13 +137,13 @@ function normaliseItems(
       );
     }
 
-    const id = String(
-      item.id
-    );
+    const id =
+      String(item.id);
 
-    const quantity = Number(
-      item.quantity
-    );
+    const quantity =
+      Number(
+        item.quantity
+      );
 
     if (!id) {
       throw new MomoInitiationError(
@@ -138,9 +164,11 @@ function normaliseItems(
 
     quantitiesByProduct.set(
       id,
-      (quantitiesByProduct.get(
-        id
-      ) ?? 0) + quantity
+      (
+        quantitiesByProduct.get(
+          id
+        ) ?? 0
+      ) + quantity
     );
   }
 
@@ -151,6 +179,32 @@ function normaliseItems(
       quantity,
     })
   );
+}
+
+function normaliseDiscount(
+  value: unknown
+):
+  | RawPosDiscountInput
+  | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  if (
+    typeof value !==
+      "object" ||
+    Array.isArray(value)
+  ) {
+    throw new MomoInitiationError(
+      "Invalid discount request"
+    );
+  }
+
+  return value as
+    RawPosDiscountInput;
 }
 
 function normaliseProvider(
@@ -217,24 +271,26 @@ function normaliseGhanaPhone(
 function createOrderId() {
   return (
     `POS-${Date.now()}-` +
-    randomBytes(3).toString(
-      "hex"
-    )
+    randomBytes(
+      3
+    ).toString("hex")
   );
 }
 
 function createReceiptToken() {
   return randomBytes(
     24
-  ).toString("base64url");
+  ).toString(
+    "base64url"
+  );
 }
 
 function createPaystackReference() {
   return (
     `POSMOMO-${Date.now()}-` +
-    randomBytes(6).toString(
-      "hex"
-    )
+    randomBytes(
+      6
+    ).toString("hex")
   );
 }
 
@@ -242,6 +298,9 @@ export async function POST(
   req: Request
 ) {
   try {
+    // ==========================================
+    // SESSION
+    // ==========================================
     const session =
       await getAdminSession();
 
@@ -303,6 +362,9 @@ export async function POST(
       );
     }
 
+    // ==========================================
+    // REQUEST
+    // ==========================================
     const body =
       await req.json();
 
@@ -312,12 +374,22 @@ export async function POST(
       customerPhone,
       provider:
         rawProvider,
+      discount:
+        rawDiscount,
     } = body;
 
     const items =
       normaliseItems(
         rawItems
       );
+
+    const discount =
+      normaliseDiscount(
+        rawDiscount
+      );
+
+    const discountRequested =
+      discount !== null;
 
     const provider =
       normaliseProvider(
@@ -333,21 +405,33 @@ export async function POST(
       session.branchId;
 
     /*
-     * This reference belongs to the
-     * individual payment allocation,
-     * not to the Order itself.
+     * The provider reference belongs to the
+     * individual OrderPayment allocation.
      */
     const providerReference =
       createPaystackReference();
 
-    /*
-     * Prepare the POS order without
-     * reducing stock.
-     *
-     * Stock is only reduced after
-     * Paystack independently confirms
-     * successful payment.
-     */
+    // ==========================================
+    // PREPARE ORDER
+    // ==========================================
+    //
+    // IMPORTANT:
+    //
+    // 1. Products and pricing are fetched on
+    //    the server.
+    //
+    // 2. Discount authority is resolved on
+    //    the server.
+    //
+    // 3. The discounted order and immutable
+    //    audit snapshot are committed BEFORE
+    //    Paystack is contacted.
+    //
+    // 4. Stock is NOT reduced here.
+    //
+    // 5. Stock is reduced only after Paystack
+    //    independently confirms payment.
+    // ==========================================
     const prepared =
       await prisma.$transaction(
         async (tx) => {
@@ -361,9 +445,12 @@ export async function POST(
             await tx.product.findMany({
               where: {
                 id: {
-                  in: productIds,
+                  in:
+                    productIds,
                 },
-                isActive: true,
+
+                isActive:
+                  true,
               },
             });
 
@@ -377,7 +464,10 @@ export async function POST(
               )
             );
 
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             if (
               !productMap.has(
                 item.id
@@ -390,11 +480,13 @@ export async function POST(
             }
           }
 
-          /*
-           * Preserve the same selling-price
-           * protection as normal POS checkout.
-           */
-          for (const item of items) {
+          // ======================================
+          // SELLING PRICE PROTECTION
+          // ======================================
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -414,14 +506,20 @@ export async function POST(
             }
           }
 
+          // ======================================
+          // BRANCH STOCK PRE-CHECK
+          // ======================================
           const inventories =
             await tx.inventory.findMany({
               where: {
                 productId: {
-                  in: productIds,
+                  in:
+                    productIds,
                 },
+
                 locationType:
                   LocationType.BRANCH,
+
                 locationId:
                   branchId,
               },
@@ -437,13 +535,10 @@ export async function POST(
               )
             );
 
-          /*
-           * Confirm enough branch stock exists
-           * before asking the customer to pay.
-           *
-           * No stock mutation occurs here.
-           */
-          for (const item of items) {
+          for (
+            const item of
+            items
+          ) {
             const product =
               productMap.get(
                 item.id
@@ -469,73 +564,184 @@ export async function POST(
             }
           }
 
-          /*
-           * Calculate the authoritative basket
-           * total directly in integer pesewas.
-           *
-           * We do NOT round the completed basket
-           * to a whole cedi before asking
-           * Paystack to collect payment.
-           */
-          let amountPesewas =
-            0;
+          // ======================================
+          // AUTHORITATIVE PRICING PRODUCTS
+          // ======================================
+          const pricingProducts:
+            DiscountProductInput[] =
+            items.map(
+              (item) => {
+                const product =
+                  productMap.get(
+                    item.id
+                  )!;
 
-          for (const item of items) {
-            const product =
-              productMap.get(
-                item.id
-              )!;
+                return {
+                  productId:
+                    product.id,
 
-            const unitPricePesewas =
-              Math.round(
-                product.retailPrice *
-                100
-              );
+                  productName:
+                    product.name,
 
-            if (
-              !Number.isSafeInteger(
-                unitPricePesewas
-              ) ||
-              unitPricePesewas <=
-                0
-            ) {
-              throw new MomoInitiationError(
-                `Invalid selling price for ${product.name}`,
-                400
-              );
-            }
+                  quantity:
+                    item.quantity,
 
-            const lineTotalPesewas =
-              unitPricePesewas *
-              item.quantity;
+                  retailPrice:
+                    product.retailPrice,
 
-            if (
-              !Number.isSafeInteger(
-                lineTotalPesewas
-              ) ||
-              lineTotalPesewas <=
-                0
-            ) {
-              throw new MomoInitiationError(
-                `Invalid order total for ${product.name}`,
-                400
-              );
-            }
+                  minimumSellingPrice:
+                    product.minimumSellingPrice,
 
-            amountPesewas +=
-              lineTotalPesewas;
+                  costPrice:
+                    product.costPrice,
+                };
+              }
+            );
 
-            if (
-              !Number.isSafeInteger(
-                amountPesewas
-              )
-            ) {
-              throw new MomoInitiationError(
-                "Order amount is too large",
-                400
-              );
-            }
+          // ======================================
+          // DISCOUNT REQUESTER AUTHORITY
+          // ======================================
+          let pricingActor:
+            DiscountActorInput;
+
+          if (
+            discountRequested
+          ) {
+            pricingActor =
+              await resolvePosDiscountActor({
+                staffId:
+                  session.staffId,
+
+                branchId,
+
+                dependencies: {
+                  findStaffById:
+                    async (
+                      staffId
+                    ) =>
+                      tx.staff.findUnique({
+                        where: {
+                          id:
+                            staffId,
+                        },
+
+                        select: {
+                          id:
+                            true,
+
+                          name:
+                            true,
+
+                          role:
+                            true,
+
+                          isActive:
+                            true,
+
+                          branchId:
+                            true,
+
+                          maxDiscountPercent:
+                            true,
+                        },
+                      }),
+                },
+              });
+          } else {
+            /*
+             * No discount:
+             *
+             * preserve the existing POS ability
+             * to prepare a normal MoMo order
+             * using the authenticated actor.
+             */
+            pricingActor = {
+              id:
+                actorId,
+
+              name:
+                session.staffName ??
+                "POS Staff",
+
+              role:
+                session.role ??
+                null,
+
+              maxDiscountPercent:
+                null,
+            };
           }
+
+          // ======================================
+          // SHARED PRICING / DISCOUNT ENGINE
+          // ======================================
+          const pricing =
+            await preparePosPricing({
+              products:
+                pricingProducts,
+
+              actor:
+                pricingActor,
+
+              discount,
+
+              approvalDependencies:
+                discountRequested
+                  ? {
+                      findAdminByEmail:
+                        async (
+                          email
+                        ) =>
+                          tx.admin.findUnique({
+                            where: {
+                              email,
+                            },
+
+                            select: {
+                              id:
+                                true,
+
+                              name:
+                                true,
+
+                              email:
+                                true,
+
+                              pinHash:
+                                true,
+
+                              role:
+                                true,
+
+                              isActive:
+                                true,
+
+                              staff: {
+                                select: {
+                                  id:
+                                    true,
+
+                                  name:
+                                    true,
+
+                                  role:
+                                    true,
+
+                                  isActive:
+                                    true,
+
+                                  maxDiscountPercent:
+                                    true,
+                                },
+                              },
+                            },
+                          }),
+                    }
+                  : undefined,
+            });
+
+          const amountPesewas =
+            pricing.finalSubtotalPesewas;
 
           if (
             !Number.isSafeInteger(
@@ -551,16 +757,24 @@ export async function POST(
           }
 
           /*
-           * amountPesewas is authoritative for
-           * new POS orders.
+           * amountPesewas is authoritative.
            *
-           * Order.amount remains populated only
-           * for backwards compatibility with
-           * older parts of the application.
+           * Order.amount is retained only for
+           * backwards compatibility.
            */
           const orderAmount =
             getLegacyOrderAmount(
               amountPesewas
+            );
+
+          const pricingLineMap =
+            new Map(
+              pricing.lines.map(
+                (line) => [
+                  line.productId,
+                  line,
+                ]
+              )
             );
 
           const order =
@@ -585,7 +799,7 @@ export async function POST(
                     : null,
 
                 paymentMethod:
-                  "MOMO",
+                  PaymentMethod.MOMO,
 
                 amount:
                   orderAmount,
@@ -607,6 +821,20 @@ export async function POST(
                             item.id
                           )!;
 
+                        const pricingLine =
+                          pricingLineMap.get(
+                            product.id
+                          );
+
+                        if (
+                          !pricingLine
+                        ) {
+                          throw new MomoInitiationError(
+                            `Pricing result missing for ${product.name}`,
+                            500
+                          );
+                        }
+
                         return {
                           productId:
                             product.id,
@@ -614,12 +842,41 @@ export async function POST(
                           quantity:
                             item.quantity,
 
+                          /*
+                           * Actual final selling
+                           * values.
+                           */
                           unitPrice:
-                            product.retailPrice,
+                            pricingLine.finalUnitPricePesewas /
+                            100,
 
                           totalPrice:
-                            product.retailPrice *
-                            item.quantity,
+                            pricingLine.finalTotalPesewas /
+                            100,
+
+                          /*
+                           * Original retail and
+                           * discount audit values.
+                           */
+                          originalUnitPrice:
+                            pricing.discount
+                              ? pricingLine.originalUnitPricePesewas /
+                                100
+                              : null,
+
+                          discountPerUnit:
+                            pricingLine.discountPerUnitPesewas /
+                            100,
+
+                          originalTotalPrice:
+                            pricing.discount
+                              ? pricingLine.originalTotalPesewas /
+                                100
+                              : null,
+
+                          discountTotal:
+                            pricingLine.discountTotalPesewas /
+                            100,
                         };
                       }
                     ),
@@ -650,10 +907,85 @@ export async function POST(
                   },
                 },
               },
+
               include: {
-                payments: true,
+                payments:
+                  true,
               },
             });
+
+          // ======================================
+          // DISCOUNT AUDIT SNAPSHOT
+          // ======================================
+          if (
+            pricing.discount
+          ) {
+            const audit =
+              pricing.discount;
+
+            await tx.orderDiscount.create({
+              data: {
+                orderId:
+                  order.id,
+
+                type:
+                  audit.type,
+
+                value:
+                  audit.value,
+
+                reason:
+                  audit.reason,
+
+                note:
+                  audit.note,
+
+                originalSubtotal:
+                  audit.originalSubtotalPesewas /
+                  100,
+
+                discountAmount:
+                  audit.discountAmountPesewas /
+                  100,
+
+                finalSubtotal:
+                  audit.finalSubtotalPesewas /
+                  100,
+
+                requestedById:
+                  audit.requestedById,
+
+                requestedByName:
+                  audit.requestedByName,
+
+                requestedByRole:
+                  audit.requestedByRole,
+
+                approvalRequired:
+                  audit.approvalRequired,
+
+                approvedById:
+                  audit.approval
+                    ?.approvedById ??
+                  null,
+
+                approvedByName:
+                  audit.approval
+                    ?.approvedByName ??
+                  null,
+
+                approvedByRole:
+                  audit.approval
+                    ?.approvedByRole ??
+                  null,
+
+                approvedAt:
+                  audit.approval
+                    ?.approvedAt ??
+                  null,
+              },
+            });
+          }
 
           const payment =
             order.payments[0];
@@ -669,25 +1001,36 @@ export async function POST(
             order,
             payment,
             amountPesewas,
+
+            originalSubtotalPesewas:
+              pricing.originalSubtotalPesewas,
+
+            discountAmountPesewas:
+              pricing.discountAmountPesewas,
           };
         }
       );
 
-    /*
-     * The database transaction above has
-     * committed before contacting Paystack.
-     *
-     * This avoids holding a database
-     * transaction open during a network call.
-     */
-    let chargeResponse: Response;
+    // ==========================================
+    // REQUEST PAYMENT FROM PAYSTACK
+    // ==========================================
+    //
+    // The database transaction has committed
+    // before this external network call.
+    //
+    // Therefore Paystack always receives the
+    // exact amount stored on the PENDING order.
+    // ==========================================
+    let chargeResponse:
+      Response;
 
     try {
       chargeResponse =
         await fetch(
           "https://api.paystack.co/charge",
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               Authorization:
@@ -749,18 +1092,17 @@ export async function POST(
       );
 
       /*
-       * Leave the payment PENDING.
+       * Leave payment PENDING.
        *
        * A network timeout does not prove
-       * Paystack failed to receive the
-       * request. The reference can later
-       * be verified safely.
+       * Paystack failed to receive the request.
        */
       await prisma.orderPayment.update({
         where: {
           id:
             prepared.payment.id,
         },
+
         data: {
           providerStatus:
             "network_error",
@@ -783,6 +1125,18 @@ export async function POST(
           reference:
             prepared.payment
               .providerReference,
+
+          orderAmountPesewas:
+            prepared.amountPesewas,
+
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
+
+          expiresInSeconds:
+            180,
         },
         {
           status: 502,
@@ -790,8 +1144,70 @@ export async function POST(
       );
     }
 
-    const paystackData =
-      (await chargeResponse.json()) as PaystackChargeResponse;
+    let paystackData:
+      PaystackChargeResponse;
+
+    try {
+      paystackData =
+        (await chargeResponse.json()) as
+          PaystackChargeResponse;
+    } catch {
+      /*
+       * Paystack was contacted but the response
+       * was not parseable.
+       *
+       * Preserve PENDING because the reference
+       * must be checked before another charge.
+       */
+      await prisma.orderPayment.update({
+        where: {
+          id:
+            prepared.payment.id,
+        },
+
+        data: {
+          providerStatus:
+            "invalid_response",
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "Paystack returned an invalid response. Check this existing Mobile Money payment before trying again.",
+
+          orderId:
+            prepared.order
+              .orderId,
+
+          paymentId:
+            prepared.payment
+              .id,
+
+          reference:
+            prepared.payment
+              .providerReference,
+
+          orderAmountPesewas:
+            prepared.amountPesewas,
+
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
+
+          paymentStatus:
+            "PENDING",
+
+          expiresInSeconds:
+            180,
+        },
+        {
+          status: 502,
+        }
+      );
+    }
 
     const returnedReference =
       paystackData.data
@@ -802,10 +1218,15 @@ export async function POST(
     const providerStatus =
       paystackData.data
         ?.status ??
-      (chargeResponse.ok
-        ? "unknown"
-        : "failed");
+      (
+        chargeResponse.ok
+          ? "unknown"
+          : "failed"
+      );
 
+    // ==========================================
+    // DEFINITIVE INITIATION FAILURE
+    // ==========================================
     if (
       !chargeResponse.ok ||
       paystackData.status !==
@@ -818,6 +1239,7 @@ export async function POST(
               id:
                 prepared.payment.id,
             },
+
             data: {
               status:
                 OrderPaymentStatus.FAILED,
@@ -834,6 +1256,7 @@ export async function POST(
               id:
                 prepared.order.id,
             },
+
             data: {
               paymentStatus:
                 "FAILED",
@@ -856,6 +1279,15 @@ export async function POST(
           orderId:
             prepared.order
               .orderId,
+
+          orderAmountPesewas:
+            prepared.amountPesewas,
+
+          originalSubtotalPesewas:
+            prepared.originalSubtotalPesewas,
+
+          discountAmountPesewas:
+            prepared.discountAmountPesewas,
         },
         {
           status: 400,
@@ -868,6 +1300,7 @@ export async function POST(
         id:
           prepared.payment.id,
       },
+
       data: {
         providerReference:
           returnedReference,
@@ -877,7 +1310,8 @@ export async function POST(
     });
 
     return NextResponse.json({
-      success: true,
+      success:
+        true,
 
       orderId:
         prepared.order
@@ -894,8 +1328,17 @@ export async function POST(
 
       providerStatus,
 
-      amountPesewas:
+      paymentMethod:
+        "MOMO",
+
+      orderAmountPesewas:
         prepared.amountPesewas,
+
+      originalSubtotalPesewas:
+        prepared.originalSubtotalPesewas,
+
+      discountAmountPesewas:
+        prepared.discountAmountPesewas,
 
       displayText:
         paystackData.data
@@ -923,6 +1366,38 @@ export async function POST(
         {
           status:
             error.status,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosPricingPreparationError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosDiscountActorError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
         }
       );
     }
