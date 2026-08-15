@@ -63,6 +63,18 @@ export default async function OrderReceiptPage(
               "asc",
           },
         },
+
+        /*
+         * The receipt needs the immutable
+         * discount audit snapshot so the
+         * customer can see:
+         *
+         * original retail value
+         * discount/savings
+         * final amount actually paid
+         */
+        discount:
+          true,
       },
     });
 
@@ -95,8 +107,18 @@ export default async function OrderReceiptPage(
         phone:
           order.phone,
 
+        /*
+         * amount remains available only for
+         * backwards compatibility.
+         *
+         * amountPesewas is authoritative for
+         * exact new POS totals such as GHS 4.75.
+         */
         amount:
           order.amount,
+
+        amountPesewas:
+          order.amountPesewas,
 
         deliveryFee:
           order.deliveryFee,
@@ -111,14 +133,66 @@ export default async function OrderReceiptPage(
           order.orderItems,
 
         /*
+         * Only serialisable discount fields are
+         * passed into the client.
+         *
+         * No manager PIN or credentials are ever
+         * stored or exposed here.
+         */
+        discount:
+          order.discount
+            ? {
+                type:
+                  order.discount.type,
+
+                value:
+                  order.discount.value,
+
+                reason:
+                  order.discount.reason,
+
+                note:
+                  order.discount.note,
+
+                originalSubtotal:
+                  order.discount.originalSubtotal,
+
+                discountAmount:
+                  order.discount.discountAmount,
+
+                finalSubtotal:
+                  order.discount.finalSubtotal,
+
+                requestedByName:
+                  order.discount.requestedByName,
+
+                requestedByRole:
+                  order.discount.requestedByRole,
+
+                approvalRequired:
+                  order.discount.approvalRequired,
+
+                approvedByName:
+                  order.discount.approvedByName,
+
+                approvedByRole:
+                  order.discount.approvedByRole,
+
+                approvedAt:
+                  order.discount.approvedAt
+                    ?.toISOString() ??
+                  null,
+              }
+            : null,
+
+        /*
          * Only serialisable payment fields are
          * passed into the client receipt.
          *
-         * The client will display CONFIRMED
+         * The client displays CONFIRMED
          * allocations only. Failed attempts
          * remain in the database audit trail
-         * but will not be presented as money
-         * received from the customer.
+         * but are not shown as money received.
          */
         payments:
           order.payments.map(

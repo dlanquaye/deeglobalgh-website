@@ -18,7 +18,10 @@ function formatMoney(
 }
 
 function formatPaymentMethod(
-  method: string | null | undefined
+  method:
+    | string
+    | null
+    | undefined
 ) {
   switch (method) {
     case "CASH":
@@ -44,6 +47,74 @@ function formatPaymentMethod(
   }
 }
 
+type ReceiptPayment = {
+  method?:
+    | string
+    | null;
+
+  amountPesewas?:
+    | number
+    | null;
+
+  status?:
+    | string
+    | null;
+};
+
+type ReceiptDiscount = {
+  type?:
+    | string
+    | null;
+
+  value?:
+    | number
+    | null;
+
+  reason?:
+    | string
+    | null;
+
+  note?:
+    | string
+    | null;
+
+  originalSubtotal?:
+    | number
+    | null;
+
+  discountAmount?:
+    | number
+    | null;
+
+  finalSubtotal?:
+    | number
+    | null;
+
+  requestedByName?:
+    | string
+    | null;
+
+  requestedByRole?:
+    | string
+    | null;
+
+  approvalRequired?:
+    | boolean
+    | null;
+
+  approvedByName?:
+    | string
+    | null;
+
+  approvedByRole?:
+    | string
+    | null;
+
+  approvedAt?:
+    | string
+    | null;
+};
+
 export default function OrderReceiptClient({
   order,
   source,
@@ -67,9 +138,9 @@ export default function OrderReceiptClient({
     error,
     setError,
   ] =
-    useState<string | null>(
-      null
-    );
+    useState<
+      string | null
+    >(null);
 
   const [
     loading,
@@ -188,10 +259,87 @@ export default function OrderReceiptClient({
     );
   }
 
+  // ==========================================
+  // AUTHORITATIVE ORDER MONEY
+  // ==========================================
+  //
+  // New POS orders store their exact amount in
+  // integer pesewas.
+  //
+  // Legacy orders may not have amountPesewas,
+  // so fall back safely to the old whole-GHS
+  // amount field only when necessary.
+  // ==========================================
+  const exactSubtotal =
+    Number.isSafeInteger(
+      order.amountPesewas
+    ) &&
+    order.amountPesewas !==
+      null &&
+    order.amountPesewas !==
+      undefined
+      ? order.amountPesewas /
+        100
+      : Number(
+          order.amount ?? 0
+        );
+
+  const deliveryFee =
+    Number(
+      order.deliveryFee ??
+        0
+    );
+
   const total =
-    order.amount +
-    (order.deliveryFee ??
-      0);
+    exactSubtotal +
+    deliveryFee;
+
+  // ==========================================
+  // DISCOUNT / SAVINGS
+  // ==========================================
+  const discount:
+    ReceiptDiscount | null =
+    order.discount &&
+    typeof order.discount ===
+      "object"
+      ? (order.discount as
+          ReceiptDiscount)
+      : null;
+
+  const discountAmount =
+    Number(
+      discount
+        ?.discountAmount ??
+        0
+    );
+
+  const hasDiscount =
+    discountAmount > 0;
+
+  /*
+   * Prefer the immutable discount audit value
+   * for the original retail subtotal.
+   *
+   * If no discount exists, the current exact
+   * subtotal is also the original subtotal.
+   */
+  const originalSubtotal =
+    hasDiscount
+      ? Number(
+          discount
+            ?.originalSubtotal ??
+            exactSubtotal +
+              discountAmount
+        )
+      : exactSubtotal;
+
+  /*
+   * finalSubtotal is retained in the audit,
+   * but amountPesewas is the authoritative
+   * exact amount actually due on the order.
+   */
+  const finalSubtotal =
+    exactSubtotal;
 
   // ==========================================
   // CONFIRMED PAYMENT BREAKDOWN
@@ -202,18 +350,13 @@ export default function OrderReceiptClient({
   // history but must never be shown on the
   // customer receipt as money received.
   // ==========================================
-    type ReceiptPayment = {
-    method?: string | null;
-    amountPesewas?: number | null;
-    status?: string | null;
-  };
-
   const receiptPayments:
     ReceiptPayment[] =
     Array.isArray(
       order.payments
     )
-      ? (order.payments as ReceiptPayment[])
+      ? (order.payments as
+          ReceiptPayment[])
       : [];
 
   const confirmedPayments =
@@ -223,16 +366,11 @@ export default function OrderReceiptClient({
         "CONFIRMED"
     );
 
-  /*
-   * Group only CONFIRMED allocations.
-   *
-   * Failed, pending and cancelled attempts stay
-   * in the database audit trail but are never
-   * displayed as customer money received.
-   */
   const paymentTotals:
-    Record<string, number> =
-    {};
+    Record<
+      string,
+      number
+    > = {};
 
   for (
     const payment of
@@ -247,9 +385,11 @@ export default function OrderReceiptClient({
       0;
 
     paymentTotals[method] =
-      (paymentTotals[
-        method
-      ] ?? 0) +
+      (
+        paymentTotals[
+          method
+        ] ?? 0
+      ) +
       amountPesewas;
   }
 
@@ -258,7 +398,10 @@ export default function OrderReceiptClient({
       paymentTotals
     ).filter(
       (
-        [, amountPesewas]
+        [
+          ,
+          amountPesewas,
+        ]
       ) =>
         amountPesewas >
         0
@@ -396,31 +539,78 @@ export default function OrderReceiptClient({
 
         <hr />
 
-        <div>
-          <strong>
-            Subtotal:
-          </strong>{" "}
-          GHS{" "}
-          {formatMoney(
-            order.amount
-          )}
-        </div>
+        {hasDiscount ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 print:bg-white">
+            <div className="flex justify-between gap-4">
+              <span>
+                Original Retail
+                Subtotal
+              </span>
+
+              <span className="font-medium">
+                GHS{" "}
+                {formatMoney(
+                  originalSubtotal
+                )}
+              </span>
+            </div>
+
+            <div className="mt-2 flex justify-between gap-4 font-semibold text-green-700">
+              <span>
+                Discount /
+                Savings
+              </span>
+
+              <span>
+                - GHS{" "}
+                {formatMoney(
+                  discountAmount
+                )}
+              </span>
+            </div>
+
+            <div className="mt-2 flex justify-between gap-4 border-t border-green-200 pt-2 font-bold">
+              <span>
+                Final Subtotal
+              </span>
+
+              <span>
+                GHS{" "}
+                {formatMoney(
+                  finalSubtotal
+                )}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <strong>
+              Subtotal:
+            </strong>{" "}
+            GHS{" "}
+            {formatMoney(
+              finalSubtotal
+            )}
+          </div>
+        )}
 
         {order.deliveryFee !==
-          null && (
+          null &&
+          order.deliveryFee !==
+            undefined && (
           <div>
             <strong>
               Delivery Fee:
             </strong>{" "}
             GHS{" "}
             {formatMoney(
-              order.deliveryFee
+              deliveryFee
             )}
           </div>
         )}
 
         <div className="text-lg font-bold">
-          Total: GHS{" "}
+          Total Paid: GHS{" "}
           {formatMoney(
             total
           )}
@@ -436,54 +626,130 @@ export default function OrderReceiptClient({
           {order.orderItems?.map(
             (
               item: any
-            ) => (
-              <div
-                key={
-                  item.id
-                }
-                className="rounded border p-3"
-              >
-                <div className="font-semibold">
-                  {
-                    item.product
-                      ?.name
-                  }
-                </div>
+            ) => {
+              const itemDiscount =
+                Number(
+                  item.discountTotal ??
+                    0
+                );
 
-                <div className="text-sm text-gray-600">
-                  SKU:{" "}
-                  {
-                    item.product
-                      ?.sku
-                  }
-                </div>
+              const itemHasDiscount =
+                itemDiscount >
+                0;
 
-                <div>
-                  Qty:{" "}
-                  {
-                    item.quantity
-                  }
-                </div>
+              const originalUnitPrice =
+                Number(
+                  item.originalUnitPrice ??
+                    item.unitPrice ??
+                    0
+                );
 
-                <div>
-                  Unit Price:
-                  {" "}
-                  GHS{" "}
-                  {formatMoney(
-                    item.unitPrice
+              const originalLineTotal =
+                Number(
+                  item.originalTotalPrice ??
+                    (
+                      originalUnitPrice *
+                      Number(
+                        item.quantity ??
+                          0
+                      )
+                    )
+                );
+
+              return (
+                <div
+                  key={
+                    item.id
+                  }
+                  className="rounded border p-3"
+                >
+                  <div className="font-semibold">
+                    {
+                      item.product
+                        ?.name
+                    }
+                  </div>
+
+                  <div className="text-sm text-gray-600">
+                    SKU:{" "}
+                    {
+                      item.product
+                        ?.sku
+                    }
+                  </div>
+
+                  <div>
+                    Qty:{" "}
+                    {
+                      item.quantity
+                    }
+                  </div>
+
+                  {itemHasDiscount ? (
+                    <>
+                      <div>
+                        Original Unit
+                        Price: GHS{" "}
+                        {formatMoney(
+                          originalUnitPrice
+                        )}
+                      </div>
+
+                      <div className="text-green-700">
+                        Line Savings:
+                        {" "}
+                        - GHS{" "}
+                        {formatMoney(
+                          itemDiscount
+                        )}
+                      </div>
+
+                      <div>
+                        Unit Price
+                        Paid: GHS{" "}
+                        {formatMoney(
+                          Number(
+                            item.unitPrice ??
+                              0
+                          )
+                        )}
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        Original Line
+                        Total: GHS{" "}
+                        {formatMoney(
+                          originalLineTotal
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      Unit Price:
+                      {" "}
+                      GHS{" "}
+                      {formatMoney(
+                        Number(
+                          item.unitPrice ??
+                            0
+                        )
+                      )}
+                    </div>
                   )}
-                </div>
 
-                <div className="font-medium">
-                  Line Total:
-                  {" "}
-                  GHS{" "}
-                  {formatMoney(
-                    item.totalPrice
-                  )}
+                  <div className="font-medium">
+                    Line Total
+                    Paid: GHS{" "}
+                    {formatMoney(
+                      Number(
+                        item.totalPrice ??
+                          0
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
+              );
+            }
           )}
         </div>
 
