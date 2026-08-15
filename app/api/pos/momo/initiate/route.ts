@@ -11,6 +11,9 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  getLegacyOrderAmount,
+} from "@/lib/pos/orderMoney";
 
 type AdminSession = {
   adminId?: string;
@@ -283,10 +286,10 @@ export async function POST(
     }
 
     const secret =
-  process.env
-    .PAYSTACK_POS_SECRET_KEY ??
-  process.env
-    .PAYSTACK_SECRET_KEY;
+      process.env
+        .PAYSTACK_POS_SECRET_KEY ??
+      process.env
+        .PAYSTACK_SECRET_KEY;
 
     if (!secret) {
       return NextResponse.json(
@@ -466,7 +469,16 @@ export async function POST(
             }
           }
 
-          let total = 0;
+          /*
+           * Calculate the authoritative basket
+           * total directly in integer pesewas.
+           *
+           * We do NOT round the completed basket
+           * to a whole cedi before asking
+           * Paystack to collect payment.
+           */
+          let amountPesewas =
+            0;
 
           for (const item of items) {
             const product =
@@ -474,31 +486,82 @@ export async function POST(
                 item.id
               )!;
 
-            total +=
-              product.retailPrice *
+            const unitPricePesewas =
+              Math.round(
+                product.retailPrice *
+                100
+              );
+
+            if (
+              !Number.isSafeInteger(
+                unitPricePesewas
+              ) ||
+              unitPricePesewas <=
+                0
+            ) {
+              throw new MomoInitiationError(
+                `Invalid selling price for ${product.name}`,
+                400
+              );
+            }
+
+            const lineTotalPesewas =
+              unitPricePesewas *
               item.quantity;
+
+            if (
+              !Number.isSafeInteger(
+                lineTotalPesewas
+              ) ||
+              lineTotalPesewas <=
+                0
+            ) {
+              throw new MomoInitiationError(
+                `Invalid order total for ${product.name}`,
+                400
+              );
+            }
+
+            amountPesewas +=
+              lineTotalPesewas;
+
+            if (
+              !Number.isSafeInteger(
+                amountPesewas
+              )
+            ) {
+              throw new MomoInitiationError(
+                "Order amount is too large",
+                400
+              );
+            }
           }
 
-          /*
-           * Preserve the current Order.amount
-           * architecture: whole GHS stored in
-           * Order.amount.
-           */
-          const orderAmount =
-            Math.round(total);
-
-          const amountPesewas =
-            orderAmount * 100;
-
           if (
+            !Number.isSafeInteger(
+              amountPesewas
+            ) ||
             amountPesewas <=
-            0
+              0
           ) {
             throw new MomoInitiationError(
               "Invalid payment amount",
               400
             );
           }
+
+          /*
+           * amountPesewas is authoritative for
+           * new POS orders.
+           *
+           * Order.amount remains populated only
+           * for backwards compatibility with
+           * older parts of the application.
+           */
+          const orderAmount =
+            getLegacyOrderAmount(
+              amountPesewas
+            );
 
           const order =
             await tx.order.create({
@@ -526,6 +589,8 @@ export async function POST(
 
                 amount:
                   orderAmount,
+
+                amountPesewas,
 
                 paymentStatus:
                   "PENDING",
@@ -828,6 +893,9 @@ export async function POST(
         "PENDING",
 
       providerStatus,
+
+      amountPesewas:
+        prepared.amountPesewas,
 
       displayText:
         paystackData.data

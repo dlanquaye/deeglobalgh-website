@@ -12,6 +12,9 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  getLegacyOrderAmount,
+} from "@/lib/pos/orderMoney";
 
 type AdminSession = {
   adminId?: string;
@@ -581,7 +584,16 @@ export async function POST(
             }
           }
 
-          let total = 0;
+          /*
+           * Calculate the authoritative order
+           * total directly in integer pesewas.
+           *
+           * Never round the completed basket to
+           * a whole cedi before allocating Cash
+           * and Mobile Money.
+           */
+          let orderAmountPesewas =
+            0;
 
           for (
             const item of
@@ -592,33 +604,81 @@ export async function POST(
                 item.id
               )!;
 
-            total +=
-              product.retailPrice *
+            const unitPricePesewas =
+              Math.round(
+                product.retailPrice *
+                100
+              );
+
+            if (
+              !Number.isSafeInteger(
+                unitPricePesewas
+              ) ||
+              unitPricePesewas <=
+                0
+            ) {
+              throw new SplitInitiationError(
+                `Invalid selling price for ${product.name}`,
+                400
+              );
+            }
+
+            const lineTotalPesewas =
+              unitPricePesewas *
               item.quantity;
+
+            if (
+              !Number.isSafeInteger(
+                lineTotalPesewas
+              ) ||
+              lineTotalPesewas <=
+                0
+            ) {
+              throw new SplitInitiationError(
+                `Invalid order total for ${product.name}`,
+                400
+              );
+            }
+
+            orderAmountPesewas +=
+              lineTotalPesewas;
+
+            if (
+              !Number.isSafeInteger(
+                orderAmountPesewas
+              )
+            ) {
+              throw new SplitInitiationError(
+                "Order amount is too large",
+                400
+              );
+            }
           }
 
-          /*
-           * Preserve the project's current
-           * Order.amount architecture:
-           * whole GHS stored on Order.
-           */
-          const orderAmount =
-            Math.round(
-              total
-            );
-
-          const orderAmountPesewas =
-            orderAmount *
-            100;
-
           if (
+            !Number.isSafeInteger(
+              orderAmountPesewas
+            ) ||
             orderAmountPesewas <=
-            0
+              0
           ) {
             throw new SplitInitiationError(
               "Invalid order amount"
             );
           }
+
+          /*
+           * amountPesewas is authoritative for
+           * new POS orders.
+           *
+           * Order.amount remains populated only
+           * for backwards compatibility with
+           * existing parts of the application.
+           */
+          const orderAmount =
+            getLegacyOrderAmount(
+              orderAmountPesewas
+            );
 
           /*
            * A genuine split must contain
@@ -653,6 +713,9 @@ export async function POST(
             cashAmountPesewas;
 
           if (
+            !Number.isSafeInteger(
+              momoAmountPesewas
+            ) ||
             momoAmountPesewas <=
             0
           ) {
@@ -687,6 +750,9 @@ export async function POST(
 
                 amount:
                   orderAmount,
+
+                amountPesewas:
+                  orderAmountPesewas,
 
                 paymentStatus:
                   "PENDING",

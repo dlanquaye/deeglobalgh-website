@@ -8,6 +8,10 @@ import {
 
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 import { prisma } from "@/lib/prisma";
+import {
+  getOrderAmountGhs,
+  getRequiredOrderAmountPesewas,
+} from "@/lib/pos/orderMoney";
 import { applyStockMovement } from "@/lib/stock";
 
 type PosMomoMetadata = {
@@ -227,11 +231,11 @@ export async function finalizePosMomoPayment(
       metadata.actorId
     );
 
-    if (!actorId) {
-  throw new PosMomoFinalizationError(
-    "POS payment actor metadata is missing"
-  );
-}
+  if (!actorId) {
+    throw new PosMomoFinalizationError(
+      "POS payment actor metadata is missing"
+    );
+  }
 
   if (
     metadataSource !==
@@ -439,9 +443,23 @@ export async function finalizePosMomoPayment(
                   0
                 );
 
+              /*
+               * New POS orders use the exact
+               * Order.amountPesewas value.
+               *
+               * Historical orders that pre-date
+               * the field safely fall back to
+               * Order.amount * 100.
+               */
               const requiredAmountPesewas =
-                order.amount *
-                100;
+                getRequiredOrderAmountPesewas(
+                  order
+                );
+
+              const amount =
+                getOrderAmountGhs(
+                  order
+                );
 
               if (
                 confirmedAmountPesewas <
@@ -467,8 +485,7 @@ export async function finalizePosMomoPayment(
                   phone:
                     order.phone,
 
-                  amount:
-                    order.amount,
+                  amount,
 
                   paymentMethod:
                     order.paymentMethod,
@@ -505,8 +522,7 @@ export async function finalizePosMomoPayment(
                   phone:
                     order.phone,
 
-                  amount:
-                    order.amount,
+                  amount,
 
                   paymentMethod:
                     order.paymentMethod,
@@ -544,8 +560,7 @@ export async function finalizePosMomoPayment(
                   phone:
                     order.phone,
 
-                  amount:
-                    order.amount,
+                  amount,
 
                   paymentMethod:
                     order.paymentMethod,
@@ -627,8 +642,7 @@ export async function finalizePosMomoPayment(
                     phone:
                       order.phone,
 
-                    amount:
-                      order.amount,
+                    amount,
 
                     paymentMethod:
                       order.paymentMethod,
@@ -674,10 +688,10 @@ export async function finalizePosMomoPayment(
                         order.locationId!,
 
                       createdByStaffId:
-  actorId,
+                        actorId,
 
-  status:
-  "COMPLETED",
+                      status:
+                        "COMPLETED",
                     },
                   });
 
@@ -792,7 +806,9 @@ export async function finalizePosMomoPayment(
                   updatedOrder.phone,
 
                 amount:
-                  updatedOrder.amount,
+                  getOrderAmountGhs(
+                    updatedOrder
+                  ),
 
                 paymentMethod:
                   updatedOrder.paymentMethod,
@@ -854,8 +870,9 @@ export async function finalizePosMomoPayment(
         payment.amountPesewas,
 
       requiredAmountPesewas:
-        payment.order.amount *
-        100,
+        getRequiredOrderAmountPesewas(
+          payment.order
+        ),
 
       message:
         error instanceof Error

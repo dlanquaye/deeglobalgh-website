@@ -5,6 +5,10 @@ import { cookies } from "next/headers";
 import { LocationType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  getLegacyOrderAmount,
+  getOrderAmountGhs,
+} from "@/lib/pos/orderMoney";
 import { applyStockMovement } from "@/lib/stock";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
@@ -214,7 +218,6 @@ export async function POST(
     } = body;
 
     // ==========================================
-    // ==========================================
     // PAYSTACK / SPLIT PAYMENT BYPASS PROTECTION
     // ==========================================
     //
@@ -259,6 +262,7 @@ export async function POST(
         400
       );
     }
+
     const items =
       normaliseItems(
         rawItems
@@ -408,7 +412,20 @@ export async function POST(
             }
           }
 
-          let total = 0;
+          /*
+           * ======================================
+           * EXACT POS MONEY
+           * ======================================
+           *
+           * Calculate the authoritative basket
+           * total directly in integer pesewas.
+           *
+           * Never round the completed basket to
+           * a whole cedi before recording the
+           * sale.
+           */
+          let amountPesewas =
+            0;
 
           for (
             const item of
@@ -419,10 +436,80 @@ export async function POST(
                 item.id
               )!;
 
-            total +=
-              product.retailPrice *
+            const unitPricePesewas =
+              Math.round(
+                product.retailPrice *
+                100
+              );
+
+            if (
+              !Number.isSafeInteger(
+                unitPricePesewas
+              ) ||
+              unitPricePesewas <=
+                0
+            ) {
+              throw new CheckoutError(
+                `Invalid selling price for ${product.name}`,
+                400
+              );
+            }
+
+            const lineTotalPesewas =
+              unitPricePesewas *
               item.quantity;
+
+            if (
+              !Number.isSafeInteger(
+                lineTotalPesewas
+              ) ||
+              lineTotalPesewas <=
+                0
+            ) {
+              throw new CheckoutError(
+                `Invalid order total for ${product.name}`,
+                400
+              );
+            }
+
+            amountPesewas +=
+              lineTotalPesewas;
+
+            if (
+              !Number.isSafeInteger(
+                amountPesewas
+              )
+            ) {
+              throw new CheckoutError(
+                "Order amount is too large",
+                400
+              );
+            }
           }
+
+          if (
+            !Number.isSafeInteger(
+              amountPesewas
+            ) ||
+            amountPesewas <=
+              0
+          ) {
+            throw new CheckoutError(
+              "Invalid order amount",
+              400
+            );
+          }
+
+          /*
+           * amountPesewas is authoritative.
+           *
+           * Order.amount remains populated for
+           * backwards compatibility only.
+           */
+          const orderAmount =
+            getLegacyOrderAmount(
+              amountPesewas
+            );
 
           const order =
             await tx.order.create({
@@ -448,9 +535,9 @@ export async function POST(
                   "CASH",
 
                 amount:
-                  Math.round(
-                    total
-                  ),
+                  orderAmount,
+
+                amountPesewas,
 
                 paymentStatus:
                   "PAID",
@@ -490,8 +577,8 @@ export async function POST(
                   createdByStaffId:
                     actorId,
 
-                    status:
-  "COMPLETED",
+                  status:
+                    "COMPLETED",
                 },
               });
 
@@ -598,11 +685,16 @@ export async function POST(
         const digitalReceiptUrl =
           `https://www.shopdeeglobalgh.com/r/${result.receiptToken}`;
 
+        const exactTotalGhs =
+          getOrderAmountGhs(
+            result
+          );
+
         const message =
           `DeeGlobalGH Receipt\n` +
           `Order: ${result.orderId}\n` +
           `Items: ${totalItems}\n` +
-          `Total: GHS ${result.amount.toFixed(
+          `Total: GHS ${exactTotalGhs.toFixed(
             2
           )}\n` +
           `Paid: ${formatPaymentMethod(
@@ -651,6 +743,9 @@ export async function POST(
 
       orderId:
         result.orderId,
+
+      amountPesewas:
+        result.amountPesewas,
 
       sms: {
         requested:

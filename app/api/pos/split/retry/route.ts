@@ -14,6 +14,9 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  getRequiredOrderAmountPesewas,
+} from "@/lib/pos/orderMoney";
 
 type AdminSession = {
   adminId?: string;
@@ -401,21 +404,28 @@ export async function POST(
             );
           }
 
-          if (
-            !Number.isInteger(
-              order.amount
-            ) ||
-            order.amount <= 0
-          ) {
+          /*
+           * New POS orders use the exact
+           * Order.amountPesewas value.
+           *
+           * Historical orders that pre-date
+           * the field safely fall back to
+           * Order.amount * 100.
+           */
+          let requiredAmountPesewas:
+            number;
+
+          try {
+            requiredAmountPesewas =
+              getRequiredOrderAmountPesewas(
+                order
+              );
+          } catch {
             throw new SplitRetryError(
               "The order has an invalid amount",
               409
             );
           }
-
-          const requiredAmountPesewas =
-            order.amount *
-            100;
 
           // ======================================
           // CONFIRMED PAYMENT TOTAL
