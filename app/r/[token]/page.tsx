@@ -134,6 +134,32 @@ export default async function DigitalReceiptPage(
           true,
 
         /*
+         * Payment allocations are required for
+         * customer-facing Split Payment receipts.
+         *
+         * Only confirmed allocations will be
+         * displayed below. Pending, failed and
+         * cancelled attempts remain audit-only.
+         */
+        payments: {
+          orderBy: {
+            createdAt:
+              "asc",
+          },
+
+          select: {
+            method:
+              true,
+
+            amountPesewas:
+              true,
+
+            status:
+              true,
+          },
+        },
+
+        /*
          * Customer-facing discount information.
          *
          * Internal approver credentials/details
@@ -282,6 +308,61 @@ export default async function DigitalReceiptPage(
       0
     );
 
+  // ==========================================
+  // CONFIRMED PAYMENT BREAKDOWN
+  // ==========================================
+  //
+  // Only money actually confirmed as received
+  // may appear on the customer receipt.
+  //
+  // Failed, pending or cancelled attempts remain
+  // available in the database audit history but
+  // are deliberately excluded here.
+  // ==========================================
+  const confirmedPayments =
+    order.payments.filter(
+      (payment) =>
+        payment.status ===
+        "CONFIRMED"
+    );
+
+  const paymentTotals:
+    Record<string, number> =
+    {};
+
+  for (
+    const payment of
+    confirmedPayments
+  ) {
+    const method =
+      String(
+        payment.method
+      );
+
+    paymentTotals[method] =
+      (paymentTotals[
+        method
+      ] ?? 0) +
+      payment.amountPesewas;
+  }
+
+  const paymentBreakdown =
+    Object.entries(
+      paymentTotals
+    ).filter(
+      (
+        [, amountPesewas]
+      ) =>
+        amountPesewas >
+        0
+    );
+
+  const showPaymentBreakdown =
+    order.paymentMethod ===
+      "SPLIT" &&
+    paymentBreakdown.length >
+      0;
+
   return (
     <main
       style={{
@@ -403,6 +484,59 @@ export default async function DigitalReceiptPage(
                 }
               />
             </div>
+
+            {/* SPLIT PAYMENT BREAKDOWN */}
+            {showPaymentBreakdown && (
+              <div
+                style={{
+                  marginBottom:
+                    "24px",
+                  padding:
+                    "16px",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius:
+                    "12px",
+                  background:
+                    "#eff6ff",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize:
+                      "16px",
+                    fontWeight:
+                      800,
+                    marginBottom:
+                      "12px",
+                    color:
+                      "#1e40af",
+                  }}
+                >
+                  Payment Breakdown
+                </div>
+
+                {paymentBreakdown.map(
+                  ([
+                    method,
+                    amountPesewas,
+                  ]) => (
+                    <SummaryRow
+                      key={
+                        method
+                      }
+                      label={formatPaymentMethod(
+                        method
+                      )}
+                      value={formatMoney(
+                        amountPesewas /
+                          100
+                      )}
+                    />
+                  )
+                )}
+              </div>
+            )}
 
             {/* DISCOUNT SUMMARY */}
             {hasDiscount && (
@@ -720,7 +854,7 @@ export default async function DigitalReceiptPage(
                               {
                                 item.quantity
                               }{" "}
-                              ×{" "}
+                              Ã—{" "}
                               {formatMoney(
                                 item.unitPrice
                               )}
