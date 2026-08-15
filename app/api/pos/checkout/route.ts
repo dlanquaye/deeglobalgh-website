@@ -5,10 +5,31 @@ import { cookies } from "next/headers";
 import { LocationType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+
 import {
   getLegacyOrderAmount,
   getOrderAmountGhs,
 } from "@/lib/pos/orderMoney";
+
+import {
+  PosPricingPreparationError,
+  preparePosPricing,
+} from "@/lib/pos/preparePosPricing";
+
+import type {
+  RawPosDiscountInput,
+} from "@/lib/pos/preparePosPricing";
+
+import {
+  PosDiscountActorError,
+  resolvePosDiscountActor,
+} from "@/lib/pos/resolvePosDiscountActor";
+
+import type {
+  DiscountActorInput,
+  DiscountProductInput,
+} from "@/lib/pos/discounts";
+
 import { applyStockMovement } from "@/lib/stock";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 
@@ -132,6 +153,32 @@ function normaliseItems(
   );
 }
 
+function normaliseDiscount(
+  value: unknown
+):
+  | RawPosDiscountInput
+  | null {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return null;
+  }
+
+  if (
+    typeof value !==
+      "object" ||
+    Array.isArray(value)
+  ) {
+    throw new CheckoutError(
+      "Invalid discount request"
+    );
+  }
+
+  return value as
+    RawPosDiscountInput;
+}
+
 function formatPaymentMethod(
   value:
     | string
@@ -215,6 +262,8 @@ export async function POST(
       customerName,
       customerPhone,
       paymentMethod,
+      discount:
+        rawDiscount,
     } = body;
 
     // ==========================================
@@ -237,10 +286,6 @@ export async function POST(
     // Both flows require independent Paystack
     // confirmation before the sale and stock
     // movement can be finalised.
-    //
-    // Case-insensitive comparison also prevents
-    // manually altered requests such as "momo"
-    // or "split" from bypassing this protection.
     const protectedPaymentMethod =
       typeof paymentMethod === "string"
         ? paymentMethod
@@ -267,6 +312,14 @@ export async function POST(
       normaliseItems(
         rawItems
       );
+
+    const discount =
+      normaliseDiscount(
+        rawDiscount
+      );
+
+    const discountRequested =
+      discount !== null;
 
     const branchId =
       session.branchId;
@@ -412,90 +465,200 @@ export async function POST(
             }
           }
 
+          // ======================================
+          // AUTHORITATIVE POS PRICING INPUT
+          // ======================================
+          const pricingProducts:
+            DiscountProductInput[] =
+            items.map(
+              (item) => {
+                const product =
+                  productMap.get(
+                    item.id
+                  )!;
+
+                return {
+                  productId:
+                    product.id,
+
+                  productName:
+                    product.name,
+
+                  quantity:
+                    item.quantity,
+
+                  retailPrice:
+                    product.retailPrice,
+
+                  minimumSellingPrice:
+                    product.minimumSellingPrice,
+
+                  costPrice:
+                    product.costPrice,
+                };
+              }
+            );
+
           /*
-           * ======================================
-           * EXACT POS MONEY
-           * ======================================
+           * No-discount checkout keeps its
+           * historical ability to operate from
+           * the authenticated admin/staff actor.
            *
-           * Calculate the authoritative basket
-           * total directly in integer pesewas.
-           *
-           * Never round the completed basket to
-           * a whole cedi before recording the
-           * sale.
+           * A DISCOUNT, however, must resolve to
+           * an active Staff record in the active
+           * branch because discount authority is
+           * stored on Staff.maxDiscountPercent.
            */
-          let amountPesewas =
-            0;
+          let pricingActor:
+            DiscountActorInput;
 
-          for (
-            const item of
-            items
+          if (
+            discountRequested
           ) {
-            const product =
-              productMap.get(
-                item.id
-              )!;
+            pricingActor =
+              await resolvePosDiscountActor({
+                staffId:
+                  session.staffId,
 
-            const unitPricePesewas =
-              Math.round(
-                product.retailPrice *
-                100
-              );
+                branchId,
 
-            if (
-              !Number.isSafeInteger(
-                unitPricePesewas
-              ) ||
-              unitPricePesewas <=
-                0
-            ) {
-              throw new CheckoutError(
-                `Invalid selling price for ${product.name}`,
-                400
-              );
-            }
+                dependencies: {
+                  findStaffById:
+                    async (
+                      staffId
+                    ) =>
+                      tx.staff.findUnique({
+                        where: {
+                          id:
+                            staffId,
+                        },
 
-            const lineTotalPesewas =
-              unitPricePesewas *
-              item.quantity;
+                        select: {
+                          id:
+                            true,
 
-            if (
-              !Number.isSafeInteger(
-                lineTotalPesewas
-              ) ||
-              lineTotalPesewas <=
-                0
-            ) {
-              throw new CheckoutError(
-                `Invalid order total for ${product.name}`,
-                400
-              );
-            }
+                          name:
+                            true,
 
-            amountPesewas +=
-              lineTotalPesewas;
+                          role:
+                            true,
 
-            if (
-              !Number.isSafeInteger(
-                amountPesewas
-              )
-            ) {
-              throw new CheckoutError(
-                "Order amount is too large",
-                400
-              );
-            }
+                          isActive:
+                            true,
+
+                          branchId:
+                            true,
+
+                          maxDiscountPercent:
+                            true,
+                        },
+                      }),
+                },
+              });
+          } else {
+            pricingActor = {
+              id:
+                actorId,
+
+              name:
+                session.staffName ??
+                "POS Staff",
+
+              role:
+                session.role ??
+                null,
+
+              maxDiscountPercent:
+                null,
+            };
           }
+
+          // ======================================
+          // SHARED PRICING / DISCOUNT ENGINE
+          // ======================================
+          const pricing =
+            await preparePosPricing({
+              products:
+                pricingProducts,
+
+              actor:
+                pricingActor,
+
+              discount,
+
+              /*
+               * Manager lookup is deliberately
+               * performed through this same
+               * transaction client.
+               *
+               * PIN comparison remains inside
+               * the approval service and the PIN
+               * is never returned or persisted.
+               */
+              approvalDependencies:
+                discountRequested
+                  ? {
+                      findAdminByEmail:
+                        async (
+                          email
+                        ) =>
+                          tx.admin.findUnique({
+                            where: {
+                              email,
+                            },
+
+                            select: {
+                              id:
+                                true,
+
+                              name:
+                                true,
+
+                              email:
+                                true,
+
+                              pinHash:
+                                true,
+
+                              role:
+                                true,
+
+                              isActive:
+                                true,
+
+                              staff: {
+                                select: {
+                                  id:
+                                    true,
+
+                                  name:
+                                    true,
+
+                                  role:
+                                    true,
+
+                                  isActive:
+                                    true,
+
+                                  maxDiscountPercent:
+                                    true,
+                                },
+                              },
+                            },
+                          }),
+                    }
+                  : undefined,
+            });
 
           if (
             !Number.isSafeInteger(
-              amountPesewas
+              pricing.finalSubtotalPesewas
             ) ||
-            amountPesewas <=
+            pricing.finalSubtotalPesewas <=
               0
           ) {
             throw new CheckoutError(
-              "Invalid order amount",
+              "Invalid final order amount",
               400
             );
           }
@@ -508,7 +671,7 @@ export async function POST(
            */
           const orderAmount =
             getLegacyOrderAmount(
-              amountPesewas
+              pricing.finalSubtotalPesewas
             );
 
           const order =
@@ -537,7 +700,8 @@ export async function POST(
                 amount:
                   orderAmount,
 
-                amountPesewas,
+                amountPesewas:
+                  pricing.finalSubtotalPesewas,
 
                 paymentStatus:
                   "PAID",
@@ -547,6 +711,95 @@ export async function POST(
               },
             });
 
+          // ======================================
+          // DISCOUNT AUDIT SNAPSHOT
+          // ======================================
+          //
+          // Manager credentials are NOT stored.
+          //
+          // Only immutable requester / approver
+          // snapshots and the financial outcome
+          // are persisted.
+          if (
+            pricing.discount
+          ) {
+            const audit =
+              pricing.discount;
+
+            await tx.orderDiscount.create({
+              data: {
+                orderId:
+                  order.id,
+
+                type:
+                  audit.type,
+
+                value:
+                  audit.value,
+
+                reason:
+                  audit.reason,
+
+                note:
+                  audit.note,
+
+                originalSubtotal:
+                  audit.originalSubtotalPesewas /
+                  100,
+
+                discountAmount:
+                  audit.discountAmountPesewas /
+                  100,
+
+                finalSubtotal:
+                  audit.finalSubtotalPesewas /
+                  100,
+
+                requestedById:
+                  audit.requestedById,
+
+                requestedByName:
+                  audit.requestedByName,
+
+                requestedByRole:
+                  audit.requestedByRole,
+
+                approvalRequired:
+                  audit.approvalRequired,
+
+                approvedById:
+                  audit.approval
+                    ?.approvedById ??
+                  null,
+
+                approvedByName:
+                  audit.approval
+                    ?.approvedByName ??
+                  null,
+
+                approvedByRole:
+                  audit.approval
+                    ?.approvedByRole ??
+                  null,
+
+                approvedAt:
+                  audit.approval
+                    ?.approvedAt ??
+                  null,
+              },
+            });
+          }
+
+          const pricingLineMap =
+            new Map(
+              pricing.lines.map(
+                (line) => [
+                  line.productId,
+                  line,
+                ]
+              )
+            );
+
           for (
             const item of
             items
@@ -555,6 +808,18 @@ export async function POST(
               productMap.get(
                 item.id
               )!;
+
+            const pricingLine =
+              pricingLineMap.get(
+                product.id
+              );
+
+            if (!pricingLine) {
+              throw new CheckoutError(
+                `Pricing result missing for ${product.name}`,
+                500
+              );
+            }
 
             const movement =
               await tx.stockMovement.create({
@@ -641,12 +906,53 @@ export async function POST(
                 quantity:
                   item.quantity,
 
+                /*
+                 * unitPrice / totalPrice remain
+                 * the ACTUAL final selling price.
+                 *
+                 * totalPrice is derived directly
+                 * from the exact integer-pesewa
+                 * line total.
+                 */
                 unitPrice:
-                  product.retailPrice,
+                  pricingLine.finalUnitPricePesewas /
+                  100,
 
                 totalPrice:
-                  product.retailPrice *
-                  item.quantity,
+                  pricingLine.finalTotalPesewas /
+                  100,
+
+                /*
+                 * Original pricing is recorded
+                 * only when a discount exists.
+                 *
+                 * Per-unit values may contain a
+                 * fraction of one pesewa when an
+                 * exact basket discount does not
+                 * divide evenly by quantity.
+                 *
+                 * The authoritative exact value
+                 * remains the line total.
+                 */
+                originalUnitPrice:
+                  pricing.discount
+                    ? pricingLine.originalUnitPricePesewas /
+                      100
+                    : null,
+
+                discountPerUnit:
+                  pricingLine.discountPerUnitPesewas /
+                  100,
+
+                originalTotalPrice:
+                  pricing.discount
+                    ? pricingLine.originalTotalPesewas /
+                      100
+                    : null,
+
+                discountTotal:
+                  pricingLine.discountTotalPesewas /
+                  100,
               },
             });
           }
@@ -659,7 +965,6 @@ export async function POST(
     // PAPERLESS POS RECEIPT SMS
     // ==========================================
     //
-    // IMPORTANT:
     // The sale, order and inventory transaction
     // above has already committed successfully.
     //
@@ -775,6 +1080,38 @@ export async function POST(
         {
           status:
             error.status,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosPricingPreparationError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
+        }
+      );
+    }
+
+    if (
+      error instanceof
+      PosDiscountActorError
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message,
+        },
+        {
+          status:
+            error.statusCode,
         }
       );
     }
