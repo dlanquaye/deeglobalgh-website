@@ -33,17 +33,27 @@ type PaymentMode =
   | "MOMO"
   | "SPLIT";
 
+type DiscountTypeOption =
+  | "AMOUNT"
+  | "PERCENTAGE";
+
+type DiscountReasonOption =
+  | ""
+  | "CUSTOMER_NEGOTIATION"
+  | "BULK_PURCHASE"
+  | "SCHOOL_LIST"
+  | "PROMOTION"
+  | "LOYAL_CUSTOMER"
+  | "DAMAGED_PACKAGING"
+  | "MANAGER_ADJUSTMENT"
+  | "OTHER";
+
 type PendingMomoPayment = {
   orderId: string;
   paymentId: string;
   reference: string;
   expiresInSeconds: number;
 
-  /*
-   * Existing pure MoMo payments do not need
-   * split allocation values, so these remain
-   * optional.
-   */
   mode?: PaymentMode;
 
   cashAmountPesewas?: number;
@@ -111,6 +121,7 @@ type MomoCheckResult =
   | "PENDING"
   | "FAILED"
   | "ATTENTION";
+
 function sleep(
   milliseconds: number
 ) {
@@ -122,6 +133,58 @@ function sleep(
       );
     }
   );
+}
+
+function parseGhsToPesewasForPreview(
+  value: string
+): number | null {
+  const text =
+    value.trim();
+
+  if (
+    !/^\d+(\.\d{1,2})?$/.test(
+      text
+    )
+  ) {
+    return null;
+  }
+
+  const [
+    cedisText,
+    pesewasText = "",
+  ] = text.split(".");
+
+  const cedis =
+    Number(cedisText);
+
+  const pesewas =
+    Number(
+      pesewasText.padEnd(
+        2,
+        "0"
+      )
+    );
+
+  if (
+    !Number.isSafeInteger(
+      cedis
+    ) ||
+    !Number.isSafeInteger(
+      pesewas
+    )
+  ) {
+    return null;
+  }
+
+  const total =
+    cedis * 100 +
+    pesewas;
+
+  return Number.isSafeInteger(
+    total
+  )
+    ? total
+    : null;
 }
 
 export default function POSPage() {
@@ -179,6 +242,60 @@ export default function POSPage() {
     setIsProcessing,
   ] = useState(false);
 
+  // ==========================================
+  // DISCOUNT / HAGGLING STATE
+  // ==========================================
+  const [
+    discountEnabled,
+    setDiscountEnabled,
+  ] = useState(false);
+
+  const [
+    discountType,
+    setDiscountType,
+  ] =
+    useState<DiscountTypeOption>(
+      "PERCENTAGE"
+    );
+
+  const [
+    discountValue,
+    setDiscountValue,
+  ] = useState("");
+
+  const [
+    discountReason,
+    setDiscountReason,
+  ] =
+    useState<DiscountReasonOption>(
+      ""
+    );
+
+  const [
+    discountNote,
+    setDiscountNote,
+  ] = useState("");
+
+  const [
+    discountNeedsApproval,
+    setDiscountNeedsApproval,
+  ] = useState(false);
+
+  const [
+    managerEmail,
+    setManagerEmail,
+  ] = useState("");
+
+  const [
+    managerPin,
+    setManagerPin,
+  ] = useState("");
+
+  const [
+    discountMessage,
+    setDiscountMessage,
+  ] = useState("");
+
   const [
     momoProvider,
     setMomoProvider,
@@ -227,6 +344,34 @@ export default function POSPage() {
     setMomoSecondsRemaining,
   ] = useState(0);
 
+  const resetDiscountApproval =
+    () => {
+      setDiscountNeedsApproval(
+        false
+      );
+
+      setManagerEmail("");
+      setManagerPin("");
+      setDiscountMessage("");
+    };
+
+  const resetDiscountState =
+    () => {
+      setDiscountEnabled(
+        false
+      );
+
+      setDiscountType(
+        "PERCENTAGE"
+      );
+
+      setDiscountValue("");
+      setDiscountReason("");
+      setDiscountNote("");
+
+      resetDiscountApproval();
+    };
+
   /*
    * The cart must remain locked while:
    *
@@ -234,10 +379,6 @@ export default function POSPage() {
    * 2. a split payment has a confirmed Cash
    *    allocation but its MoMo allocation
    *    failed and requires recovery.
-   *
-   * This prevents the cashier from modifying
-   * the cart or accidentally creating another
-   * split order for Cash already received.
    */
   const momoPaymentLocked =
     pendingMomo !== null ||
@@ -294,6 +435,12 @@ export default function POSPage() {
     if (momoPaymentLocked) {
       return;
     }
+
+    /*
+     * Any prior manager approval prompt was
+     * calculated against the old basket.
+     */
+    resetDiscountApproval();
 
     setCart((prev) => {
       const existing =
@@ -446,6 +593,8 @@ export default function POSPage() {
       return;
     }
 
+    resetDiscountApproval();
+
     setCart((prev) =>
       prev.filter(
         (item) =>
@@ -465,6 +614,8 @@ export default function POSPage() {
     if (momoPaymentLocked) {
       return;
     }
+
+    resetDiscountApproval();
 
     setCart((prev) =>
       prev
@@ -521,7 +672,86 @@ export default function POSPage() {
     }
 
     setCart([]);
+    resetDiscountState();
   };
+
+  // ==========================================
+  // EXACT CASHIER-SIDE RETAIL TOTAL
+  // ==========================================
+  const retailSubtotalPesewas =
+    cart.reduce(
+      (
+        sum,
+        item
+      ) =>
+        sum +
+        Math.round(
+          item.retailPrice *
+          100
+        ) *
+          item.quantity,
+      0
+    );
+
+  const total =
+    retailSubtotalPesewas /
+    100;
+
+  // ==========================================
+  // DISCOUNT PREVIEW
+  // ==========================================
+  const discountNumericValue =
+    Number(
+      discountValue
+    );
+
+  let previewDiscountPesewas =
+    0;
+
+  if (
+    discountEnabled &&
+    retailSubtotalPesewas >
+      0
+  ) {
+    if (
+      discountType ===
+      "AMOUNT"
+    ) {
+      previewDiscountPesewas =
+        parseGhsToPesewasForPreview(
+          discountValue
+        ) ?? 0;
+    } else if (
+      Number.isFinite(
+        discountNumericValue
+      ) &&
+      discountNumericValue >
+        0
+    ) {
+      previewDiscountPesewas =
+        Math.round(
+          retailSubtotalPesewas *
+            (
+              discountNumericValue /
+              100
+            )
+        );
+    }
+  }
+
+  const previewFinalPesewas =
+    Math.max(
+      0,
+      retailSubtotalPesewas -
+        previewDiscountPesewas
+    );
+
+  const previewDiscountInvalid =
+    discountEnabled &&
+    previewDiscountPesewas >
+      0 &&
+    previewDiscountPesewas >=
+      retailSubtotalPesewas;
 
   // ==========================================
   // STANDARD CHECKOUT
@@ -543,7 +773,168 @@ export default function POSPage() {
         return;
       }
 
+      let discountRequest:
+        | {
+            type:
+              DiscountTypeOption;
+            value:
+              string | number;
+            reason:
+              DiscountReasonOption;
+            note:
+              string | null;
+            approval?: {
+              email:
+                string;
+              pin:
+                string;
+            };
+          }
+        | null =
+        null;
+
+      if (
+        discountEnabled
+      ) {
+        if (
+          !discountValue.trim()
+        ) {
+          alert(
+            "Enter the discount value"
+          );
+
+          return;
+        }
+
+        if (
+          !Number.isFinite(
+            discountNumericValue
+          ) ||
+          discountNumericValue <=
+            0
+        ) {
+          alert(
+            "Discount value must be greater than zero"
+          );
+
+          return;
+        }
+
+        if (
+          discountType ===
+            "PERCENTAGE" &&
+          discountNumericValue >=
+            100
+        ) {
+          alert(
+            "Percentage discount must be less than 100%"
+          );
+
+          return;
+        }
+
+        if (
+          discountType ===
+          "AMOUNT"
+        ) {
+          const exactAmount =
+            parseGhsToPesewasForPreview(
+              discountValue
+            );
+
+          if (
+            exactAmount ===
+            null
+          ) {
+            alert(
+              "Enter a valid discount amount with no more than two decimal places"
+            );
+
+            return;
+          }
+
+          if (
+            exactAmount >=
+            retailSubtotalPesewas
+          ) {
+            alert(
+              "Discount cannot reduce the sale total to zero or below"
+            );
+
+            return;
+          }
+        }
+
+        if (
+          !discountReason
+        ) {
+          alert(
+            "Select a discount reason"
+          );
+
+          return;
+        }
+
+        if (
+          discountReason ===
+            "OTHER" &&
+          !discountNote.trim()
+        ) {
+          alert(
+            "Enter a note for the Other discount reason"
+          );
+
+          return;
+        }
+
+        if (
+          discountNeedsApproval &&
+          (
+            !managerEmail.trim() ||
+            !managerPin.trim()
+          )
+        ) {
+          alert(
+            "Manager email and PIN are required"
+          );
+
+          return;
+        }
+
+        discountRequest = {
+          type:
+            discountType,
+
+          value:
+            discountType ===
+            "AMOUNT"
+              ? discountValue
+              : discountNumericValue,
+
+          reason:
+            discountReason,
+
+          note:
+            discountNote.trim()
+              ? discountNote.trim()
+              : null,
+
+          ...(discountNeedsApproval
+            ? {
+                approval: {
+                  email:
+                    managerEmail.trim(),
+
+                  pin:
+                    managerPin,
+                },
+              }
+            : {}),
+        };
+      }
+
       setIsProcessing(true);
+      setDiscountMessage("");
 
       try {
         const res =
@@ -576,6 +967,9 @@ export default function POSPage() {
                           item.quantity,
                       })
                     ),
+
+                  discount:
+                    discountRequest,
                 }),
             }
           );
@@ -583,12 +977,52 @@ export default function POSPage() {
         const data =
           await res.json();
 
-        console.log(
-          "CHECKOUT RESPONSE:",
-          data
-        );
-
         if (!res.ok) {
+          /*
+           * Manager approval fields appear only
+           * after the authoritative backend has
+           * assessed the basket and explicitly
+           * determined that approval is needed.
+           */
+          if (
+            discountEnabled &&
+            data.error ===
+              "Manager approval is required for this discount."
+          ) {
+            setDiscountNeedsApproval(
+              true
+            );
+
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error
+            );
+
+            return;
+          }
+
+          /*
+           * If approval fields are already open,
+           * keep the cashier on this basket so a
+           * wrong PIN / insufficient authority
+           * can be corrected without rebuilding
+           * the sale.
+           */
+          if (
+            discountEnabled &&
+            discountNeedsApproval
+          ) {
+            setManagerPin("");
+
+            setDiscountMessage(
+              data.error ||
+                "Discount approval failed"
+            );
+
+            return;
+          }
+
           alert(
             data.error ||
               "Checkout failed"
@@ -596,6 +1030,14 @@ export default function POSPage() {
 
           return;
         }
+
+        /*
+         * Never retain a manager PIN after the
+         * transaction has completed.
+         */
+        setManagerPin("");
+        setManagerEmail("");
+        setDiscountMessage("");
 
         window.location.href =
           `/admin/orders/${data.orderId}/receipt?source=pos`;
@@ -665,14 +1107,6 @@ export default function POSPage() {
       }
 
       if (!res.ok) {
-        /*
-         * A Paystack/network verification
-         * problem does NOT mean the customer
-         * did not pay.
-         *
-         * 502 is therefore treated as
-         * unresolved and may be checked again.
-         */
         if (
           res.status === 502
         ) {
@@ -750,15 +1184,6 @@ export default function POSPage() {
           "error"
         );
 
-        /*
-         * Pure MoMo:
-         * the failed attempt can simply end.
-         *
-         * Split tender:
-         * Cash has already been recorded as
-         * CONFIRMED, so retain the split order
-         * for the controlled retry workflow.
-         */
         if (
           payment.mode ===
           "SPLIT"
@@ -818,16 +1243,14 @@ export default function POSPage() {
       payment: PendingMomoPayment
     ) => {
       /*
- * Paystack webhooks are the primary
- * confirmation path.
- *
- * Verification is only a fallback,
- * so checks are deliberately spaced
- * to avoid aggressive Paystack API
- * polling.
- */
+       * Paystack webhooks are the primary
+       * confirmation path.
+       *
+       * Verification is only a fallback,
+       * so checks are deliberately spaced.
+       */
       const intervalSeconds =
-  30;
+        30;
 
       let remaining =
         payment.expiresInSeconds >
@@ -996,19 +1419,6 @@ export default function POSPage() {
           );
         }
 
-        /*
-         * Special safety case:
-         *
-         * The initiation endpoint may return
-         * a network error after creating our
-         * PENDING payment.
-         *
-         * A timeout does not prove Paystack
-         * did not receive the charge request,
-         * so if paymentId + reference exist
-         * we MUST verify that same payment
-         * instead of starting another one.
-         */
         if (!res.ok) {
           if (
             data.orderId &&
@@ -1239,18 +1649,13 @@ export default function POSPage() {
         );
 
       /*
-       * Match the current backend Order.amount
-       * architecture, which stores whole GHS.
+       * Cashier-side validation now mirrors the
+       * exact-pesewa backend architecture.
        *
-       * This is only an early cashier-side
-       * validation. The backend recalculates
-       * the authoritative order total from the
-       * database before creating the payment.
+       * The backend still remains authoritative.
        */
       const orderAmountPesewas =
-        Math.round(
-          total
-        ) * 100;
+        retailSubtotalPesewas;
 
       if (
         !Number.isSafeInteger(
@@ -1356,20 +1761,6 @@ export default function POSPage() {
               returnedCashPesewas
           );
 
-        /*
-         * The split endpoint may have already
-         * recorded the Cash allocation before
-         * Paystack returns an error.
-         *
-         * We must distinguish:
-         *
-         * 1. ambiguous/network response:
-         *    MoMo remains PENDING -> verify it.
-         *
-         * 2. definitive Paystack failure:
-         *    Cash remains CONFIRMED -> retain the
-         *    same split order for controlled retry.
-         */
         if (!res.ok) {
           if (
             data.orderId &&
@@ -1646,14 +2037,6 @@ export default function POSPage() {
           data.momoAmountPesewas ??
           failedSplitPayment.momoAmountPesewas;
 
-        /*
-         * The retry endpoint deliberately
-         * refuses to create another payment if
-         * one is already PENDING.
-         *
-         * If it returns that existing payment,
-         * adopt the same reference and verify it.
-         */
         if (!res.ok) {
           if (
             data.orderId &&
@@ -1715,15 +2098,6 @@ export default function POSPage() {
             return;
           }
 
-          /*
-           * A retry can itself fail
-           * definitively.
-           *
-           * Keep failedSplitPayment intact so
-           * the confirmed Cash allocation stays
-           * represented and the cart stays
-           * locked for another controlled retry.
-           */
           setMomoSecondsRemaining(
             0
           );
@@ -1777,11 +2151,6 @@ export default function POSPage() {
               retryMomoPesewas,
           };
 
-        /*
-         * We now have another active Paystack
-         * allocation, so the pending-payment
-         * lock replaces the failed-split lock.
-         */
         setPendingMomo(
           payment
         );
@@ -1849,29 +2218,13 @@ export default function POSPage() {
       await handleStandardCheckout();
     };
 
-  const total =
-    cart.reduce(
-      (
-        sum,
-        item
-      ) =>
-        sum +
-        item.retailPrice *
-          item.quantity,
-      0
-    );
-
   /*
    * Cashier-facing split-payment preview.
-   *
-   * The backend remains authoritative and
-   * recalculates the order amount from the
-   * database before accepting payment.
+   * The backend remains authoritative.
    */
   const splitOrderAmount =
-    Math.round(
-      total
-    );
+    retailSubtotalPesewas /
+    100;
 
   const splitCashNumber =
     splitCashAmount.trim() &&
@@ -1886,13 +2239,16 @@ export default function POSPage() {
   const splitMomoBalance =
     Math.max(
       0,
-      Math.round(
+      (
+        retailSubtotalPesewas -
         (
-          splitOrderAmount -
-          splitCashNumber
-        ) * 100
+          parseGhsToPesewasForPreview(
+            splitCashAmount
+          ) ?? 0
+        )
       ) / 100
     );
+
   const momoMessageClass =
     momoMessageType ===
     "success"
@@ -1904,6 +2260,12 @@ export default function POSPage() {
             "warning"
           ? "border-amber-200 bg-amber-50 text-amber-800"
           : "border-blue-200 bg-blue-50 text-blue-800";
+
+  const standardPaymentMethod =
+    paymentMethod ===
+      "CASH" ||
+    paymentMethod ===
+      "BANK_TRANSFER";
 
   return (
     <div className="p-6">
@@ -2190,6 +2552,376 @@ export default function POSPage() {
               </span>
             </div>
 
+            {/* CONTROLLED DISCOUNT */}
+            {standardPaymentMethod && (
+              <div className="border rounded-lg p-3 bg-amber-50 space-y-3">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <div>
+                    <div className="font-semibold">
+                      Discount / Haggling
+                    </div>
+
+                    <div className="text-xs text-gray-600 mt-1">
+                      Retail price remains
+                      the official price.
+                      Discounts are controlled
+                      and audited.
+                    </div>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={
+                      discountEnabled
+                    }
+                    onChange={(
+                      e
+                    ) => {
+                      if (
+                        e.target
+                          .checked
+                      ) {
+                        setDiscountEnabled(
+                          true
+                        );
+
+                        resetDiscountApproval();
+                      } else {
+                        resetDiscountState();
+                      }
+                    }}
+                    disabled={
+                      momoPaymentLocked ||
+                      isProcessing ||
+                      cart.length ===
+                        0
+                    }
+                    className="h-5 w-5"
+                  />
+                </label>
+
+                {discountEnabled && (
+                  <div className="space-y-3 border-t border-amber-200 pt-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">
+                          Discount Type
+                        </label>
+
+                        <select
+                          value={
+                            discountType
+                          }
+                          onChange={(
+                            e
+                          ) => {
+                            setDiscountType(
+                              e.target
+                                .value as
+                                DiscountTypeOption
+                            );
+
+                            setDiscountValue(
+                              ""
+                            );
+
+                            resetDiscountApproval();
+                          }}
+                          disabled={
+                            isProcessing
+                          }
+                          className="w-full border p-2 rounded-lg bg-white"
+                        >
+                          <option value="PERCENTAGE">
+                            Percentage
+                          </option>
+
+                          <option value="AMOUNT">
+                            Amount
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium mb-1">
+                          {discountType ===
+                          "PERCENTAGE"
+                            ? "Percent (%)"
+                            : "Amount (GHS)"}
+                        </label>
+
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            discountValue
+                          }
+                          onChange={(
+                            e
+                          ) => {
+                            setDiscountValue(
+                              e.target
+                                .value
+                            );
+
+                            resetDiscountApproval();
+                          }}
+                          placeholder={
+                            discountType ===
+                            "PERCENTAGE"
+                              ? "e.g. 5"
+                              : "e.g. 10.00"
+                          }
+                          disabled={
+                            isProcessing
+                          }
+                          className="w-full border p-2 rounded-lg bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Reason
+                      </label>
+
+                      <select
+                        value={
+                          discountReason
+                        }
+                        onChange={(
+                          e
+                        ) => {
+                          setDiscountReason(
+                            e.target
+                              .value as
+                              DiscountReasonOption
+                          );
+
+                          resetDiscountApproval();
+                        }}
+                        disabled={
+                          isProcessing
+                        }
+                        className="w-full border p-2 rounded-lg bg-white"
+                      >
+                        <option value="">
+                          Select reason
+                        </option>
+
+                        <option value="CUSTOMER_NEGOTIATION">
+                          Customer Negotiation
+                        </option>
+
+                        <option value="BULK_PURCHASE">
+                          Bulk Purchase
+                        </option>
+
+                        <option value="SCHOOL_LIST">
+                          School List
+                        </option>
+
+                        <option value="PROMOTION">
+                          Promotion
+                        </option>
+
+                        <option value="LOYAL_CUSTOMER">
+                          Loyal Customer
+                        </option>
+
+                        <option value="DAMAGED_PACKAGING">
+                          Damaged Packaging
+                        </option>
+
+                        <option value="MANAGER_ADJUSTMENT">
+                          Manager Adjustment
+                        </option>
+
+                        <option value="OTHER">
+                          Other
+                        </option>
+                      </select>
+                    </div>
+
+                    {discountReason ===
+                      "OTHER" && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1">
+                          Reason Note
+                        </label>
+
+                        <textarea
+                          value={
+                            discountNote
+                          }
+                          onChange={(
+                            e
+                          ) => {
+                            setDiscountNote(
+                              e.target
+                                .value
+                            );
+
+                            resetDiscountApproval();
+                          }}
+                          disabled={
+                            isProcessing
+                          }
+                          rows={2}
+                          placeholder="Explain the discount..."
+                          className="w-full border p-2 rounded-lg bg-white"
+                        />
+                      </div>
+                    )}
+
+                    <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-2 text-sm">
+                      <div className="flex justify-between gap-3">
+                        <span>
+                          Official Retail
+                        </span>
+
+                        <span className="font-semibold">
+                          GHS{" "}
+                          {(
+                            retailSubtotalPesewas /
+                            100
+                          ).toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3 text-green-700">
+                        <span>
+                          Savings Preview
+                        </span>
+
+                        <span className="font-semibold">
+                          - GHS{" "}
+                          {(
+                            previewDiscountPesewas /
+                            100
+                          ).toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3 border-t pt-2">
+                        <span>
+                          Preview Total
+                        </span>
+
+                        <span className="font-bold">
+                          GHS{" "}
+                          {(
+                            previewFinalPesewas /
+                            100
+                          ).toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {previewDiscountInvalid && (
+                      <div className="text-xs font-medium text-red-700">
+                        The discount cannot
+                        reduce the sale total
+                        to zero or below.
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-600">
+                      This is a cashier
+                      preview. The server
+                      validates the actual
+                      product selling floors
+                      and staff authority
+                      before completing the
+                      sale.
+                    </p>
+
+                    {discountNeedsApproval && (
+                      <div className="border border-orange-300 bg-orange-50 rounded-lg p-3 space-y-3">
+                        <div>
+                          <div className="font-semibold text-orange-900">
+                            Manager Approval
+                            Required
+                          </div>
+
+                          <p className="text-xs text-orange-800 mt-1">
+                            The backend has
+                            determined that
+                            this discount is
+                            above the cashier's
+                            automatic authority.
+                          </p>
+                        </div>
+
+                        <input
+                          type="email"
+                          value={
+                            managerEmail
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            setManagerEmail(
+                              e.target
+                                .value
+                            )
+                          }
+                          placeholder="Manager Email"
+                          autoComplete="off"
+                          disabled={
+                            isProcessing
+                          }
+                          className="w-full border p-2 rounded-lg bg-white"
+                        />
+
+                        <input
+                          type="password"
+                          value={
+                            managerPin
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            setManagerPin(
+                              e.target
+                                .value
+                            )
+                          }
+                          placeholder="Manager PIN"
+                          autoComplete="new-password"
+                          disabled={
+                            isProcessing
+                          }
+                          className="w-full border p-2 rounded-lg bg-white"
+                        />
+
+                        <p className="text-xs text-orange-800">
+                          The manager PIN is
+                          used only for this
+                          approval and is not
+                          stored with the sale.
+                        </p>
+                      </div>
+                    )}
+
+                    {discountMessage && (
+                      <div className="border border-red-200 bg-red-50 text-red-800 rounded-lg p-2 text-sm">
+                        {
+                          discountMessage
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <input
               type="text"
               placeholder="Customer Name"
@@ -2237,14 +2969,33 @@ export default function POSPage() {
                 paymentMethod
               }
               onChange={(e) => {
-                setPaymentMethod(
+                const nextMethod =
                   e.target
-                    .value
+                    .value;
+
+                setPaymentMethod(
+                  nextMethod
                 );
 
                 setMomoMessage(
                   ""
                 );
+
+                /*
+                 * MoMo and Split discount wiring
+                 * comes next. Until then, never
+                 * carry a standard-checkout
+                 * discount invisibly into those
+                 * payment modes.
+                 */
+                if (
+                  nextMethod ===
+                    "MOMO" ||
+                  nextMethod ===
+                    "SPLIT"
+                ) {
+                  resetDiscountState();
+                }
               }}
               disabled={
                 momoPaymentLocked
@@ -2360,6 +3111,7 @@ export default function POSPage() {
                     </p>
                   </div>
                 )}
+
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Mobile Money
@@ -2661,7 +3413,9 @@ export default function POSPage() {
                     : "Request Split Payment"
                   : isProcessing
                     ? "Processing..."
-                    : "Complete Sale"}
+                    : discountEnabled
+                      ? "Complete Discounted Sale"
+                      : "Complete Sale"}
             </button>
           </div>
         </div>
