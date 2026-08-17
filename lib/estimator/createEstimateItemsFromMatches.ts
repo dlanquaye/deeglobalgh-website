@@ -1,66 +1,127 @@
+﻿import { Decimal } from "@prisma/client/runtime/library";
+
 import { prisma } from "@/lib/prisma";
-import { Decimal } from "@prisma/client/runtime/library";
 import { SchoolListMatch } from "@/lib/ocr/matchSchoolList";
 
 export async function createEstimateItemsFromMatches(
   estimateId: string,
   matches: SchoolListMatch[]
 ) {
-  let lineNumber = 1;
+  return prisma.$transaction(
+    async (tx) => {
+      const estimate =
+        await tx.estimateRequest.findUnique({
+          where: {
+            id: estimateId,
+          },
+          select: {
+            id: true,
+          },
+        });
 
-  let matchedBooks = 0;
+      if (!estimate) {
+        throw new Error(
+          "Estimate request not found."
+        );
+      }
 
-  for (const match of matches) {
+      const existingItems =
+        await tx.estimateItem.count({
+          where: {
+            estimateRequestId:
+              estimateId,
+          },
+        });
 
-    if (!match.matchedProductId) {
-      continue;
-    }
+      let lineNumber =
+        existingItems + 1;
 
-    const product =
-      await prisma.product.findUnique({
+      let matchedBooks = 0;
+
+      for (const match of matches) {
+        if (!match.matchedProductId) {
+          continue;
+        }
+
+        const product =
+          await tx.product.findUnique({
+            where: {
+              id: match.matchedProductId,
+            },
+          });
+
+        if (!product) {
+          continue;
+        }
+
+        matchedBooks++;
+
+        const unitPrice =
+          new Decimal(
+            product.retailPrice
+          );
+
+        await tx.estimateItem.create({
+          data: {
+            estimateRequestId:
+              estimateId,
+
+            lineNumber:
+              lineNumber++,
+
+            description:
+              match.originalLine,
+
+            quantity: 1,
+
+            productId:
+              product.id,
+
+            matchMethod:
+              "AUTO",
+
+            matchStatus:
+              "MATCHED",
+
+            matchConfidence:
+              match.similarity,
+
+            unitPrice,
+
+            totalPrice:
+              unitPrice,
+          },
+        });
+      }
+
+      const totals =
+        await tx.estimateItem.aggregate({
+          where: {
+            estimateRequestId:
+              estimateId,
+          },
+          _sum: {
+            totalPrice: true,
+          },
+        });
+
+      await tx.estimateRequest.update({
         where: {
-          id: match.matchedProductId,
+          id: estimateId,
+        },
+        data: {
+          estimatedTotal:
+            totals._sum.totalPrice ??
+            new Decimal(0),
         },
       });
 
-    if (!product) {
-      continue;
+      return {
+        booksFound:
+          matches.length,
+
+        matchedBooks,
+      };
     }
-
-    matchedBooks++;
-
-    await prisma.estimateItem.create({
-      data: {
-        estimateRequestId: estimateId,
-
-        lineNumber: lineNumber++,
-
-        description: match.originalLine,
-
-        quantity: 1,
-
-        productId: product.id,
-
-        matchMethod: "AUTO",
-
-        matchStatus: "MATCHED",
-
-        matchConfidence: match.similarity,
-
-        unitPrice: new Decimal(
-          product.retailPrice
-        ),
-
-        totalPrice: new Decimal(
-          product.retailPrice
-        ),
-      },
-    });
-
-  }
-
-  return {
-    booksFound: matches.length,
-    matchedBooks,
-  };
+  );
 }
