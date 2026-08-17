@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
@@ -724,7 +724,7 @@ export default async function PublicQuotationPage(
               />
 
               <a
-                href="javascript:window.print()"
+                href={`/q/${token}/pdf`}
                 style={{
                   display:
                     "inline-block",
@@ -742,7 +742,7 @@ export default async function PublicQuotationPage(
                     700,
                 }}
               >
-                Print / Save as PDF
+                Download PDF
               </a>
 
               <a
