@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 import PrintQuotationButton from "./PrintQuotationButton";
+import PublicQuotationLinkButton from "./PublicQuotationLinkButton";
 
 interface PageProps {
   params: Promise<{
@@ -500,6 +501,10 @@ export default async function EstimateQuotationPage({
         <div className="mt-8 flex flex-wrap gap-3 print:hidden">
           <PrintQuotationButton />
 
+          <PublicQuotationLinkButton
+            estimateId={estimate.id}
+          />
+
           <Link
             href={`/admin/estimator/${estimate.id}`}
             className="rounded border px-5 py-2 font-semibold hover:bg-gray-50"
@@ -511,3 +516,4 @@ export default async function EstimateQuotationPage({
     </main>
   );
 }
+

@@ -577,6 +577,8 @@ model EstimateRequest {
 
   estimateNumber String @unique
 
+  publicToken String? @unique
+
   status EstimateStatus @default(NEW)
 
   source EstimateSource @default(WEBSITE)
