@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
@@ -840,6 +840,28 @@ export default async function PublicQuotationPage({
               }}
             >
               Download PDF
+            </a>
+
+            <a
+              href={`/q/${token}/docx`}
+              style={{
+                display:
+                  "inline-block",
+                padding:
+                  "12px 18px",
+                borderRadius:
+                  "9px",
+                background:
+                  "#374151",
+                color:
+                  "#ffffff",
+                textDecoration:
+                  "none",
+                fontWeight:
+                  700,
+              }}
+            >
+              Download Word
             </a>
 
             <a
