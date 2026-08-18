@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getEstimateAttachments } from "@/lib/estimator/getEstimateAttachments";
 
 import AddBookForm from "./AddBookForm";
+import EstimateItemRow from "./EstimateItemRow";
 import UploadSchoolList from "./UploadSchoolList";
 import UploadedFiles from "./UploadedFiles";
 
@@ -19,23 +20,24 @@ export default async function EstimateDetailsPage({
 }: PageProps) {
   const { id } = await params;
 
-  const estimate = await prisma.estimateRequest.findUnique({
-    where: {
-      id,
-    },
+  const estimate =
+    await prisma.estimateRequest.findUnique({
+      where: {
+        id,
+      },
 
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
 
-        orderBy: {
-          lineNumber: "asc",
+          orderBy: {
+            lineNumber: "asc",
+          },
         },
       },
-    },
-  });
+    });
 
   if (!estimate) {
     notFound();
@@ -48,10 +50,12 @@ export default async function EstimateDetailsPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10">
+
       {/* ==========================================
           HEADER
       ========================================== */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+
         <div>
           <h1 className="text-3xl font-bold">
             Estimate{" "}
@@ -64,6 +68,7 @@ export default async function EstimateDetailsPage({
         </div>
 
         <div className="flex flex-wrap gap-3">
+
           <Link
             href={`/admin/estimator/${estimate.id}/quotation`}
             className="rounded-lg bg-blue-900 px-4 py-2 font-semibold text-white hover:bg-blue-800"
@@ -77,6 +82,7 @@ export default async function EstimateDetailsPage({
           >
             Back
           </Link>
+
         </div>
       </div>
 
@@ -84,6 +90,7 @@ export default async function EstimateDetailsPage({
           CUSTOMER / SCHOOL DETAILS
       ========================================== */}
       <div className="mt-8 grid gap-4 md:grid-cols-4">
+
         <div className="rounded-xl border p-4">
           <div className="text-sm text-gray-500">
             Phone
@@ -126,39 +133,59 @@ export default async function EstimateDetailsPage({
               "-"}
           </div>
         </div>
+
       </div>
 
       {/* ==========================================
           ESTIMATOR TOOLS
       ========================================== */}
       <div className="mt-8">
+
         <UploadSchoolList
-          estimateId={estimate.id}
+          estimateId={
+            estimate.id
+          }
         />
 
         <UploadedFiles
-          attachments={attachments}
+          attachments={
+            attachments
+          }
         />
 
         <AddBookForm
-          estimateId={estimate.id}
+          estimateId={
+            estimate.id
+          }
         />
+
       </div>
 
       {/* ==========================================
           ESTIMATE ITEMS
       ========================================== */}
       <div className="mt-8 overflow-hidden rounded-xl border bg-white">
+
         <div className="border-b p-4">
+
           <h2 className="text-xl font-bold">
             Estimate Items
           </h2>
+
+          <p className="mt-1 text-sm text-gray-600">
+            Quotation prices can be edited independently of catalogue prices and stock.
+          </p>
+
         </div>
 
         <div className="overflow-x-auto">
+
           <table className="min-w-full">
+
             <thead className="bg-gray-50">
+
               <tr>
+
                 <th className="px-4 py-3 text-left">
                   #
                 </th>
@@ -180,79 +207,100 @@ export default async function EstimateDetailsPage({
                 </th>
 
                 <th className="px-4 py-3 text-left">
-                  Total
+                  Price / Actions
                 </th>
+
               </tr>
+
             </thead>
 
             <tbody>
+
               {estimate.items.length ===
               0 ? (
+
                 <tr>
+
                   <td
                     colSpan={6}
                     className="px-4 py-8 text-center text-gray-500"
                   >
-                    No books have
-                    been added yet.
+                    No quotation items have been added yet.
                   </td>
+
                 </tr>
+
               ) : (
+
                 estimate.items.map(
-                  (item) => (
-                    <tr
+                  (
+                    item
+                  ) => (
+
+                    <EstimateItemRow
                       key={
                         item.id
                       }
-                      className="border-t"
-                    >
-                      <td className="px-4 py-3">
-                        {
-                          item.lineNumber
-                        }
-                      </td>
+                      estimateId={
+                        estimate.id
+                      }
+                      item={{
+                        id:
+                          item.id,
 
-                      <td className="px-4 py-3">
-                        {
-                          item.description
-                        }
-                      </td>
+                        lineNumber:
+                          item.lineNumber,
 
-                      <td className="px-4 py-3">
-                        {item.product
-                          ?.name ??
-                          "-"}
-                      </td>
+                        description:
+                          item.description,
 
-                      <td className="px-4 py-3">
-                        {
-                          item.quantity
-                        }
-                      </td>
+                        quantity:
+                          item.quantity,
 
-                      <td className="px-4 py-3">
-                        {item.matchConfidence ??
-                          "-"}
-                        %
-                      </td>
+                        unitPrice:
+                          item.unitPrice !=
+                          null
+                            ? Number(
+                                item.unitPrice
+                              )
+                            : null,
 
-                      <td className="px-4 py-3">
-                        {item.totalPrice
-                          ? `GHS ${Number(
-                              item.totalPrice
-                            ).toFixed(
-                              2
-                            )}`
-                          : "-"}
-                      </td>
-                    </tr>
+                        totalPrice:
+                          item.totalPrice !=
+                          null
+                            ? Number(
+                                item.totalPrice
+                              )
+                            : null,
+
+                        matchConfidence:
+                          item.matchConfidence,
+
+                        product:
+                          item.product
+                            ? {
+                                name:
+                                  item
+                                    .product
+                                    .name,
+                              }
+                            : null,
+                      }}
+                    />
+
                   )
                 )
+
               )}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
+
     </main>
   );
 }
