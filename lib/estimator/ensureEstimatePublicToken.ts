@@ -21,6 +21,7 @@ export async function ensureEstimatePublicToken(
       select: {
         id: true,
         publicToken: true,
+        quotedAt: true,
       },
     });
 
@@ -30,10 +31,34 @@ export async function ensureEstimatePublicToken(
     );
   }
 
+  // ==========================================
+  // EXISTING PUBLIC LINK
+  // ==========================================
+  // Older quotations may already have a token
+  // but no quotedAt because the date field was
+  // introduced later.
+  // ==========================================
   if (estimate.publicToken) {
+    if (!estimate.quotedAt) {
+      await prisma.estimateRequest.update({
+        where: {
+          id: estimate.id,
+        },
+        data: {
+          quotedAt: new Date(),
+        },
+      });
+    }
+
     return estimate.publicToken;
   }
 
+  // ==========================================
+  // NEW PUBLIC LINK
+  // ==========================================
+  // Token and quotation issue date are created
+  // together so the document date remains fixed.
+  // ==========================================
   for (
     let attempt = 1;
     attempt <= MAX_TOKEN_ATTEMPTS;
@@ -50,6 +75,9 @@ export async function ensureEstimatePublicToken(
           },
           data: {
             publicToken,
+            quotedAt:
+              estimate.quotedAt ??
+              new Date(),
           },
           select: {
             publicToken: true,

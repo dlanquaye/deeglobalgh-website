@@ -1,4 +1,3 @@
-﻿import { NextResponse } from "next/server";
 import {
   PDFDocument,
   StandardFonts,
@@ -13,26 +12,19 @@ const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 
 const MARGIN_X = 48;
-const MARGIN_TOP = 54;
-const MARGIN_BOTTOM = 54;
-
-const FONT_SIZE_BODY = 10;
-const FONT_SIZE_SMALL = 8.5;
-const FONT_SIZE_HEADING = 13;
-const FONT_SIZE_TITLE = 20;
-
-const LINE_HEIGHT = 15;
+const TOP_Y = PAGE_HEIGHT - 48;
+const BOTTOM_MARGIN = 54;
 
 function formatMoney(
-  value: number
+  amount: number
 ) {
-  return `GHS ${value.toLocaleString(
+  return new Intl.NumberFormat(
     "en-GH",
     {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }
-  )}`;
+  ).format(amount);
 }
 
 function formatDate(
@@ -50,64 +42,14 @@ function formatDate(
 }
 
 function safeText(
-  value:
-    | string
-    | null
-    | undefined
+  value: string | null | undefined
 ) {
-  return value?.trim() || "-";
-}
-
-function wrapText(
-  text: string,
-  maxWidth: number,
-  font: any,
-  fontSize: number
-) {
-  const words =
-    text.split(/\s+/);
-
-  const lines:
-    string[] = [];
-
-  let current = "";
-
-  for (const word of words) {
-    const test =
-      current
-        ? `${current} ${word}`
-        : word;
-
-    const width =
-      font.widthOfTextAtSize(
-        test,
-        fontSize
-      );
-
-    if (
-      width <= maxWidth
-    ) {
-      current = test;
-    } else {
-      if (current) {
-        lines.push(
-          current
-        );
-      }
-
-      current = word;
-    }
-  }
-
-  if (current) {
-    lines.push(
-      current
-    );
-  }
-
-  return lines.length
-    ? lines
-    : [""];
+  return (
+    value
+      ?.replace(/[^\x20-\x7E]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() ?? ""
+  );
 }
 
 export async function GET(
@@ -118,656 +60,795 @@ export async function GET(
     }>;
   }
 ) {
-  try {
-    const { token } =
-      await context.params;
+  const { token } =
+    await context.params;
 
-    if (!token?.trim()) {
-      return NextResponse.json(
-        {
-          error:
-            "Quotation token is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+  const estimate =
+    await prisma.estimateRequest.findUnique({
+      where: {
+        publicToken: token,
+      },
 
-    const estimate =
-      await prisma.estimateRequest.findUnique({
-        where: {
-          publicToken:
-            token,
-        },
+      select: {
+        estimateNumber: true,
 
-        select: {
-          estimateNumber:
-            true,
+        customerName: true,
+        phone: true,
+        email: true,
+        schoolName: true,
+        className: true,
+        academicYear: true,
+        notes: true,
 
-          status:
-            true,
+        estimatedTotal: true,
 
-          customerName:
-            true,
+        createdAt: true,
+        quotedAt: true,
+        quotationDate: true,
 
-          phone:
-            true,
+        items: {
+          orderBy: {
+            lineNumber: "asc",
+          },
 
-          email:
-            true,
+          select: {
+            id: true,
+            lineNumber: true,
+            quantity: true,
+            description: true,
+            unitPrice: true,
+            totalPrice: true,
 
-          schoolName:
-            true,
-
-          className:
-            true,
-
-          academicYear:
-            true,
-
-          notes:
-            true,
-
-          estimatedTotal:
-            true,
-
-          createdAt:
-            true,
-
-          items: {
-            orderBy: {
-              lineNumber:
-                "asc",
-            },
-
-            select: {
-              id:
-                true,
-
-              lineNumber:
-                true,
-
-              quantity:
-                true,
-
-              description:
-                true,
-
-              unitPrice:
-                true,
-
-              totalPrice:
-                true,
-
-              product: {
-                select: {
-                  name:
-                    true,
-
-                  sku:
-                    true,
-                },
+            product: {
+              select: {
+                name: true,
+                sku: true,
               },
             },
           },
         },
-      });
+      },
+    });
 
-    if (!estimate) {
-      return NextResponse.json(
-        {
-          error:
-            "Quotation not found.",
-        },
-        {
-          status: 404,
-        }
-      );
+  if (!estimate) {
+    return new Response(
+      "Quotation not found.",
+      {
+        status: 404,
+      }
+    );
+  }
+
+  const effectiveQuotationDate =
+    estimate.quotationDate ??
+    estimate.quotedAt ??
+    estimate.createdAt;
+
+  const calculatedTotal =
+    estimate.items.reduce(
+      (
+        total,
+        item
+      ) =>
+        total +
+        Number(
+          item.totalPrice ??
+            0
+        ),
+      0
+    );
+
+  const grandTotal =
+    estimate.estimatedTotal !=
+      null
+      ? Number(
+          estimate.estimatedTotal
+        )
+      : calculatedTotal;
+
+  const pdf =
+    await PDFDocument.create();
+
+  const regular =
+    await pdf.embedFont(
+      StandardFonts.Helvetica
+    );
+
+  const bold =
+    await pdf.embedFont(
+      StandardFonts.HelveticaBold
+    );
+
+  const navy =
+    rgb(
+      0.12,
+      0.23,
+      0.54
+    );
+
+  const grey =
+    rgb(
+      0.35,
+      0.38,
+      0.43
+    );
+
+  const lightGrey =
+    rgb(
+      0.93,
+      0.94,
+      0.96
+    );
+
+  let page =
+    pdf.addPage([
+      PAGE_WIDTH,
+      PAGE_HEIGHT,
+    ]);
+
+  let y = TOP_Y;
+
+  function ensureSpace(
+    requiredHeight: number
+  ) {
+    if (
+      y - requiredHeight >=
+      BOTTOM_MARGIN
+    ) {
+      return;
     }
 
-    const calculatedTotal =
-      estimate.items.reduce(
-        (
-          total,
-          item
-        ) =>
-          total +
-          Number(
-            item.totalPrice ??
-              0
-          ),
-        0
-      );
-
-    const grandTotal =
-      estimate.estimatedTotal !==
-        null
-        ? Number(
-            estimate.estimatedTotal
-          )
-        : calculatedTotal;
-
-    const pdf =
-      await PDFDocument.create();
-
-    const font =
-      await pdf.embedFont(
-        StandardFonts.Helvetica
-      );
-
-    const bold =
-      await pdf.embedFont(
-        StandardFonts.HelveticaBold
-      );
-
-    let page =
+    page =
       pdf.addPage([
         PAGE_WIDTH,
         PAGE_HEIGHT,
       ]);
 
-    let y =
-      PAGE_HEIGHT -
-      MARGIN_TOP;
+    y = TOP_Y;
+  }
 
-    function ensureSpace(
-      requiredHeight: number
-    ) {
-      if (
-        y -
-          requiredHeight <
-        MARGIN_BOTTOM
-      ) {
-        page =
-          pdf.addPage([
-            PAGE_WIDTH,
-            PAGE_HEIGHT,
-          ]);
-
-        y =
-          PAGE_HEIGHT -
-          MARGIN_TOP;
+  function drawText(
+    text: string,
+    x: number,
+    size = 10,
+    font = regular
+  ) {
+    page.drawText(
+      safeText(text),
+      {
+        x,
+        y,
+        size,
+        font,
+        color:
+          rgb(
+            0.08,
+            0.09,
+            0.11
+          ),
       }
-    }
+    );
+  }
 
-    function drawText(
-      text: string,
-      options?: {
-        x?: number;
-        size?: number;
-        bold?: boolean;
-        colour?: {
-          r: number;
-          g: number;
-          b: number;
-        };
-      }
-    ) {
-      const size =
-        options?.size ??
-        FONT_SIZE_BODY;
+  function drawRightText(
+    text: string,
+    rightX: number,
+    size = 10,
+    font = regular
+  ) {
+    const cleaned =
+      safeText(text);
 
-      const selectedFont =
-        options?.bold
-          ? bold
-          : font;
-
-      const colour =
-        options?.colour
-          ? rgb(
-              options.colour.r,
-              options.colour.g,
-              options.colour.b
-            )
-          : rgb(
-              0.16,
-              0.16,
-              0.18
-            );
-
-      page.drawText(
-        text,
-        {
-          x:
-            options?.x ??
-            MARGIN_X,
-
-          y,
-
-          size,
-
-          font:
-            selectedFont,
-
-          color:
-            colour,
-        }
+    const width =
+      font.widthOfTextAtSize(
+        cleaned,
+        size
       );
-    }
 
-    function drawWrapped(
-      text: string,
-      maxWidth: number,
-      options?: {
-        x?: number;
-        size?: number;
-        bold?: boolean;
+    page.drawText(
+      cleaned,
+      {
+        x:
+          rightX -
+          width,
+        y,
+        size,
+        font,
+        color:
+          rgb(
+            0.08,
+            0.09,
+            0.11
+          ),
       }
+    );
+  }
+
+  function drawWrappedText(
+    text: string,
+    options: {
+      x: number;
+      width: number;
+      size?: number;
+      lineHeight?: number;
+      font?: typeof regular;
+      colour?: ReturnType<
+        typeof rgb
+      >;
+    }
+  ) {
+    const size =
+      options.size ?? 10;
+
+    const lineHeight =
+      options.lineHeight ??
+      14;
+
+    const font =
+      options.font ??
+      regular;
+
+    const colour =
+      options.colour ??
+      rgb(
+        0.08,
+        0.09,
+        0.11
+      );
+
+    const words =
+      safeText(text).split(
+        " "
+      );
+
+    let line = "";
+
+    for (
+      const word of words
     ) {
-      const size =
-        options?.size ??
-        FONT_SIZE_BODY;
+      const testLine =
+        line
+          ? `${line} ${word}`
+          : word;
 
-      const selectedFont =
-        options?.bold
-          ? bold
-          : font;
-
-      const lines =
-        wrapText(
-          text,
-          maxWidth,
-          selectedFont,
+      const width =
+        font.widthOfTextAtSize(
+          testLine,
           size
         );
 
-      for (
-        const line of lines
+      if (
+        width >
+          options.width &&
+        line
       ) {
         ensureSpace(
-          LINE_HEIGHT
+          lineHeight
         );
 
         page.drawText(
           line,
           {
             x:
-              options?.x ??
-              MARGIN_X,
-
+              options.x,
             y,
-
             size,
-
-            font:
-              selectedFont,
-
+            font,
             color:
-              rgb(
-                0.16,
-                0.16,
-                0.18
-              ),
+              colour,
           }
         );
 
         y -=
-          LINE_HEIGHT;
+          lineHeight;
+
+        line =
+          word;
+      } else {
+        line =
+          testLine;
       }
     }
 
-    // ======================================
-    // HEADER
-    // ======================================
-    drawText(
-      "DeeGlobalGH",
-      {
-        size:
-          FONT_SIZE_TITLE,
-        bold:
-          true,
-        colour: {
-          r: 0.12,
-          g: 0.23,
-          b: 0.54,
-        },
-      }
-    );
+    if (line) {
+      ensureSpace(
+        lineHeight
+      );
 
-    y -= 20;
+      page.drawText(
+        line,
+        {
+          x:
+            options.x,
+          y,
+          size,
+          font,
+          color:
+            colour,
+        }
+      );
 
-    drawText(
-      "Kasoa New Market, Ghana",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
+      y -=
+        lineHeight;
+    }
+  }
 
-    y -= 14;
+  // ==========================================
+  // HEADER
+  // ==========================================
+  page.drawText(
+    "DeeglobalGH",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        22,
+      font:
+        bold,
+      color:
+        navy,
+    }
+  );
 
-    drawText(
-      "Educational Books • School Supplies • Exam Essentials",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
+  y -= 20;
 
-    y -= 28;
+  page.drawText(
+    "Kasoa New Market",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        10,
+      font:
+        regular,
+      color:
+        grey,
+    }
+  );
 
-    drawText(
-      "QUOTATION / PROFORMA INVOICE",
-      {
-        size:
-          FONT_SIZE_HEADING,
-        bold:
-          true,
-      }
-    );
+  y -= 16;
 
-    y -= 22;
-
-    page.drawLine({
-      start: {
-        x:
-          MARGIN_X,
-        y,
-      },
-
-      end: {
-        x:
-          PAGE_WIDTH -
-          MARGIN_X,
-        y,
-      },
-
-      thickness:
-        1,
-
+  page.drawText(
+    "Educational Books - School Supplies - Exam Essentials",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        9,
+      font:
+        bold,
       color:
         rgb(
-          0.82,
-          0.84,
-          0.87
+          0.72,
+          0.48,
+          0.10
         ),
-    });
-
-    y -= 22;
-
-    // ======================================
-    // REFERENCE
-    // ======================================
-    drawText(
-      `Quotation: ${estimate.estimateNumber}`,
-      {
-        bold:
-          true,
-      }
-    );
-
-    y -= 16;
-
-    drawText(
-      `Date: ${formatDate(
-        estimate.createdAt
-      )}`
-    );
-
-    y -= 16;
-
-    drawText(
-      `Status: ${estimate.status}`
-    );
-
-    y -= 26;
-
-    // ======================================
-    // CUSTOMER
-    // ======================================
-    drawText(
-      "CUSTOMER DETAILS",
-      {
-        bold:
-          true,
-        size:
-          FONT_SIZE_HEADING,
-      }
-    );
-
-    y -= 18;
-
-    drawText(
-      `Customer: ${safeText(
-        estimate.customerName
-      )}`
-    );
-
-    y -= 15;
-
-    drawText(
-      `Phone: ${safeText(
-        estimate.phone
-      )}`
-    );
-
-    y -= 15;
-
-    if (
-      estimate.email
-    ) {
-      drawText(
-        `Email: ${estimate.email}`
-      );
-
-      y -= 15;
     }
+  );
 
-    if (
-      estimate.schoolName
-    ) {
-      drawWrapped(
-        `School / Organisation: ${estimate.schoolName}`,
+  const title =
+    "QUOTATION / PROFORMA INVOICE";
+
+  const titleWidth =
+    bold.widthOfTextAtSize(
+      title,
+      15
+    );
+
+  page.drawText(
+    title,
+    {
+      x:
         PAGE_WIDTH -
-          MARGIN_X * 2
-      );
+        MARGIN_X -
+        titleWidth,
+      y:
+        TOP_Y,
+      size:
+        15,
+      font:
+        bold,
+      color:
+        navy,
     }
+  );
 
-    if (
-      estimate.className
-    ) {
-      drawText(
-        `Class: ${estimate.className}`
-      );
+  const estimateLabel =
+    `Estimate No: ${estimate.estimateNumber}`;
 
-      y -= 15;
+  const estimateWidth =
+    regular.widthOfTextAtSize(
+      estimateLabel,
+      9
+    );
+
+  page.drawText(
+    estimateLabel,
+    {
+      x:
+        PAGE_WIDTH -
+        MARGIN_X -
+        estimateWidth,
+      y:
+        TOP_Y -
+        22,
+      size:
+        9,
+      font:
+        regular,
     }
+  );
 
-    if (
-      estimate.academicYear
-    ) {
-      drawText(
-        `Academic Year: ${estimate.academicYear}`
-      );
+  const dateLabel =
+    `Date: ${formatDate(
+      effectiveQuotationDate
+    )}`;
 
-      y -= 15;
+  const dateWidth =
+    regular.widthOfTextAtSize(
+      dateLabel,
+      9
+    );
+
+  page.drawText(
+    dateLabel,
+    {
+      x:
+        PAGE_WIDTH -
+        MARGIN_X -
+        dateWidth,
+      y:
+        TOP_Y -
+        38,
+      size:
+        9,
+      font:
+        regular,
     }
+  );
 
+  y -= 16;
+
+  page.drawLine({
+    start: {
+      x:
+        MARGIN_X,
+      y,
+    },
+
+    end: {
+      x:
+        PAGE_WIDTH -
+        MARGIN_X,
+      y,
+    },
+
+    thickness:
+      1.5,
+
+    color:
+      navy,
+  });
+
+  y -= 28;
+
+  // ==========================================
+  // CUSTOMER DETAILS
+  // ==========================================
+  page.drawText(
+    "QUOTATION FOR",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        10,
+      font:
+        bold,
+      color:
+        navy,
+    }
+  );
+
+  y -= 18;
+
+  drawText(
+    `Customer: ${estimate.customerName}`,
+    MARGIN_X
+  );
+
+  y -= 14;
+
+  drawText(
+    `Phone: ${estimate.phone}`,
+    MARGIN_X
+  );
+
+  if (
+    estimate.email
+  ) {
     y -= 14;
 
-    // ======================================
-    // ITEMS
-    // ======================================
     drawText(
-      "QUOTATION ITEMS",
-      {
-        bold:
-          true,
-        size:
-          FONT_SIZE_HEADING,
-      }
+      `Email: ${estimate.email}`,
+      MARGIN_X
+    );
+  }
+
+  if (
+    estimate.schoolName
+  ) {
+    y -= 14;
+
+    drawText(
+      `School / Organisation: ${estimate.schoolName}`,
+      MARGIN_X
+    );
+  }
+
+  if (
+    estimate.className
+  ) {
+    y -= 14;
+
+    drawText(
+      `Class: ${estimate.className}`,
+      MARGIN_X
+    );
+  }
+
+  if (
+    estimate.academicYear
+  ) {
+    y -= 14;
+
+    drawText(
+      `Academic Year: ${estimate.academicYear}`,
+      MARGIN_X
+    );
+  }
+
+  y -= 28;
+
+  // ==========================================
+  // ITEM HEADER
+  // ==========================================
+  ensureSpace(
+    50
+  );
+
+  page.drawRectangle({
+    x:
+      MARGIN_X,
+    y:
+      y - 5,
+    width:
+      PAGE_WIDTH -
+      MARGIN_X * 2,
+    height:
+      24,
+    color:
+      navy,
+  });
+
+  const headerY =
+    y + 3;
+
+  page.drawText(
+    "#",
+    {
+      x:
+        MARGIN_X +
+        8,
+      y:
+        headerY,
+      size:
+        9,
+      font:
+        bold,
+      color:
+        rgb(
+          1,
+          1,
+          1
+        ),
+    }
+  );
+
+  page.drawText(
+    "Description",
+    {
+      x:
+        MARGIN_X +
+        30,
+      y:
+        headerY,
+      size:
+        9,
+      font:
+        bold,
+      color:
+        rgb(
+          1,
+          1,
+          1
+        ),
+    }
+  );
+
+  page.drawText(
+    "Qty",
+    {
+      x:
+        390,
+      y:
+        headerY,
+      size:
+        9,
+      font:
+        bold,
+      color:
+        rgb(
+          1,
+          1,
+          1
+        ),
+    }
+  );
+
+  page.drawText(
+    "Unit",
+    {
+      x:
+        435,
+      y:
+        headerY,
+      size:
+        9,
+      font:
+        bold,
+      color:
+        rgb(
+          1,
+          1,
+          1
+        ),
+    }
+  );
+
+  page.drawText(
+    "Amount",
+    {
+      x:
+        500,
+      y:
+        headerY,
+      size:
+        9,
+      font:
+        bold,
+      color:
+        rgb(
+          1,
+          1,
+          1
+        ),
+    }
+  );
+
+  y -= 28;
+
+  // ==========================================
+  // ITEMS
+  // ==========================================
+  for (
+    const item of
+    estimate.items
+  ) {
+    ensureSpace(
+      46
     );
 
-    y -= 20;
+    const itemName =
+      item.product
+        ?.name ??
+      item.description;
 
-    if (
-      estimate.items.length ===
-      0
-    ) {
-      drawText(
-        "No quotation items are available."
+    const unitPrice =
+      Number(
+        item.unitPrice ??
+          0
       );
 
-      y -= 18;
-    } else {
-      for (
-        const item of
-        estimate.items
-      ) {
-        ensureSpace(
-          70
-        );
+    const totalPrice =
+      Number(
+        item.totalPrice ??
+          0
+      );
 
-        const itemName =
-          item.product?.name ??
-          item.description;
-
-        drawWrapped(
-          `${item.lineNumber}. ${itemName}`,
-          330,
-          {
-            bold:
-              true,
-          }
-        );
-
-        if (
-          item.product?.sku
-        ) {
-          drawText(
-            `SKU: ${item.product.sku}`,
-            {
-              x:
-                MARGIN_X +
-                14,
-              size:
-                FONT_SIZE_SMALL,
-            }
-          );
-
-          y -= 13;
-        }
-
-        drawText(
-          `Qty: ${item.quantity}`,
-          {
-            x:
-              MARGIN_X +
-              14,
-            size:
-              FONT_SIZE_SMALL,
-          }
-        );
-
-        y -= 13;
-
-        drawText(
-          `Unit Price: ${formatMoney(
-            Number(
-              item.unitPrice ??
-                0
-            )
-          )}`,
-          {
-            x:
-              MARGIN_X +
-              14,
-            size:
-              FONT_SIZE_SMALL,
-          }
-        );
-
-        const lineTotal =
-          formatMoney(
-            Number(
-              item.totalPrice ??
-                0
-            )
-          );
-
-        const width =
-          bold.widthOfTextAtSize(
-            lineTotal,
-            FONT_SIZE_BODY
-          );
-
-        page.drawText(
-          lineTotal,
-          {
-            x:
-              PAGE_WIDTH -
-              MARGIN_X -
-              width,
-
-            y:
-              y +
-              13,
-
-            size:
-              FONT_SIZE_BODY,
-
-            font:
-              bold,
-
-            color:
-              rgb(
-                0.16,
-                0.16,
-                0.18
-              ),
-          }
-        );
-
-        y -= 20;
-
-        page.drawLine({
-          start: {
-            x:
-              MARGIN_X,
-            y,
-          },
-
-          end: {
-            x:
-              PAGE_WIDTH -
-              MARGIN_X,
-            y,
-          },
-
-          thickness:
-            0.5,
-
-          color:
-            rgb(
-              0.88,
-              0.89,
-              0.91
-            ),
-        });
-
-        y -= 14;
-      }
-    }
-
-    ensureSpace(
-      80
+    drawText(
+      String(
+        item.lineNumber
+      ),
+      MARGIN_X +
+        8,
+      9
     );
 
-    // ======================================
-    // TOTAL
-    // ======================================
-    y -= 6;
+    drawWrappedText(
+      itemName,
+      {
+        x:
+          MARGIN_X +
+          30,
+        width:
+          280,
+        size:
+          9,
+        lineHeight:
+          12,
+        font:
+          bold,
+      }
+    );
+
+    const itemBaseY =
+      y + 12;
+
+    page.drawText(
+      String(
+        item.quantity
+      ),
+      {
+        x:
+          390,
+        y:
+          itemBaseY,
+        size:
+          9,
+        font:
+          regular,
+      }
+    );
+
+    const unitText =
+      formatMoney(
+        unitPrice
+      );
+
+    const unitWidth =
+      regular.widthOfTextAtSize(
+        unitText,
+        9
+      );
+
+    page.drawText(
+      unitText,
+      {
+        x:
+          475 -
+          unitWidth,
+        y:
+          itemBaseY,
+        size:
+          9,
+        font:
+          regular,
+      }
+    );
 
     const totalText =
-      `TOTAL: ${formatMoney(
-        grandTotal
-      )}`;
+      formatMoney(
+        totalPrice
+      );
 
     const totalWidth =
       bold.widthOfTextAtSize(
         totalText,
-        15
+        9
       );
 
     page.drawText(
@@ -777,102 +858,36 @@ export async function GET(
           PAGE_WIDTH -
           MARGIN_X -
           totalWidth,
-
-        y,
-
+        y:
+          itemBaseY,
         size:
-          15,
-
+          9,
         font:
           bold,
-
-        color:
-          rgb(
-            0.12,
-            0.23,
-            0.54
-          ),
       }
     );
 
-    y -= 32;
-
-    // ======================================
-    // NOTES
-    // ======================================
     if (
-      estimate.notes
+      item.product
+        ?.sku
     ) {
-      ensureSpace(
-        80
-      );
-
-      drawText(
-        "NOTES",
+      drawWrappedText(
+        `SKU: ${item.product.sku}`,
         {
-          bold:
-            true,
+          x:
+            MARGIN_X +
+            30,
+          width:
+            280,
           size:
-            FONT_SIZE_HEADING,
+            7,
+          lineHeight:
+            10,
+          colour:
+            grey,
         }
       );
-
-      y -= 18;
-
-      drawWrapped(
-        estimate.notes,
-        PAGE_WIDTH -
-          MARGIN_X * 2
-      );
-
-      y -= 10;
     }
-
-    // ======================================
-    // TERMS
-    // ======================================
-    ensureSpace(
-      120
-    );
-
-    drawText(
-      "QUOTATION NOTES",
-      {
-        bold:
-          true,
-        size:
-          FONT_SIZE_HEADING,
-      }
-    );
-
-    y -= 18;
-
-    const notes = [
-      "Prices and product availability are subject to confirmation at the time of order.",
-      "This quotation is not proof of payment.",
-      "Delivery charges, where applicable, will be confirmed separately.",
-      "Bulk and wholesale pricing may vary according to quantity and current stock.",
-    ];
-
-    for (
-      const note of notes
-    ) {
-      drawWrapped(
-        `• ${note}`,
-        PAGE_WIDTH -
-          MARGIN_X * 2,
-        {
-          size:
-            FONT_SIZE_SMALL,
-        }
-      );
-
-      y -= 3;
-    }
-
-    ensureSpace(
-      90
-    );
 
     y -= 8;
 
@@ -891,111 +906,287 @@ export async function GET(
       },
 
       thickness:
-        1,
+        0.5,
 
       color:
-        rgb(
-          0.82,
-          0.84,
-          0.87
-        ),
+        lightGrey,
     });
 
-    y -= 20;
-
-    drawText(
-      "DeeGlobalGH",
-      {
-        bold:
-          true,
-        colour: {
-          r: 0.12,
-          g: 0.23,
-          b: 0.54,
-        },
-      }
-    );
-
-    y -= 15;
-
-    drawText(
-      "WhatsApp: 027 003 0000",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
-
-    y -= 13;
-
-    drawText(
-      "Customer Care: 0246 011 773",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
-
-    y -= 13;
-
-    drawText(
-      "Shop Line: 030 398 2358",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
-
-    y -= 13;
-
-    drawText(
-      "www.shopdeeglobalgh.com",
-      {
-        size:
-          FONT_SIZE_SMALL,
-      }
-    );
-
-    const bytes =
-      await pdf.save();
-
-    const filename =
-      `DeeGlobalGH-${estimate.estimateNumber}-Quotation.pdf`;
-
-    return new NextResponse(
-      Buffer.from(bytes),
-      {
-        status: 200,
-
-        headers: {
-          "Content-Type":
-            "application/pdf",
-
-          "Content-Disposition":
-            `attachment; filename="${filename}"`,
-
-          "Cache-Control":
-            "private, no-store, max-age=0",
-
-          "X-Robots-Tag":
-            "noindex, nofollow, noarchive",
-        },
-      }
-    );
-  } catch (error) {
-    console.error(
-      "Quotation PDF generation error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        error:
-          "Unable to generate quotation PDF.",
-      },
-      {
-        status: 500,
-      }
-    );
+    y -= 12;
   }
+
+  // ==========================================
+  // TOTAL
+  // ==========================================
+  ensureSpace(
+    70
+  );
+
+  y -= 6;
+
+  page.drawLine({
+    start: {
+      x:
+        350,
+      y,
+    },
+
+    end: {
+      x:
+        PAGE_WIDTH -
+        MARGIN_X,
+      y,
+    },
+
+    thickness:
+      1.5,
+
+    color:
+      navy,
+  });
+
+  y -= 22;
+
+  page.drawText(
+    "TOTAL",
+    {
+      x:
+        350,
+      y,
+      size:
+        13,
+      font:
+        bold,
+      color:
+        navy,
+    }
+  );
+
+  drawRightText(
+    `GHS ${formatMoney(
+      grandTotal
+    )}`,
+    PAGE_WIDTH -
+      MARGIN_X,
+    13,
+    bold
+  );
+
+  y -= 34;
+
+  // ==========================================
+  // NOTES
+  // ==========================================
+  if (
+    estimate.notes
+  ) {
+    ensureSpace(
+      60
+    );
+
+    page.drawText(
+      "NOTES",
+      {
+        x:
+          MARGIN_X,
+        y,
+        size:
+          10,
+        font:
+          bold,
+        color:
+          navy,
+      }
+    );
+
+    y -= 18;
+
+    drawWrappedText(
+      estimate.notes,
+      {
+        x:
+          MARGIN_X,
+        width:
+          PAGE_WIDTH -
+          MARGIN_X * 2,
+        size:
+          9,
+        lineHeight:
+          13,
+      }
+    );
+
+    y -= 12;
+  }
+
+  // ==========================================
+  // QUOTATION NOTES
+  // ==========================================
+  ensureSpace(
+    115
+  );
+
+  page.drawText(
+    "QUOTATION NOTES",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        10,
+      font:
+        bold,
+      color:
+        navy,
+    }
+  );
+
+  y -= 18;
+
+  const quotationNotes = [
+    "Prices and product availability are subject to confirmation at the time of order.",
+    "This quotation does not constitute proof of payment.",
+    "Delivery charges, where applicable, will be confirmed separately.",
+    "Bulk and wholesale pricing may vary according to quantity and current stock.",
+  ];
+
+  for (
+    const note of
+    quotationNotes
+  ) {
+    drawWrappedText(
+      `- ${note}`,
+      {
+        x:
+          MARGIN_X +
+          6,
+        width:
+          PAGE_WIDTH -
+          MARGIN_X * 2 -
+          6,
+        size:
+          8.5,
+        lineHeight:
+          12,
+        colour:
+          grey,
+      }
+    );
+
+    y -= 2;
+  }
+
+  y -= 10;
+
+  // ==========================================
+  // CONTACTS
+  // ==========================================
+  ensureSpace(
+    75
+  );
+
+  page.drawLine({
+    start: {
+      x:
+        MARGIN_X,
+      y,
+    },
+
+    end: {
+      x:
+        PAGE_WIDTH -
+        MARGIN_X,
+      y,
+    },
+
+    thickness:
+      1,
+    color:
+      lightGrey,
+  });
+
+  y -= 20;
+
+  page.drawText(
+    "DeeglobalGH",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        12,
+      font:
+        bold,
+      color:
+        navy,
+    }
+  );
+
+  y -= 16;
+
+  page.drawText(
+    "WhatsApp: 027 003 0000 | Customer Care: 0246 011 773 | Shop Line: 030 398 2358",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        8.5,
+      font:
+        regular,
+      color:
+        grey,
+    }
+  );
+
+  y -= 14;
+
+  page.drawText(
+    "Thank you for requesting a quotation from DeeglobalGH.",
+    {
+      x:
+        MARGIN_X,
+      y,
+      size:
+        8.5,
+      font:
+        regular,
+      color:
+        grey,
+    }
+  );
+
+  const bytes =
+    await pdf.save();
+
+  const body =
+    bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset +
+        bytes.byteLength
+    ) as ArrayBuffer;
+
+  const filename =
+    `DeeGlobalGH-${safeText(
+      estimate.estimateNumber
+    )}-Quotation.pdf`;
+
+  return new Response(
+    body,
+    {
+      headers: {
+        "Content-Type":
+          "application/pdf",
+
+        "Content-Disposition":
+          `attachment; filename="${filename}"`,
+
+        "Cache-Control":
+          "no-store, max-age=0",
+
+        "X-Robots-Tag":
+          "noindex, nofollow, noarchive",
+      },
+    }
+  );
 }

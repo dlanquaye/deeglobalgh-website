@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 import PrintQuotationButton from "./PrintQuotationButton";
 import PublicQuotationLinkButton from "./PublicQuotationLinkButton";
+import QuotationDateControl from "./QuotationDateControl";
 
 interface PageProps {
   params: Promise<{
@@ -33,6 +34,21 @@ function formatDate(
       day: "2-digit",
       month: "long",
       year: "numeric",
+      timeZone: "Africa/Accra",
+    }
+  ).format(value);
+}
+
+function toDateInputValue(
+  value: Date
+) {
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Africa/Accra",
     }
   ).format(value);
 }
@@ -86,6 +102,11 @@ export default async function EstimateQuotationPage({
           estimate.estimatedTotal
         )
       : calculatedTotal;
+
+  const effectiveQuotationDate =
+    estimate.quotationDate ??
+    estimate.quotedAt ??
+    estimate.createdAt;
 
   return (
     <main className="min-h-screen bg-gray-100 py-8 print:bg-white print:py-0">
@@ -144,7 +165,7 @@ export default async function EstimateQuotationPage({
                     Date:
                   </strong>{" "}
                   {formatDate(
-                    estimate.createdAt
+                    effectiveQuotationDate
                   )}
                 </div>
 
@@ -158,6 +179,18 @@ export default async function EstimateQuotationPage({
             </div>
           </div>
         </header>
+
+        {/* ==========================================
+            ADMIN DATE CONTROL
+        ========================================== */}
+        <section className="mt-6">
+          <QuotationDateControl
+            estimateId={estimate.id}
+            initialDate={toDateInputValue(
+              effectiveQuotationDate
+            )}
+          />
+        </section>
 
         {/* ==========================================
             CUSTOMER DETAILS
@@ -516,4 +549,3 @@ export default async function EstimateQuotationPage({
     </main>
   );
 }
-
