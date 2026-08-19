@@ -25,8 +25,20 @@ export async function GET(req: Request) {
   const endOfDay = new Date(reportDate);
   endOfDay.setHours(23, 59, 59, 999);
 
+  /*
+   * Daily sales reporting must include only
+   * successfully paid orders.
+   *
+   * Failed or abandoned payment attempts may
+   * legitimately remain in Order for payment
+   * audit/recovery purposes, but they are not
+   * sales and must never contribute to revenue
+   * or payment-method reconciliation.
+   */
   const sales = await prisma.order.findMany({
     where: {
+      paymentStatus: "PAID",
+
       createdAt: {
         gte: startOfDay,
         lte: endOfDay,
