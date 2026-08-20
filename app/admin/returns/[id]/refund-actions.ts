@@ -1,108 +1,184 @@
-"use server";
+﻿"use server";
 
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/app/lib/adminAuth";
 import { revalidatePath } from "next/cache";
 
-export async function processRefund
-(
-  returnId: string
-)
-{
-  const admin = await requireAdmin();
-  
+import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 
-  const returnRequest = await prisma.returnRequest.findUnique({
-    where: {
-      id: returnId,
-    },
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
+export async function processRefund(
+  returnId: string
+) {
+  await requireAdmin();
+
+  const returnRequest =
+    await prisma.returnRequest.findUnique({
+      where: {
+        id: returnId,
       },
-      order: true,
-      branch: true,
-    },
-  });
+
+      include: {
+        items: true,
+        order: true,
+        branch: true,
+      },
+    });
 
   if (!returnRequest) {
-    throw new Error("Return not found");
+    throw new Error(
+      "Return not found"
+    );
   }
 
-  const refundMethod = returnRequest.order.paymentMethod;
-
-  // TODO (Post-MVP):
-// Record refund payment method, refundedBy, and refund reference
-// as part of the financial audit enhancement.
+  const refundMethod =
+    returnRequest.order.paymentMethod;
 
   if (!refundMethod) {
-  throw new Error("Original payment method not found.");
-}
+    throw new Error(
+      "Original payment method not found."
+    );
+  }
 
-  if (returnRequest.status === "REFUNDED") {
-  throw new Error("This return has already been refunded.");
-}
+  if (
+    returnRequest.status ===
+    "REFUNDED"
+  ) {
+    throw new Error(
+      "This return has already been refunded."
+    );
+  }
 
-if (returnRequest.status === "EXCHANGED") {
-  throw new Error("This return has already been exchanged.");
-}
+  if (
+    returnRequest.status ===
+    "EXCHANGED"
+  ) {
+    throw new Error(
+      "This return has already been exchanged."
+    );
+  }
 
-const returnedItem = returnRequest.items[0];
+  if (
+    returnRequest.status !==
+    "APPROVED"
+  ) {
+    throw new Error(
+      "This return must be approved before a refund can be processed."
+    );
+  }
 
-if (!returnedItem) {
-  throw new Error("No returned item found");
-}
+  if (
+    returnRequest.items.length ===
+    0
+  ) {
+    throw new Error(
+      "No returned items found"
+    );
+  }
 
-const returnedInventory = await prisma.inventory.findFirst({
-  where: {
-    productId: returnedItem.productId,
-    locationType: "BRANCH",
-    locationId: returnRequest.branchId,
-  },
-});
+  await prisma.$transaction(
+    async (tx) => {
+      for (
+        const returnedItem of
+        returnRequest.items
+      ) {
+        const returnedInventory =
+          await tx.inventory.findUnique({
+            where: {
+              productId_locationType_locationId:
+                {
+                  productId:
+                    returnedItem.productId,
 
-if (!returnedInventory) {
-  throw new Error("Returned product inventory not found");
-}
+                  locationType:
+                    "BRANCH",
 
-await prisma.$transaction(async (tx) => {
-  await tx.inventory.update({
-    where: {
-      id: returnedInventory.id,
-    },
-    data: {
-      quantity: {
-        increment: returnedItem.quantity,
-      },
-    },
-  });
+                  locationId:
+                    returnRequest.branchId,
+                },
+            },
+          });
 
-  
+        if (!returnedInventory) {
+          throw new Error(
+            `Returned product inventory not found for product ${returnedItem.productId}`
+          );
+        }
 
-  
+        const updatedInventory =
+          await tx.inventory.update({
+            where: {
+              id:
+                returnedInventory.id,
+            },
 
-  await tx.inventoryMovement.create({
-    data: {
-      productId: returnedItem.productId,
-      quantity: returnedItem.quantity,
-      type: "RETURN",
-      note: `Refund - ${returnRequest.returnNumber}`,
-      orderId: returnRequest.orderId,
-    },
-  });
+            data: {
+              quantity: {
+                increment:
+                  returnedItem.quantity,
+              },
+            },
 
-  await tx.returnRequest.update({
-    where: {
-      id: returnId,
-    },
-    data: {
-      status: "REFUNDED",
-      completedAt: new Date(),
-    },
-  });
-});
+            select: {
+              quantity: true,
+            },
+          });
 
-  revalidatePath(`/admin/returns/${returnId}`);
+        /*
+         * Inventory is authoritative.
+         *
+         * Product.stockQty is maintained as a
+         * compatibility mirror because parts of
+         * the existing application still display
+         * or consume it.
+         */
+        await tx.product.update({
+          where: {
+            id:
+              returnedItem.productId,
+          },
+
+          data: {
+            stockQty:
+              updatedInventory.quantity,
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId:
+              returnedItem.productId,
+
+            quantity:
+              returnedItem.quantity,
+
+            type:
+              "RETURN",
+
+            note:
+              `Refund - ${returnRequest.returnNumber}`,
+
+            orderId:
+              returnRequest.orderId,
+          },
+        });
+      }
+
+      await tx.returnRequest.update({
+        where: {
+          id: returnId,
+        },
+
+        data: {
+          status:
+            "REFUNDED",
+
+          completedAt:
+            new Date(),
+        },
+      });
+    }
+  );
+
+  revalidatePath(
+    `/admin/returns/${returnId}`
+  );
 }
