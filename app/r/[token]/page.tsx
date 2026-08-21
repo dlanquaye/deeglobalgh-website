@@ -858,7 +858,7 @@ export default async function DigitalReceiptPage(
                               {
                                 item.quantity
                               }{" "}
-                              Ãƒâ€”{" "}
+                              x{" "}
                               {formatMoney(
                                 item.unitPrice
                               )}
