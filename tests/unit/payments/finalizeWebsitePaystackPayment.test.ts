@@ -1,4 +1,4 @@
-﻿import {
+import {
   beforeEach,
   describe,
   expect,
@@ -13,12 +13,16 @@ import {
 const {
   transactionMock,
   orderFindUniqueMock,
+  orderUpdateManyMock,
   applyStockMovementMock,
 } = vi.hoisted(() => ({
   transactionMock:
     vi.fn(),
 
   orderFindUniqueMock:
+    vi.fn(),
+
+  orderUpdateManyMock:
     vi.fn(),
 
   applyStockMovementMock:
@@ -32,6 +36,9 @@ vi.mock(
       order: {
         findUnique:
           orderFindUniqueMock,
+
+        updateMany:
+          orderUpdateManyMock,
       },
 
       $transaction:
@@ -68,6 +75,9 @@ function createOrder(
 
     locationId:
       string | null;
+
+    receiptToken:
+      string | null;
   }> = {}
 ) {
   return {
@@ -91,6 +101,9 @@ function createOrder(
 
     locationId:
       "branch-1",
+
+    receiptToken:
+      null,
 
     orderItems: [
       {
@@ -168,6 +181,9 @@ function createTransactionClient() {
 
         stockReduced:
           true,
+
+        receiptToken:
+          "existing-receipt-token",
       });
 
   return {
@@ -209,6 +225,12 @@ describe(
   () => {
     beforeEach(() => {
       vi.clearAllMocks();
+
+      orderUpdateManyMock
+        .mockResolvedValue({
+          count:
+            1,
+        });
 
       applyStockMovementMock
         .mockResolvedValue(
@@ -392,13 +414,39 @@ describe(
 
             stockReduced:
               true,
+
+            receiptToken:
+              expect.any(
+                String
+              ),
           },
         });
+
+        const finalOrderUpdate =
+          tx.order.update.mock
+            .calls[0]?.[0];
+
+        expect(
+          finalOrderUpdate
+            ?.data
+            ?.receiptToken
+        ).toMatch(
+          /^[A-Za-z0-9_-]+$/
+        );
+
+        expect(
+          finalOrderUpdate
+            ?.data
+            ?.receiptToken
+            .length
+        ).toBeGreaterThan(
+          20
+        );
       }
     );
 
     it(
-      "does not reduce stock again when the order is already fully finalised",
+      "backfills a receipt token without reducing stock when the order is already fully finalised",
       async () => {
         orderFindUniqueMock
           .mockResolvedValue(
@@ -408,6 +456,9 @@ describe(
 
               stockReduced:
                 true,
+
+              receiptToken:
+                null,
             })
           );
 
@@ -447,6 +498,80 @@ describe(
           requiresAttention:
             false,
         });
+
+        expect(
+          orderUpdateManyMock
+        ).toHaveBeenCalledWith({
+          where: {
+            id:
+              "order-db-1",
+
+            receiptToken:
+              null,
+          },
+
+          data: {
+            receiptToken:
+              expect.any(
+                String
+              ),
+          },
+        });
+
+        expect(
+          transactionMock
+        ).not.toHaveBeenCalled();
+
+        expect(
+          applyStockMovementMock
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    it(
+      "does not replace an existing receipt token when the order is already fully finalised",
+      async () => {
+        orderFindUniqueMock
+          .mockResolvedValue(
+            createOrder({
+              paymentStatus:
+                PaymentStatus.PAID,
+
+              stockReduced:
+                true,
+
+              receiptToken:
+                "existing-receipt-token",
+            })
+          );
+
+        const result =
+          await finalizeWebsitePaystackPayment({
+            reference:
+              "DG-TEST-1",
+
+            orderId:
+              "DG-TEST-1",
+
+            amountPesewas:
+              5000,
+
+            currency:
+              "GHS",
+
+            providerStatus:
+              "success",
+          });
+
+        expect(
+          result.alreadyFinalized
+        ).toBe(
+          true
+        );
+
+        expect(
+          orderUpdateManyMock
+        ).not.toHaveBeenCalled();
 
         expect(
           transactionMock
@@ -672,9 +797,13 @@ describe(
           createTransactionClient();
 
         tx.order.updateMany
-          .mockResolvedValue({
+          .mockResolvedValueOnce({
             count:
               0,
+          })
+          .mockResolvedValueOnce({
+            count:
+              1,
           });
 
         tx.order.findUnique
@@ -687,6 +816,9 @@ describe(
 
             stockReduced:
               true,
+
+            receiptToken:
+              null,
           });
 
         transactionMock
@@ -734,6 +866,28 @@ describe(
         expect(
           tx.stockMovement.create
         ).not.toHaveBeenCalled();
+
+        expect(
+          tx.order.updateMany
+        ).toHaveBeenNthCalledWith(
+          2,
+          {
+            where: {
+              id:
+                "order-db-1",
+
+              receiptToken:
+                null,
+            },
+
+            data: {
+              receiptToken:
+                expect.any(
+                  String
+                ),
+            },
+          }
+        );
       }
     );
   }

@@ -237,13 +237,16 @@ export default async function DigitalReceiptPage(
   // AUTHORITATIVE ORDER MONEY
   // ==========================================
   //
-  // New POS orders:
-  //   amountPesewas is exact.
+  // amountPesewas is the authoritative total
+  // actually paid for all modern orders.
   //
-  // Legacy orders:
-  //   safely fall back to amount.
+  // Website orders include delivery inside
+  // amountPesewas, so delivery must never be
+  // added to that value a second time.
+  //
+  // Legacy orders safely fall back to amount.
   // ==========================================
-  const exactSubtotal =
+  const totalPaid =
     order.amountPesewas !==
       null &&
     order.amountPesewas !==
@@ -263,9 +266,17 @@ export default async function DigitalReceiptPage(
         0
     );
 
-  const totalPaid =
-    exactSubtotal +
-    deliveryFee;
+  /*
+   * The merchandise subtotal is derived from
+   * the authoritative total paid minus the
+   * separately displayed delivery charge.
+   */
+  const finalSubtotal =
+    Math.max(
+      totalPaid -
+        deliveryFee,
+      0
+    );
 
   // ==========================================
   // CUSTOMER DISCOUNT / SAVINGS
@@ -285,17 +296,10 @@ export default async function DigitalReceiptPage(
       ? Number(
           order.discount
             ?.originalSubtotal ??
-            exactSubtotal +
+            finalSubtotal +
               discountAmount
         )
-      : exactSubtotal;
-
-  /*
-   * amountPesewas remains the authoritative
-   * final subtotal actually due.
-   */
-  const finalSubtotal =
-    exactSubtotal;
+      : finalSubtotal;
 
   const totalUnits =
     order.orderItems.reduce(
@@ -854,7 +858,7 @@ export default async function DigitalReceiptPage(
                               {
                                 item.quantity
                               }{" "}
-                              Ã—{" "}
+                              Ãƒâ€”{" "}
                               {formatMoney(
                                 item.unitPrice
                               )}

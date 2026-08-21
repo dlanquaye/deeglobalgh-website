@@ -1,4 +1,4 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 
@@ -199,6 +199,7 @@ export async function GET(req: Request) {
             orderId: true,
             phone: true,
             smsSent: true,
+            receiptToken: true,
             amount: true,
             amountPesewas: true,
           },
@@ -210,11 +211,21 @@ export async function GET(req: Request) {
         order.phone
       ) {
         try {
+          const digitalReceiptUrl =
+            order.receiptToken
+              ? `https://www.shopdeeglobalgh.com/r/${order.receiptToken}`
+              : null;
+
           const message =
             `DeeGlobalGH:\n\n` +
             `Payment received successfully ✅\n\n` +
             `Order ID: ${order.orderId}\n` +
             `Amount: GHS ${getOrderAmountGhs(order).toFixed(2)}\n\n` +
+            (
+              digitalReceiptUrl
+                ? `Digital receipt:\n${digitalReceiptUrl}\n\n`
+                : ""
+            ) +
             `We are processing your order and will contact you shortly.\n\n` +
             `Thank you for shopping with us.`;
 

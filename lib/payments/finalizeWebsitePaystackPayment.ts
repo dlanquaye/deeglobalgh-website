@@ -1,4 +1,6 @@
-﻿import {
+import { randomBytes } from "crypto";
+
+import {
   InventoryMovementType,
   LocationType,
   MovementType,
@@ -35,6 +37,12 @@ type FinalizeWebsitePaystackPaymentResult = {
  */
 const WEBSITE_SYSTEM_ACTOR =
   "SYSTEM";
+
+function createReceiptToken() {
+  return randomBytes(
+    24
+  ).toString("base64url");
+}
 
 export async function finalizeWebsitePaystackPayment({
   reference,
@@ -197,6 +205,31 @@ export async function finalizeWebsitePaystackPayment({
     order.paymentStatus ===
       PaymentStatus.PAID
   ) {
+    /*
+     * Older website orders may already have been
+     * safely finalised before digital receipt
+     * generation was introduced.
+     *
+     * Backfill only the receipt token. No payment,
+     * inventory or stock state is touched here.
+     */
+    if (!order.receiptToken) {
+      await prisma.order.updateMany({
+        where: {
+          id:
+            order.id,
+
+          receiptToken:
+            null,
+        },
+
+        data: {
+          receiptToken:
+            createReceiptToken(),
+        },
+      });
+    }
+
     return {
       orderId:
         order.orderId,
@@ -260,6 +293,10 @@ export async function finalizeWebsitePaystackPayment({
     };
   }
 
+  const receiptToken =
+    order.receiptToken ??
+    createReceiptToken();
+
   /*
    * ==========================================
    * ATOMIC PAYMENT + STOCK FINALISATION
@@ -313,6 +350,7 @@ export async function finalizeWebsitePaystackPayment({
                 orderId: true,
                 paymentStatus: true,
                 stockReduced: true,
+                receiptToken: true,
               },
             });
 
@@ -321,6 +359,25 @@ export async function finalizeWebsitePaystackPayment({
               PaymentStatus.PAID &&
             current.stockReduced
           ) {
+            if (
+              !current.receiptToken
+            ) {
+              await tx.order.updateMany({
+                where: {
+                  id:
+                    order.id,
+
+                  receiptToken:
+                    null,
+                },
+
+                data: {
+                  receiptToken:
+                    receiptToken,
+                },
+              });
+            }
+
             return {
               alreadyFinalized:
                 true,
@@ -472,6 +529,9 @@ export async function finalizeWebsitePaystackPayment({
 
             stockReduced:
               true,
+
+            receiptToken:
+              receiptToken,
           },
         });
 
@@ -513,4 +573,3 @@ export async function finalizeWebsitePaystackPayment({
       false,
   };
 }
-
