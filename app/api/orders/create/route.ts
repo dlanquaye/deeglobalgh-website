@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 function getDeliveryFeePesewas(
   location: string
-) {
+): number | null {
   const loc =
     location
       .trim()
@@ -28,7 +28,7 @@ function getDeliveryFeePesewas(
    * The checkout UI already warns the
    * customer about this.
    */
-  return 0;
+  return null;
 }
 
 function getPositiveWholeQuantity(
@@ -446,8 +446,8 @@ export async function POST(
       );
 
     const totalAmountPesewas =
-      merchandisePesewas +
-      deliveryFeePesewas;
+  merchandisePesewas +
+  (deliveryFeePesewas ?? 0);
 
     if (
       totalAmountPesewas <= 0
@@ -498,10 +498,12 @@ export async function POST(
                   totalAmountPesewas,
 
                 deliveryFee:
-                  Math.round(
-                    deliveryFeePesewas /
-                      100
-                  ),
+  deliveryFeePesewas === null
+    ? null
+    : Math.round(
+        deliveryFeePesewas /
+          100
+      ),
 
                 paymentStatus:
                   PaymentStatus.PENDING,

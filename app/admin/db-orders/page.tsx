@@ -43,7 +43,11 @@ export default function AdminDbOrdersClient() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
-  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
+const [creatingPaymentLinkOrderId, setCreatingPaymentLinkOrderId] =
+  useState<string | null>(null);
+
+const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -512,11 +516,15 @@ Thank you for choosing DeeglobalGh.`;
 };
 
   const saveMeta = async (order: DbOrder) => {
-    setSavingOrderId(order.orderId);
+  setSavingOrderId(order.orderId);
 
-    await fetch("/api/admin/update-order-meta", {
+  try {
+    const res = await fetch("/api/admin/update-order-meta", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         orderId: order.orderId,
         deliveryFee: order.deliveryFee,
@@ -524,9 +532,175 @@ Thank you for choosing DeeglobalGh.`;
       }),
     });
 
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert(
+        result?.error ||
+          "Unable to save delivery information."
+      );
+      return false;
+    }
+
+    await loadOrders();
+
+    return true;
+  } catch (error) {
+    console.error(
+      "Error saving order meta:",
+      error
+    );
+
+    alert(
+      "Unable to save delivery information."
+    );
+
+    return false;
+  } finally {
     setSavingOrderId(null);
-    loadOrders();
-  };
+  }
+};
+
+const sendPaymentLink = async (
+  order: DbOrder
+) => {
+  if (
+    order.deliveryFee === null ||
+    order.deliveryFee === undefined ||
+    !Number.isFinite(order.deliveryFee) ||
+    order.deliveryFee < 0
+  ) {
+    alert(
+      "Enter the confirmed delivery fee first."
+    );
+    return;
+  }
+
+  setCreatingPaymentLinkOrderId(
+    order.id
+  );
+
+  try {
+    const saveRes = await fetch(
+      "/api/admin/update-order-meta",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          orderId: order.orderId,
+          deliveryFee:
+            order.deliveryFee,
+          adminNotes:
+            order.adminNotes,
+        }),
+      }
+    );
+
+    const saveResult =
+      await saveRes.json();
+
+    if (!saveRes.ok) {
+      throw new Error(
+        saveResult?.error ||
+          "Unable to save the confirmed delivery fee."
+      );
+    }
+
+    const linkRes = await fetch(
+      `/api/admin/orders/${order.id}/payment-link`,
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    );
+
+    const linkResult =
+      await linkRes.json();
+
+    if (!linkRes.ok) {
+      throw new Error(
+        linkResult?.error ||
+          "Unable to create payment link."
+      );
+    }
+
+    const paymentUrl =
+      linkResult?.paymentUrl;
+
+    const amountPesewas =
+      linkResult?.order
+        ?.amountPesewas;
+
+    if (
+      typeof paymentUrl !==
+        "string" ||
+      !paymentUrl
+    ) {
+      throw new Error(
+        "Secure payment link was not returned."
+      );
+    }
+
+    if (
+      !Number.isSafeInteger(
+        amountPesewas
+      ) ||
+      amountPesewas <= 0
+    ) {
+      throw new Error(
+        "The confirmed payable total is invalid."
+      );
+    }
+
+    const payableGhs =
+      amountPesewas / 100;
+
+    const deliveryFee =
+      Number(
+        order.deliveryFee
+      );
+
+    const message =
+      `Hello, your delivery charge for order ${order.orderId} has been confirmed.` +
+      `\n\nDelivery: GHS ${deliveryFee.toFixed(2)}` +
+      `\nTotal payable: GHS ${payableGhs.toFixed(2)}` +
+      `\n\nPlease use this secure DeeGlobalGH link to review the order and complete payment:` +
+      `\n${paymentUrl}` +
+      `\n\nThank you for choosing DeeGlobalGH.`;
+
+    const phone =
+      order.phone.replace(
+        /^0/,
+        "233"
+      );
+
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+
+    await loadOrders();
+  } catch (error) {
+    console.error(
+      "Error creating payment link:",
+      error
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Unable to create payment link."
+    );
+  } finally {
+    setCreatingPaymentLinkOrderId(
+      null
+    );
+  }
+};
 const handleSendReport = async () => {
   try {
     const res = await fetch("/api/admin/daily-report");
@@ -1077,7 +1251,39 @@ const phone = supplierPhones[supplier] || "233246011773";
                     </td>
 
                     <td className="px-4 py-3">
+{!["PAID", "DELIVERING", "COMPLETED"].includes(
+  o.paymentStatus
+) && (
+  <div className="mb-3 space-y-2">
+    <button
+      type="button"
+      onClick={() => saveMeta(o)}
+      disabled={
+        savingOrderId === o.orderId ||
+        creatingPaymentLinkOrderId === o.id
+      }
+      className="block w-full rounded bg-gray-800 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {savingOrderId === o.orderId
+        ? "Saving..."
+        : "Save Delivery Fee"}
+    </button>
 
+    <button
+      type="button"
+      onClick={() => sendPaymentLink(o)}
+      disabled={
+        creatingPaymentLinkOrderId === o.id ||
+        savingOrderId === o.orderId
+      }
+      className="block w-full rounded bg-green-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {creatingPaymentLinkOrderId === o.id
+        ? "Preparing Link..."
+        : "Send Payment Link"}
+    </button>
+  </div>
+)}
                       <button
   onClick={() => setSelectedOrder(o)}
   className="block mb-2 text-sm text-indigo-600 underline"

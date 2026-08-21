@@ -30,6 +30,7 @@ model Order {
   customerName     String?
   paymentMethod    String?
   receiptToken     String?       @unique
+  paymentToken     String?       @unique
 
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]

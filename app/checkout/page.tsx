@@ -467,86 +467,156 @@ export default function CheckoutPage() {
    * ==========================================
    */
   const handleWhatsAppOrder =
-    () => {
-      if (
-        !fullName.trim()
-      ) {
-        setPayError(
-          "Please enter your full name"
-        );
-
-        window.scrollTo({
-          top: 0,
-          behavior:
-            "smooth",
-        });
-
-        return;
-      }
-
-      if (
-        !email.trim()
-      ) {
-        setPayError(
-          "Please enter your email"
-        );
-
-        window.scrollTo({
-          top: 0,
-          behavior:
-            "smooth",
-        });
-
-        return;
-      }
-
-      if (
-        !phone.trim()
-      ) {
-        setPayError(
-          "Please enter your phone number"
-        );
-
-        window.scrollTo({
-          top: 0,
-          behavior:
-            "smooth",
-        });
-
-        return;
-      }
-
-      if (
-        !location.trim()
-      ) {
-        setPayError(
-          "Please enter your delivery location"
-        );
-
-        window.scrollTo({
-          top: 0,
-          behavior:
-            "smooth",
-        });
-
-        return;
-      }
-
-      if (
-        items.length ===
-        0
-      ) {
-        setPayError(
-          "Your cart is empty"
-        );
-        return;
-      }
-
-      saveCustomerProfile();
-
+  async () => {
+    if (
+      !fullName.trim()
+    ) {
       setPayError(
-        null
+        "Please enter your full name"
       );
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+
+      return;
+    }
+
+    if (
+      !email.trim()
+    ) {
+      setPayError(
+        "Please enter your email"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+
+      return;
+    }
+
+    if (
+      !phone.trim()
+    ) {
+      setPayError(
+        "Please enter your phone number"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+
+      return;
+    }
+
+    if (
+      !location.trim()
+    ) {
+      setPayError(
+        "Please enter your delivery location"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+
+      return;
+    }
+
+    if (
+      items.length ===
+      0
+    ) {
+      setPayError(
+        "Your cart is empty"
+      );
+
+      return;
+    }
+
+    saveCustomerProfile();
+
+    setPayError(
+      null
+    );
+
+    setPayLoading(
+      true
+    );
+
+    try {
+      const orderId =
+        `DG-${Date.now()}`;
+
+      setCurrentOrderId(
+        orderId
+      );
+
+      const payload = {
+        orderId,
+
+        customer: {
+          fullName,
+          email,
+          phone,
+          area,
+          location,
+        },
+
+        items:
+          items.map(
+            (item) => ({
+              productId:
+                item.id,
+
+              quantity:
+                item.qty,
+            })
+          ),
+      };
+
+      const createRes =
+        await fetch(
+          "/api/orders/create",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              ),
+          }
+        );
+
+      const createData =
+        await createRes.json();
+
+      if (
+        !createRes.ok
+      ) {
+        throw new Error(
+          createData
+            ?.message ||
+            createData
+              ?.error ||
+            "Order could not be created"
+        );
+      }
 
       const orderLines =
         items
@@ -565,7 +635,8 @@ export default function CheckoutPage() {
           );
 
       const message =
-        `Hello, I want to order:\n\n` +
+        `Hello, I would like to confirm delivery for my DeeGlobalGH order.\n\n` +
+        `Order ID: ${orderId}\n\n` +
         `${orderLines}\n\n` +
         `Subtotal: GH₵ ${subtotal}\n` +
         `Delivery: ${
@@ -583,7 +654,12 @@ export default function CheckoutPage() {
         `Name: ${fullName}\n` +
         `Phone: ${phone}\n` +
         `Location: ${location}\n` +
-        `Area: ${area}`;
+        `Area: ${area}\n\n` +
+        `${
+          isKasoaLocation
+            ? "Please confirm my order."
+            : "Please confirm my delivery charge. I will complete payment through the secure payment link after confirmation."
+        }`;
 
       const encoded =
         encodeURIComponent(
@@ -594,7 +670,32 @@ export default function CheckoutPage() {
         `https://wa.me/233270030000?text=${encoded}`,
         "_blank"
       );
-    };
+    } catch (
+      error
+    ) {
+      console.error(
+        "WhatsApp order creation failed:",
+        error
+      );
+
+      setPayError(
+        error instanceof
+          Error
+          ? error.message
+          : "Order could not be created"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+    } finally {
+      setPayLoading(
+        false
+      );
+    }
+  };
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
@@ -830,13 +931,17 @@ export default function CheckoutPage() {
           )}
 
         <button
-          onClick={
-            handleWhatsAppOrder
-          }
-          className="mt-4 w-full rounded-xl bg-green-600 py-4 font-bold text-white"
-        >
-          Order via WhatsApp (Pay on Delivery)
-        </button>
+  onClick={
+    handleWhatsAppOrder
+  }
+  className="mt-4 w-full rounded-xl bg-green-600 py-4 font-bold text-white"
+>
+  {!hasLocation
+    ? "Continue via WhatsApp"
+    : isKasoaLocation
+      ? "Order via WhatsApp"
+      : "Confirm Delivery via WhatsApp"}
+</button>
 
         <p className="mt-3 text-sm text-gray-500">
           You can pay now or confirm your order via WhatsApp.
