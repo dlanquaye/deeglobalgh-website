@@ -1,120 +1,409 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import { useCart } from "@/app/context/CartContext";
 
 type Props = {
   reference: string | null;
 };
 
-export default function PaymentSuccessClient({ reference }: Props) {
-  const { clearCart } = useCart();
-  const [order, setOrder] = useState<any>(null);
+type PaymentState =
+  | "VERIFYING"
+  | "PAID"
+  | "PENDING"
+  | "ERROR";
 
-  
+type OrderResponse = {
+  orderId: string;
+  email: string;
+  phone: string;
+  amount: number;
+  amountPesewas: number | null;
+  paymentStatus: string;
+  customerName?: string | null;
+  orderItems?: {
+    quantity: number;
+    product?: {
+      name?: string | null;
+    } | null;
+  }[];
+};
 
-  /* ===============================
-     🧹 CLEAR CART (ONCE)
-  =============================== */
+function getOrderAmountGhs(
+  order: OrderResponse
+) {
+  if (
+    Number.isSafeInteger(
+      order.amountPesewas
+    ) &&
+    order.amountPesewas !== null
+  ) {
+    return (
+      order.amountPesewas /
+      100
+    );
+  }
+
+  return Number(
+    order.amount
+  );
+}
+
+export default function PaymentSuccessClient({
+  reference,
+}: Props) {
+  const {
+    clearCart,
+  } = useCart();
+
+  const [
+    paymentState,
+    setPaymentState,
+  ] =
+    useState<PaymentState>(
+      "VERIFYING"
+    );
+
+  const [
+    order,
+    setOrder,
+  ] =
+    useState<OrderResponse | null>(
+      null
+    );
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  /*
+   * ==========================================
+   * VERIFY PAYMENT FIRST
+   * ==========================================
+   *
+   * Nothing on this page is treated as paid
+   * merely because Paystack redirected the
+   * browser here.
+   *
+   * The server verification endpoint must
+   * confirm the provider payment and run the
+   * hardened website payment finaliser first.
+   * ==========================================
+   */
   useEffect(() => {
-  if (!reference) return;
+    if (!reference) {
+      setPaymentState(
+        "ERROR"
+      );
 
-  clearCart();
-}, [reference]);
+      setErrorMessage(
+        "Payment reference is missing."
+      );
 
-  /* ===============================
-     🔐 VERIFY PAYMENT
-  =============================== */
-  useEffect(() => {
-    if (!reference) return;
-
-    async function verifyPayment() {
-      try {
-        const res = await fetch(
-          `/api/paystack/verify?reference=${reference}`
-        );
-        const data = await res.json();
-
-        console.log("Verification result:", data);
-      } catch (err) {
-        console.error("Verification failed:", err);
-      }
+      return;
     }
 
-    verifyPayment();
-  }, [reference]);
+    let cancelled =
+      false;
 
-  /* ===============================
-     📦 FETCH ORDER DETAILS
-  =============================== */
-  useEffect(() => {
-    if (!reference) return;
-
-    async function fetchOrder() {
+    async function verifyAndLoadOrder() {
       try {
-        const res = await fetch(
-          `/api/order-by-reference?reference=${reference}`
+        setPaymentState(
+          "VERIFYING"
         );
-        const data = await res.json();
 
-        if (!data.error) {
-          setOrder(data);
+        setErrorMessage(
+          null
+        );
+
+        const verifyRes =
+          await fetch(
+            `/api/paystack/verify?reference=${encodeURIComponent(
+              reference as string
+            )}`,
+            {
+              cache:
+                "no-store",
+            }
+          );
+
+        const verifyData =
+          await verifyRes.json();
+
+        if (!verifyRes.ok) {
+          throw new Error(
+            verifyData?.error ||
+              verifyData?.message ||
+              "Payment verification failed."
+          );
         }
-      } catch (err) {
-        console.error("Failed to fetch order", err);
+
+        if (
+          verifyData?.requiresAttention
+        ) {
+          throw new Error(
+            "Your payment requires manual confirmation. Please contact DeeGlobalGH before trying again."
+          );
+        }
+
+        /*
+         * Load the authoritative database order
+         * only AFTER provider verification.
+         */
+        const orderRes =
+          await fetch(
+            `/api/order-by-reference?reference=${encodeURIComponent(
+              reference as string
+            )}`,
+            {
+              cache:
+                "no-store",
+            }
+          );
+
+        const orderData =
+          await orderRes.json();
+
+        if (!orderRes.ok) {
+          throw new Error(
+            orderData?.error ||
+              "Unable to load your order."
+          );
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setOrder(
+          orderData
+        );
+
+        /*
+         * The success UI must only be displayed
+         * after the database itself confirms PAID.
+         */
+        if (
+          orderData.paymentStatus !==
+          "PAID"
+        ) {
+          setPaymentState(
+            "PENDING"
+          );
+
+          setErrorMessage(
+            "Your payment is still being confirmed. Please do not make another payment."
+          );
+
+          return;
+        }
+
+        /*
+         * Clear the cart only after confirmed PAID.
+         */
+        clearCart();
+
+        setPaymentState(
+          "PAID"
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "Payment verification failed:",
+          error
+        );
+
+        setPaymentState(
+          "ERROR"
+        );
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Payment verification failed."
+        );
       }
     }
 
-    fetchOrder();
-  }, [reference]);
+    verifyAndLoadOrder();
 
-  /* ===============================
-     📲 WHATSAPP (RUN ONCE ONLY)
-  =============================== */
+    return () => {
+      cancelled =
+        true;
+    };
+  }, [
+    reference,
+    clearCart,
+  ]);
+
+  /*
+   * ==========================================
+   * WHATSAPP NOTIFICATION
+   * ==========================================
+   *
+   * Runs only after the order is confirmed PAID.
+   * ==========================================
+   */
   useEffect(() => {
-  if (!order) return;
+    if (
+      paymentState !==
+        "PAID" ||
+      !order
+    ) {
+      return;
+    }
 
-  const key = `whatsapp_sent_${order.orderId}`;
+    const key =
+      `whatsapp_sent_${order.orderId}`;
 
-  // ✅ Check if already sent
-  if (localStorage.getItem(key)) return;
+    if (
+      localStorage.getItem(
+        key
+      )
+    ) {
+      return;
+    }
 
-  // ✅ Mark as sent
-  localStorage.setItem(key, "true");
+    localStorage.setItem(
+      key,
+      "true"
+    );
 
-  const message = `
-🧾 *NEW PAID ORDER — DEEGLOBALGH*
+    const itemsList =
+      order.orderItems
+        ?.map(
+          (
+            item,
+            index
+          ) =>
+            `${index + 1}. ${
+              item.product
+                ?.name ??
+              "Unknown Product"
+            } x${item.quantity}`
+        )
+        .join("\n") ||
+      "No items found";
 
-👤 Name: ${order.customer?.fullName || order.email}
-📞 Phone: ${order.customer?.phone || order.phone || "N/A"}
+    const totalPaid =
+      getOrderAmountGhs(
+        order
+      );
 
-📍 Delivery Location:
-${order.customer?.location || order.location || "N/A"}
-📍 Area: ${order.customer?.area || order.area || "N/A"}
+    const message =
+      `🧾 *NEW PAID ORDER — DEEGLOBALGH*\n\n` +
+      `👤 Name: ${
+        order.customerName ||
+        order.email
+      }\n` +
+      `📞 Phone: ${
+        order.phone ||
+        "N/A"
+      }\n\n` +
+      `🛒 Items:\n${itemsList}\n\n` +
+      `💰 Total Paid: GHS ${totalPaid.toFixed(
+        2
+      )}\n\n` +
+      `🆔 Order ID: ${order.orderId}\n\n` +
+      `✅ Payment Status: PAID`;
 
-🛒 Items:
-${order.orderItems
-  ?.map((i: any, index: number) => 
-    `${index + 1}. ${i.product?.name ?? "Unknown Product"} x${i.quantity}`
-  )
-  .join("\n")}
-  💰 Total Paid: GHS ${order.amount}
+    const encoded =
+      encodeURIComponent(
+        message
+      );
 
-🆔 Order ID: ${order.orderId}
+    const url =
+      `https://wa.me/233270030000?text=${encoded}`;
 
-✅ Payment Status: PAID
-`;
+    window.open(
+      url,
+      "_blank"
+    );
+  }, [
+    paymentState,
+    order,
+  ]);
 
+  /*
+   * ==========================================
+   * UI
+   * ==========================================
+   */
+  if (
+    paymentState ===
+    "VERIFYING"
+  ) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h1 className="text-3xl font-bold text-blue-900">
+          Confirming Your Payment
+        </h1>
 
-  const encoded = encodeURIComponent(message);
-  const url = `https://wa.me/233270030000?text=${encoded}`;
+        <p className="mt-4 text-lg text-gray-700">
+          Please wait while we securely confirm your payment with Paystack.
+        </p>
 
-  window.open(url, "_blank");
-}, [order]);
+        <p className="mt-6 text-sm text-gray-500">
+          Please do not close this page or make another payment.
+        </p>
+      </main>
+    );
+  }
 
-  /* ===============================
-     🎉 UI
-  =============================== */
+  if (
+    paymentState ===
+    "PENDING"
+  ) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h1 className="text-3xl font-bold text-amber-600">
+          Payment Confirmation Pending
+        </h1>
+
+        <p className="mt-4 text-lg text-gray-700">
+          {errorMessage}
+        </p>
+
+        <p className="mt-6 text-gray-600">
+          DeeGlobalGH will process your order once payment confirmation is complete.
+        </p>
+      </main>
+    );
+  }
+
+  if (
+    paymentState ===
+    "ERROR"
+  ) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h1 className="text-3xl font-bold text-red-600">
+          Payment Confirmation Problem
+        </h1>
+
+        <p className="mt-4 text-lg text-gray-700">
+          {errorMessage ||
+            "We could not confirm your payment."}
+        </p>
+
+        <p className="mt-6 text-gray-600">
+          Please do not make another payment. Contact DeeGlobalGH if you need assistance.
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-16 text-center">
       <h1 className="text-3xl font-bold text-green-600">
@@ -124,6 +413,29 @@ ${order.orderItems
       <p className="mt-4 text-lg text-gray-700">
         Your payment has been received successfully.
       </p>
+
+      {order && (
+        <div className="mx-auto mt-6 max-w-md rounded-xl border bg-white p-5 text-left">
+          <p>
+            <strong>
+              Order:
+            </strong>{" "}
+            {order.orderId}
+          </p>
+
+          <p className="mt-2">
+            <strong>
+              Amount Paid:
+            </strong>{" "}
+            GHS{" "}
+            {getOrderAmountGhs(
+              order
+            ).toFixed(
+              2
+            )}
+          </p>
+        </div>
+      )}
 
       <p className="mt-6 text-gray-700">
         We are processing your order and will contact you shortly for delivery.
