@@ -1,9 +1,14 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import { useCart } from "@/app/context/CartContext";
 
-const CUSTOMER_PROFILE_KEY = "dg_customer_v1";
+const CUSTOMER_PROFILE_KEY =
+  "dg_customer_v1";
 
 type CustomerProfile = {
   fullName: string;
@@ -13,344 +18,833 @@ type CustomerProfile = {
   location: string;
 };
 
-function safeParse<T>(raw: string | null): T | null {
+function safeParse<T>(
+  raw: string | null
+): T | null {
   try {
-    return raw ? (JSON.parse(raw) as T) : null;
+    return raw
+      ? (JSON.parse(raw) as T)
+      : null;
   } catch {
     return null;
   }
 }
 
 export default function CheckoutPage() {
-  const { items } = useCart();
+  const {
+    items,
+  } = useCart();
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [area, setArea] = useState("Kasoa");
-  const [location, setLocation] = useState("");
+  const [
+    fullName,
+    setFullName,
+  ] = useState("");
 
-  const [payLoading, setPayLoading] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
-  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [
+    email,
+    setEmail,
+  ] = useState("");
 
-  // Load saved customer
+  const [
+    phone,
+    setPhone,
+  ] = useState("");
+
+  const [
+    area,
+    setArea,
+  ] = useState(
+    "Kasoa"
+  );
+
+  const [
+    location,
+    setLocation,
+  ] = useState("");
+
+  const [
+    payLoading,
+    setPayLoading,
+  ] = useState(
+    false
+  );
+
+  const [
+    payError,
+    setPayError,
+  ] = useState<
+    string | null
+  >(null);
+
+  const [
+    currentOrderId,
+    setCurrentOrderId,
+  ] = useState<
+    string | null
+  >(null);
+
+  /*
+   * ==========================================
+   * LOAD SAVED CUSTOMER PROFILE
+   * ==========================================
+   */
   useEffect(() => {
-    const saved = safeParse<CustomerProfile>(
-      typeof window !== "undefined"
-        ? localStorage.getItem(CUSTOMER_PROFILE_KEY)
-        : null
+    const saved =
+      safeParse<CustomerProfile>(
+        typeof window !==
+          "undefined"
+          ? localStorage.getItem(
+              CUSTOMER_PROFILE_KEY
+            )
+          : null
+      );
+
+    if (!saved) {
+      return;
+    }
+
+    setFullName(
+      saved.fullName ||
+        ""
     );
 
-    if (!saved) return;
+    setEmail(
+      saved.email ||
+        ""
+    );
 
-    setFullName(saved.fullName || "");
-    setEmail(saved.email || "");
-    setPhone(saved.phone || "");
-    setLocation(saved.location || "");
-    if (saved.area) setArea(saved.area);
+    setPhone(
+      saved.phone ||
+        ""
+    );
+
+    setLocation(
+      saved.location ||
+        ""
+    );
+
+    if (saved.area) {
+      setArea(
+        saved.area
+      );
+    }
   }, []);
 
-  const saveCustomerProfile = () => {
-    localStorage.setItem(
-      CUSTOMER_PROFILE_KEY,
-      JSON.stringify({ fullName, email, phone, area, location })
+  const saveCustomerProfile =
+    () => {
+      localStorage.setItem(
+        CUSTOMER_PROFILE_KEY,
+
+        JSON.stringify({
+          fullName,
+          email,
+          phone,
+          area,
+          location,
+        })
+      );
+    };
+
+  /*
+   * ==========================================
+   * DELIVERY
+   * ==========================================
+   */
+  const normalizedLocation =
+    location
+      .trim()
+      .toLowerCase();
+
+  const isKasoaLocation =
+    normalizedLocation.includes(
+      "kasoa"
     );
-  };
 
-  // Payment polling
+  const hasLocation =
+    location
+      .trim()
+      .length > 0;
+
+  const deliveryFee =
+    isKasoaLocation
+      ? 30
+      : null;
+
+  const subtotal =
+    items.reduce(
+      (
+        sum,
+        item
+      ) =>
+        sum +
+        item.retailPrice *
+          item.qty,
+
+      0
+    );
+
+  const total =
+    deliveryFee !==
+    null
+      ? subtotal +
+        deliveryFee
+      : subtotal;
+
+  const canPayNow =
+    hasLocation &&
+    isKasoaLocation &&
+    items.length > 0 &&
+    !payLoading;
+
+  /*
+   * ==========================================
+   * PAYMENT STATUS POLLING
+   * ==========================================
+   */
   useEffect(() => {
-    if (!currentOrderId) return;
+    if (
+      !currentOrderId
+    ) {
+      return;
+    }
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/orders/status?orderId=${currentOrderId}`);
-        const data = await res.json();
+    const interval =
+      setInterval(
+        async () => {
+          try {
+            const res =
+              await fetch(
+                `/api/orders/status?orderId=${currentOrderId}`
+              );
 
-        if (data?.paymentStatus === "PAID") {
-          clearInterval(interval);
-          window.location.href = `/payment-success?reference=${currentOrderId}`;
-        }
-      } catch {}
-    }, 3000);
+            const data =
+              await res.json();
 
-    return () => clearInterval(interval);
-  }, [currentOrderId]);
+            if (
+              data?.paymentStatus ===
+              "PAID"
+            ) {
+              clearInterval(
+                interval
+              );
 
-  // PAYSTACK
-  const payNowWithPaystack = async () => {
-    if (!fullName.trim()) return alert("Enter full name");
-    if (!email.trim()) return alert("Enter email");
-    if (!phone.trim()) return alert("Enter phone");
-    if (!location.trim()) return alert("Enter delivery location");
-    if (items.length === 0) return alert("Cart is empty");
+              window.location.href =
+                `/payment-success?reference=${currentOrderId}`;
+            }
+          } catch {
+            // Polling can safely retry.
+          }
+        },
 
-    saveCustomerProfile();
-    setPayError(null);
-    setPayLoading(true);
+        3000
+      );
 
-    try {
-      const orderId = `DG-${Date.now()}`;
-      setCurrentOrderId(orderId);
+    return () =>
+      clearInterval(
+        interval
+      );
+  }, [
+    currentOrderId,
+  ]);
 
-      const payload = {
-        orderId,
-        customer: { fullName, email, phone, area, location },
-        items: items.map((i) => ({
-          productId: i.id,
-          quantity: i.qty,
-        })),
-      };
-
-      const createRes = await fetch("/api/orders/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const createData = await createRes.json();
-
-      if (!createRes.ok) {
-        throw new Error(createData?.message || "Order failed");
+  /*
+   * ==========================================
+   * PAYSTACK
+   * ==========================================
+   */
+  const payNowWithPaystack =
+    async () => {
+      if (
+        !fullName.trim()
+      ) {
+        setPayError(
+          "Please enter your full name"
+        );
+        return;
       }
 
-      const payRes = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, phone, orderId }),
-      });
+      if (
+        !email.trim()
+      ) {
+        setPayError(
+          "Please enter your email"
+        );
+        return;
+      }
 
-      const payData = await payRes.json();
-      const url = payData?.data?.authorization_url;
+      if (
+        !phone.trim()
+      ) {
+        setPayError(
+          "Please enter your phone number"
+        );
+        return;
+      }
 
-      if (!url) throw new Error("Payment failed");
+      if (
+        !location.trim()
+      ) {
+        setPayError(
+          "Please enter your delivery location"
+        );
+        return;
+      }
 
-      window.location.href = url;
-    } catch (err: any) {
-      setPayError(err.message);
-      setPayLoading(false);
-    }
-  };
+      if (
+        items.length ===
+        0
+      ) {
+        setPayError(
+          "Your cart is empty"
+        );
+        return;
+      }
 
-  // ✅ WHATSAPP CHECKOUT
-  const handleWhatsAppOrder = () => {
-    if (!fullName.trim()) {
-  setPayError("Please enter your full name");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  return;
-}
+      /*
+       * Outside-Kasoa delivery does not yet have
+       * an authoritative checkout delivery fee.
+       *
+       * Prevent payment until DeeGlobalGH has
+       * confirmed that charge with the customer.
+       */
+      if (
+        !isKasoaLocation
+      ) {
+        setPayError(
+          "Please confirm your delivery cost via WhatsApp before making payment."
+        );
 
-if (!email.trim()) {
-  setPayError("Please enter your email");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  return;
-}
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
 
-if (!phone.trim()) {
-  setPayError("Please enter your phone number");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  return;
-}
+        return;
+      }
 
-if (!location.trim()) {
-  setPayError("Please enter your delivery location");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  return;
-}
+      saveCustomerProfile();
 
-if (items.length === 0) {
-  setPayError("Your cart is empty");
-  return;
-}
+      setPayError(
+        null
+      );
 
-    const orderLines = items
-      .map(
-        (item, index) =>
-          `${index + 1}. ${item.name} (x${item.qty}) - GH₵ ${
-            item.retailPrice * item.qty
-          }`
-      )
-      .join("\n");
+      setPayLoading(
+        true
+      );
 
-    
+      try {
+        const orderId =
+          `DG-${Date.now()}`;
 
-    const message = `Hello, I want to order:
+        setCurrentOrderId(
+          orderId
+        );
 
-${orderLines}
+        const payload = {
+          orderId,
 
-Subtotal: GH₵ ${subtotal}
-Delivery: ${
-  deliveryFee !== null ? `GH₵ ${deliveryFee}` : "To be confirmed"
-}
-Total: GH₵ ${total}
+          customer: {
+            fullName,
+            email,
+            phone,
+            area,
+            location,
+          },
 
-Name: ${fullName}
-Phone: ${phone}
-Location: ${location}
-Area: ${area}`;
+          items:
+            items.map(
+              (item) => ({
+                productId:
+                  item.id,
 
-    const encoded = encodeURIComponent(message);
+                quantity:
+                  item.qty,
+              })
+            ),
+        };
 
-    window.open(
-      `https://wa.me/233270030000?text=${encoded}`,
-      "_blank"
-    );
-  };
-const getDeliveryFee = () => {
-  const loc = location.toLowerCase();
+        const createRes =
+          await fetch(
+            "/api/orders/create",
+            {
+              method:
+                "POST",
 
-  if (loc.includes("kasoa")) return 30;
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
 
-  return null; // outside Kasoa → confirm manually
-};
+              body:
+                JSON.stringify(
+                  payload
+                ),
+            }
+          );
 
-const deliveryFee = getDeliveryFee();
+        const createData =
+          await createRes.json();
 
-const subtotal = items.reduce(
-  (sum, item) => sum + item.retailPrice * item.qty,
-  0
-);
+        if (
+          !createRes.ok
+        ) {
+          throw new Error(
+            createData
+              ?.message ||
+              createData
+                ?.error ||
+              "Order failed"
+          );
+        }
 
-const total =
-  deliveryFee !== null ? subtotal + deliveryFee : subtotal;
+        const payRes =
+          await fetch(
+            "/api/paystack/initialize",
+            {
+              method:
+                "POST",
 
-  const isKasoaLocation = location.toLowerCase().includes("kasoa");
-  
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  email,
+                  phone,
+                  orderId,
+                }),
+            }
+          );
+
+        const payData =
+          await payRes.json();
+
+        if (
+          !payRes.ok
+        ) {
+          throw new Error(
+            payData
+              ?.error ||
+              "Payment initialisation failed"
+          );
+        }
+
+        const url =
+          payData
+            ?.data
+            ?.authorization_url;
+
+        if (!url) {
+          throw new Error(
+            "Payment failed"
+          );
+        }
+
+        window.location.href =
+          url;
+      } catch (
+        err
+      ) {
+        setPayError(
+          err instanceof
+            Error
+            ? err.message
+            : "Payment failed"
+        );
+
+        setPayLoading(
+          false
+        );
+      }
+    };
+
+  /*
+   * ==========================================
+   * WHATSAPP CHECKOUT
+   * ==========================================
+   */
+  const handleWhatsAppOrder =
+    () => {
+      if (
+        !fullName.trim()
+      ) {
+        setPayError(
+          "Please enter your full name"
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
+
+        return;
+      }
+
+      if (
+        !email.trim()
+      ) {
+        setPayError(
+          "Please enter your email"
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
+
+        return;
+      }
+
+      if (
+        !phone.trim()
+      ) {
+        setPayError(
+          "Please enter your phone number"
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
+
+        return;
+      }
+
+      if (
+        !location.trim()
+      ) {
+        setPayError(
+          "Please enter your delivery location"
+        );
+
+        window.scrollTo({
+          top: 0,
+          behavior:
+            "smooth",
+        });
+
+        return;
+      }
+
+      if (
+        items.length ===
+        0
+      ) {
+        setPayError(
+          "Your cart is empty"
+        );
+        return;
+      }
+
+      saveCustomerProfile();
+
+      setPayError(
+        null
+      );
+
+      const orderLines =
+        items
+          .map(
+            (
+              item,
+              index
+            ) =>
+              `${index + 1}. ${item.name} (x${item.qty}) - GH₵ ${
+                item.retailPrice *
+                item.qty
+              }`
+          )
+          .join(
+            "\n"
+          );
+
+      const message =
+        `Hello, I want to order:\n\n` +
+        `${orderLines}\n\n` +
+        `Subtotal: GH₵ ${subtotal}\n` +
+        `Delivery: ${
+          deliveryFee !==
+          null
+            ? `GH₵ ${deliveryFee}`
+            : "To be confirmed"
+        }\n` +
+        `${
+          deliveryFee !==
+          null
+            ? "Total"
+            : "Estimated Total"
+        }: GH₵ ${total}\n\n` +
+        `Name: ${fullName}\n` +
+        `Phone: ${phone}\n` +
+        `Location: ${location}\n` +
+        `Area: ${area}`;
+
+      const encoded =
+        encodeURIComponent(
+          message
+        );
+
+      window.open(
+        `https://wa.me/233270030000?text=${encoded}`,
+        "_blank"
+      );
+    };
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 text-center">
-      <h1 className="text-3xl font-extrabold text-blue-900">Checkout</h1>
+      <h1 className="text-3xl font-extrabold text-blue-900">
+        Checkout
+      </h1>
+
       {payError && (
-  <div className="mt-4 bg-red-100 border border-red-500 text-red-700 p-3 rounded-lg text-sm font-semibold">
-    {payError}
-  </div>
-)}
+        <div className="mt-4 rounded-lg border border-red-500 bg-red-100 p-3 text-sm font-semibold text-red-700">
+          {payError}
+        </div>
+      )}
 
       {/* CUSTOMER DETAILS */}
       <section className="mt-8 rounded-2xl border bg-white p-10">
-        <h2 className="text-xl font-extrabold">Customer Details</h2>
+        <h2 className="text-xl font-extrabold">
+          Customer Details
+        </h2>
 
-        <div className="mt-6 space-y-4 max-w-xl mx-auto">
+        <div className="mx-auto mt-6 max-w-xl space-y-4">
           {fullName && (
-            <p className="text-green-700 font-semibold">
-              Welcome back, {fullName.split(" ")[0]} 👋
+            <p className="font-semibold text-green-700">
+              Welcome back,{" "}
+              {
+                fullName.split(
+                  " "
+                )[0]
+              }{" "}
+              👋
             </p>
           )}
 
           <input
             className="input-brand w-full text-center"
             placeholder="Full Name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={
+              fullName
+            }
+            onChange={(
+              event
+            ) =>
+              setFullName(
+                event
+                  .target
+                  .value
+              )
+            }
           />
 
           <input
             className="input-brand w-full text-center"
             placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={
+              email
+            }
+            onChange={(
+              event
+            ) =>
+              setEmail(
+                event
+                  .target
+                  .value
+              )
+            }
           />
 
           <input
             className="input-brand w-full text-center"
             placeholder="Phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={
+              phone
+            }
+            onChange={(
+              event
+            ) =>
+              setPhone(
+                event
+                  .target
+                  .value
+              )
+            }
           />
 
           <input
             className="input-brand w-full text-center"
             placeholder="Delivery Location (Kasoa or outside Kasoa)"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={
+              location
+            }
+            onChange={(
+              event
+            ) => {
+              setLocation(
+                event
+                  .target
+                  .value
+              );
+
+              if (
+                payError
+              ) {
+                setPayError(
+                  null
+                );
+              }
+            }}
           />
         </div>
 
-        <div className="bg-green-100 p-3 mt-6 rounded">
+        <div className="mt-6 rounded bg-green-100 p-3">
           🚚 We deliver to your location. Enter a clear landmark.
         </div>
       </section>
 
       {/* ORDER SUMMARY */}
-      <section className="mt-8 bg-white p-6 rounded-2xl border text-left">
-        <h2 className="text-xl font-extrabold mb-4">Your Order</h2>
+      <section className="mt-8 rounded-2xl border bg-white p-6 text-left">
+        <h2 className="mb-4 text-xl font-extrabold">
+          Your Order
+        </h2>
 
-        
-          <div className="space-y-3">
-  {items.map((item) => {
-    return (
-      <div key={item.id} className="flex justify-between border-b pb-2">
-        <span>
-          {item.name} (x{item.qty})
-        </span>
-        <span className="font-semibold">
-          GH₵ {item.retailPrice * item.qty}
-        </span>
-      </div>
-    );
-  })}
-</div>
+        <div className="space-y-3">
+          {items.map(
+            (item) => (
+              <div
+                key={
+                  item.id
+                }
+                className="flex justify-between border-b pb-2"
+              >
+                <span>
+                  {
+                    item.name
+                  }{" "}
+                  (x
+                  {
+                    item.qty
+                  }
+                  )
+                </span>
 
-{isKasoaLocation && location && (
-  <div className="mt-3 bg-green-100 border border-green-500 text-green-700 p-3 rounded-lg text-sm font-semibold">
-    ✅ Fast delivery within Kasoa. Your order will be processed quickly.
-  </div>
-)}
+                <span className="font-semibold">
+                  GH₵{" "}
+                  {
+                    item.retailPrice *
+                    item.qty
+                  }
+                </span>
+              </div>
+            )
+          )}
+        </div>
 
-{!isKasoaLocation && location && (
-  <div className="mt-4 bg-red-100 border border-red-500 text-red-700 p-4 rounded-lg text-sm font-semibold">
-    ⚠️ Important Notice:
-    <br />
-    We are located in Kasoa. Delivery outside Kasoa may cost GH₵ 50 or more depending on distance and items.
-    <br />
-    Please confirm delivery cost via WhatsApp before making payment.
-  </div>
-)}
+        {isKasoaLocation &&
+          hasLocation && (
+            <div className="mt-3 rounded-lg border border-green-500 bg-green-100 p-3 text-sm font-semibold text-green-700">
+              ✅ Fast delivery within Kasoa. Your order will be processed quickly.
+            </div>
+          )}
 
-        <div className="mt-4 text-right font-bold text-lg space-y-1">
-  <div>Subtotal: GH₵ {subtotal}</div>
+        {!isKasoaLocation &&
+          hasLocation && (
+            <div className="mt-4 rounded-lg border border-red-500 bg-red-100 p-4 text-sm font-semibold text-red-700">
+              ⚠️ Important Notice:
+              <br />
+              We are located in Kasoa. Delivery outside Kasoa may cost GH₵ 50 or more depending on distance and items.
+              <br />
+              Please confirm delivery cost via WhatsApp before making payment.
+            </div>
+          )}
 
-  <div>
-    Delivery:{" "}
-    {deliveryFee !== null ? `GH₵ ${deliveryFee}` : "To be confirmed"}
-  </div>
+        <div className="mt-4 space-y-1 text-right text-lg font-bold">
+          <div>
+            Subtotal: GH₵{" "}
+            {
+              subtotal
+            }
+          </div>
 
-  <div className="text-xl">
-  {deliveryFee !== null ? "Payable Now:" : "Estimated Total:"} GH₵ {total}
-</div>
-</div>
+          <div>
+            Delivery:{" "}
+            {deliveryFee !==
+            null
+              ? `GH₵ ${deliveryFee}`
+              : "To be confirmed"}
+          </div>
+
+          <div className="text-xl">
+            {deliveryFee !==
+            null
+              ? "Payable Now:"
+              : "Estimated Total:"}{" "}
+            GH₵{" "}
+            {
+              total
+            }
+          </div>
+        </div>
       </section>
 
-<p className="text-sm text-gray-600 mb-3">
-  ⚡ Orders are processed quickly. Confirm now to avoid delays.
-</p>
+      <p className="mb-3 text-sm text-gray-600">
+        ⚡ Orders are processed quickly. Confirm now to avoid delays.
+      </p>
 
       {/* ACTION BUTTONS */}
-      <section className="mt-8 bg-white p-6 rounded-2xl border">
+      <section className="mt-8 rounded-2xl border bg-white p-6">
         <button
-          onClick={payNowWithPaystack}
-          disabled={payLoading}
-          className="w-full bg-yellow-500 py-4 font-bold rounded-xl"
+          onClick={
+            payNowWithPaystack
+          }
+          disabled={
+            !canPayNow
+          }
+          className={`w-full rounded-xl py-4 font-bold ${
+            canPayNow
+              ? "bg-yellow-500"
+              : "cursor-not-allowed bg-gray-300 text-gray-600"
+          }`}
         >
-          {payLoading ? "Processing..." : "Pay Now"}
+          {payLoading
+            ? "Processing..."
+            : !hasLocation
+              ? "Enter Delivery Location to Pay"
+              : !isKasoaLocation
+                ? "Confirm Delivery Cost Before Payment"
+                : "Pay Now"}
         </button>
 
-        {/* ✅ WHATSAPP BUTTON */}
+        {!isKasoaLocation &&
+          hasLocation && (
+            <p className="mt-3 text-sm font-semibold text-red-700">
+              Online payment is available after the delivery charge has been confirmed. Please use WhatsApp below.
+            </p>
+          )}
+
         <button
-          onClick={handleWhatsAppOrder}
-          className="w-full bg-green-600 text-white py-4 font-bold rounded-xl mt-4"
+          onClick={
+            handleWhatsAppOrder
+          }
+          className="mt-4 w-full rounded-xl bg-green-600 py-4 font-bold text-white"
         >
           Order via WhatsApp (Pay on Delivery)
         </button>
 
-        <p className="text-sm text-gray-500 mt-3">
+        <p className="mt-3 text-sm text-gray-500">
           You can pay now or confirm your order via WhatsApp.
         </p>
 
-        <p className="text-sm text-gray-600 mt-2">
-  Prefer to confirm delivery cost first? Chat with us instantly on WhatsApp.
-</p>
-
-        {payError && <p className="text-red-500 mt-2">{payError}</p>}
+        <p className="mt-2 text-sm text-gray-600">
+          Prefer to confirm delivery cost first? Chat with us instantly on WhatsApp.
+        </p>
       </section>
     </main>
   );
