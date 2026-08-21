@@ -1,179 +1,578 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
+
+import {
+  LocationType,
+  PaymentStatus,
+} from "@prisma/client";
 
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
-import { PaymentStatus } from "@prisma/client";
 
-function getDeliveryFee(location: string) {
-  const loc = location.toLowerCase();
+function getDeliveryFeePesewas(
+  location: string
+) {
+  const loc =
+    location
+      .trim()
+      .toLowerCase();
 
-  if (loc.includes("kasoa")) return 30;
+  if (loc.includes("kasoa")) {
+    return 3000;
+  }
 
-  return 0; // Outside Kasoa: handled manually
+  /*
+   * Outside Kasoa delivery is confirmed
+   * manually before payment.
+   *
+   * The checkout UI already warns the
+   * customer about this.
+   */
+  return 0;
 }
 
-export async function POST(req: Request) {
+function getPositiveWholeQuantity(
+  value: unknown
+) {
+  const quantity =
+    typeof value === "number"
+      ? value
+      : Number(value);
+
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+    return null;
+  }
+
+  return quantity;
+}
+
+function getString(
+  value: unknown
+) {
+  if (
+    typeof value !== "string"
+  ) {
+    return "";
+  }
+
+  return value.trim();
+}
+
+export async function POST(
+  req: Request
+) {
   try {
-    const body = await req.json();
+    const body =
+      await req.json();
 
-    const { orderId, customer, items } = body;
-    const location = customer?.location || "";
+    const orderId =
+      getString(body?.orderId);
 
-    /* ===============================
-       BASIC VALIDATION
-    =============================== */
+    const customer =
+      body?.customer;
+
+    const fullName =
+      getString(
+        customer?.fullName
+      );
+
+    const email =
+      getString(
+        customer?.email
+      );
+
+    const phone =
+      getString(
+        customer?.phone
+      );
+
+    const location =
+      getString(
+        customer?.location
+      );
+
+    const items =
+      body?.items;
+
+    /*
+     * ==========================================
+     * BASIC VALIDATION
+     * ==========================================
+     */
     if (
       !orderId ||
-      !customer ||
-      !customer.email ||
-      !customer.phone ||
+      !fullName ||
+      !email ||
+      !phone ||
+      !location ||
       !Array.isArray(items) ||
       items.length === 0
     ) {
       return NextResponse.json(
-        { error: "Invalid order data" },
-        { status: 400 }
-      );
-    }
-
-    /* ===============================
-       PREVENT DUPLICATE ORDER ID
-    =============================== */
-    const existingOrder = await prisma.order.findUnique({
-      where: { orderId },
-    });
-
-    if (existingOrder) {
-      return NextResponse.json(
-        { error: "Order already exists" },
-        { status: 400 }
-      );
-    }
-
-    /* ===============================
-       FETCH ACTIVE PRODUCTS BY ID
-    =============================== */
-    const ids = items.map((item: any) => item.productId);
-
-    const products = await prisma.product.findMany({
-      where: {
-        id: {
-          in: ids,
+        {
+          success: false,
+          message:
+            "Invalid order data",
         },
-        isActive: true,
-      },
-    });
-
-    /* ===============================
-       STOCK AND AVAILABILITY VALIDATION
-    =============================== */
-    for (const item of items) {
-      const product = products.find(
-        (candidate) => candidate.id === item.productId
+        {
+          status: 400,
+        }
       );
+    }
 
-      if (!product) {
-        return NextResponse.json(
-          { error: "Product not found" },
-          { status: 404 }
+    /*
+     * ==========================================
+     * VALIDATE + NORMALISE CART QUANTITIES
+     * ==========================================
+     *
+     * Aggregate repeated product IDs so a
+     * malicious or malformed cart cannot evade
+     * stock validation by submitting the same
+     * product on several separate lines.
+     */
+    const quantityByProduct =
+      new Map<string, number>();
+
+    for (const item of items) {
+      const productId =
+        getString(
+          item?.productId
         );
-      }
 
-      if (product.stockQty < item.quantity) {
+      const quantity =
+        getPositiveWholeQuantity(
+          item?.quantity
+        );
+
+      if (
+        !productId ||
+        quantity === null
+      ) {
         return NextResponse.json(
           {
             success: false,
-            message: `Only ${product.stockQty} items left in stock`,
+            message:
+              "Each cart item must have a valid product and positive whole quantity",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
+        );
+      }
+
+      quantityByProduct.set(
+        productId,
+        (
+          quantityByProduct.get(
+            productId
+          ) ?? 0
+        ) + quantity
+      );
+    }
+
+    const normalisedItems =
+      Array.from(
+        quantityByProduct.entries()
+      ).map(
+        ([
+          productId,
+          quantity,
+        ]) => ({
+          productId,
+          quantity,
+        })
+      );
+
+    /*
+     * ==========================================
+     * PREVENT DUPLICATE ORDER ID
+     * ==========================================
+     */
+    const existingOrder =
+      await prisma.order.findUnique({
+        where: {
+          orderId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (existingOrder) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Order already exists",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    /*
+     * ==========================================
+     * RESOLVE WEBSITE SALES BRANCH
+     * ==========================================
+     *
+     * Legacy website code used "shop-kasoa".
+     *
+     * That is not an Inventory location in the
+     * current database. Inventory is keyed by
+     * the real Branch record.
+     */
+    const branch =
+      await prisma.branch.findFirst({
+        where: {
+          OR: [
+            {
+              name:
+                "Kasoa, New Market",
+            },
+            {
+              location:
+                "Kasoa",
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+    if (!branch) {
+      console.error(
+        "Website checkout branch not found"
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Checkout is temporarily unavailable",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const productIds =
+      normalisedItems.map(
+        (item) =>
+          item.productId
+      );
+
+    /*
+     * ==========================================
+     * FETCH PUBLICLY SALEABLE PRODUCTS
+     * ==========================================
+     *
+     * Website checkout must enforce the same
+     * visibility boundary as public catalogue
+     * pages:
+     *
+     *   isActive
+     *   + websiteVisible
+     *   + valid imageSrc
+     *
+     * POS-only products must never be made
+     * purchasable merely by submitting an ID
+     * directly to this endpoint.
+     */
+    const products =
+      await prisma.product.findMany({
+        where: {
+          id: {
+            in: productIds,
+          },
+          isActive: true,
+          websiteVisible: true,
+        },
+      });
+
+    const productById =
+      new Map(
+        products.map(
+          (product) => [
+            product.id,
+            product,
+          ]
+        )
+      );
+
+    /*
+     * ==========================================
+     * FETCH AUTHORITATIVE BRANCH INVENTORY
+     * ==========================================
+     */
+    const inventories =
+      await prisma.inventory.findMany({
+        where: {
+          productId: {
+            in: productIds,
+          },
+          locationType:
+            LocationType.BRANCH,
+          locationId:
+            branch.id,
+        },
+        select: {
+          productId: true,
+          quantity: true,
+        },
+      });
+
+    const inventoryByProduct =
+      new Map(
+        inventories.map(
+          (inventory) => [
+            inventory.productId,
+            inventory.quantity,
+          ]
+        )
+      );
+
+    /*
+     * ==========================================
+     * AVAILABILITY + STOCK VALIDATION
+     * ==========================================
+     */
+    for (
+      const item of
+      normalisedItems
+    ) {
+      const product =
+        productById.get(
+          item.productId
+        );
+
+      if (
+        !product ||
+        !product.imageSrc?.trim()
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "A product in your cart is no longer available online",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const availableQty =
+        inventoryByProduct.get(
+          item.productId
+        ) ?? 0;
+
+      if (
+        availableQty <
+        item.quantity
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              `Only ${availableQty} item${availableQty === 1 ? "" : "s"} left in stock for ${product.name}`,
+          },
+          {
+            status: 400,
+          }
         );
       }
     }
 
-    /* ===============================
-       CALCULATE TOTAL FROM DATABASE
-    =============================== */
-    let totalAmount = 0;
+    /*
+     * ==========================================
+     * CALCULATE AUTHORITATIVE TOTAL
+     * ==========================================
+     *
+     * Money is calculated in integer pesewas.
+     * Order.amount remains populated only as
+     * the legacy GHS compatibility field.
+     */
+    let merchandisePesewas =
+      0;
 
-    const preparedItems = items.map((item: any) => {
-      const product = products.find(
-        (candidate) => candidate.id === item.productId
-      )!;
+    const preparedItems =
+      normalisedItems.map(
+        (item) => {
+          const product =
+            productById.get(
+              item.productId
+            )!;
 
-      const unitPrice = Number(product.retailPrice);
-      const totalPrice = unitPrice * item.quantity;
+          const unitPriceGhs =
+            Number(
+              product.retailPrice
+            );
 
-      totalAmount += totalPrice;
+          const unitPricePesewas =
+            Math.round(
+              unitPriceGhs * 100
+            );
 
-      return {
-        productId: product.id,
-        quantity: item.quantity,
-        unitPrice,
-        totalPrice,
-      };
-    });
+          const totalPricePesewas =
+            unitPricePesewas *
+            item.quantity;
 
-    const deliveryFee = getDeliveryFee(location);
+          merchandisePesewas +=
+            totalPricePesewas;
 
-    totalAmount += deliveryFee;
+          return {
+            productId:
+              product.id,
+            quantity:
+              item.quantity,
+            unitPriceGhs,
+            totalPriceGhs:
+              totalPricePesewas /
+              100,
+          };
+        }
+      );
 
-    /* ===============================
-       ATOMIC TRANSACTION
-    =============================== */
-    const result = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.create({
-        data: {
-          orderId,
-          reference: orderId,
-          email: customer.email,
-          phone: customer.phone,
-          amount: Math.round(totalAmount),
-          paymentStatus: PaymentStatus.PENDING,
-          locationId: "shop-kasoa",
+    const deliveryFeePesewas =
+      getDeliveryFeePesewas(
+        location
+      );
+
+    const totalAmountPesewas =
+      merchandisePesewas +
+      deliveryFeePesewas;
+
+    if (
+      totalAmountPesewas <= 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Order total must be greater than zero",
         },
-      });
+        {
+          status: 400,
+        }
+      );
+    }
 
-      for (const item of preparedItems) {
-        await tx.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-          },
-        });
-      }
+    /*
+     * ==========================================
+     * CREATE PENDING ORDER ATOMICALLY
+     * ==========================================
+     *
+     * Stock is deliberately NOT deducted here.
+     * Stock moves only after independently
+     * confirmed successful payment.
+     */
+    const result =
+      await prisma.$transaction(
+        async (tx) => {
+          const order =
+            await tx.order.create({
+              data: {
+                orderId,
+                reference:
+                  orderId,
 
-      return order;
-    });
+                customerName:
+                  fullName,
+                email,
+                phone,
+
+                amount:
+                  Math.round(
+                    totalAmountPesewas /
+                      100
+                  ),
+
+                amountPesewas:
+                  totalAmountPesewas,
+
+                deliveryFee:
+                  Math.round(
+                    deliveryFeePesewas /
+                      100
+                  ),
+
+                paymentStatus:
+                  PaymentStatus.PENDING,
+
+                status:
+                  "PENDING",
+
+                locationId:
+                  branch.id,
+
+                stockReduced:
+                  false,
+              },
+            });
+
+          for (
+            const item of
+            preparedItems
+          ) {
+            await tx.orderItem.create({
+              data: {
+                orderId:
+                  order.id,
+
+                productId:
+                  item.productId,
+
+                quantity:
+                  item.quantity,
+
+                unitPrice:
+                  item.unitPriceGhs,
+
+                totalPrice:
+                  item.totalPriceGhs,
+              },
+            });
+          }
+
+          return order;
+        }
+      );
 
     return NextResponse.json({
       ok: true,
-      orderId: result.orderId,
-      amount: result.amount,
+      orderId:
+        result.orderId,
+      amount:
+        result.amount,
+      amountPesewas:
+        result.amountPesewas,
+      locationId:
+        result.locationId,
     });
-  } catch (err: any) {
-    console.error("Order creation failed:", err);
-
-    let message = "Failed to create order";
-
-    try {
-      const parsed = JSON.parse(err.message);
-
-      if (parsed.type === "STOCK_ERROR") {
-        message = parsed.message;
-      }
-    } catch {
-      message = err?.message || message;
-    }
+  } catch (error) {
+    console.error(
+      "Order creation failed:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to create order",
       },
-      { status: 400 }
+      {
+        status: 400,
+      }
     );
   }
 }

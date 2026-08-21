@@ -1,208 +1,284 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { PaymentStatus, InventoryMovementType } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
+import { finalizeWebsitePaystackPayment } from "@/lib/payments/finalizeWebsitePaystackPayment";
+import { getOrderAmountGhs } from "@/lib/pos/orderMoney";
 
 export async function GET(req: Request) {
   try {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const secret =
+      process.env.PAYSTACK_SECRET_KEY;
 
     if (!secret) {
       return NextResponse.json(
-        { error: "Missing PAYSTACK_SECRET_KEY" },
-        { status: 500 }
+        {
+          error:
+            "Missing PAYSTACK_SECRET_KEY",
+        },
+        {
+          status: 500,
+        }
       );
     }
 
-    const url = new URL(req.url);
-    const reference = url.searchParams.get("reference");
+    const url =
+      new URL(req.url);
+
+    const reference =
+      url.searchParams.get(
+        "reference"
+      );
 
     if (!reference) {
       return NextResponse.json(
-        { error: "Missing reference" },
-        { status: 400 }
-      );
-    }
-
-    /* ===============================
-       VERIFY PAYMENT WITH PAYSTACK
-    =============================== */
-    const res = await fetch(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: {
-          Authorization: `Bearer ${secret}`,
+        {
+          error:
+            "Missing reference",
         },
-        cache: "no-store",
-      }
-    );
-
-    const result = await res.json();
-
-    if (!res.ok || !result?.data) {
-      return NextResponse.json(
-        { error: "Paystack verification failed" },
-        { status: 500 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const paystackData = result.data;
+    /*
+     * ==========================================
+     * VERIFY PAYMENT WITH PAYSTACK
+     * ==========================================
+     */
+    const res =
+      await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${secret}`,
+          },
 
-    const orderId = paystackData?.metadata?.orderId;
+          cache:
+            "no-store",
+        }
+      );
+
+    const result =
+      await res.json();
+
+    if (
+      !res.ok ||
+      !result?.data
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Paystack verification failed",
+        },
+        {
+          status: 502,
+        }
+      );
+    }
+
+    const paystackData =
+      result.data;
+
+    const orderId =
+      typeof paystackData
+        ?.metadata
+        ?.orderId ===
+      "string"
+        ? paystackData
+            .metadata
+            .orderId
+            .trim()
+        : "";
 
     if (!orderId) {
       return NextResponse.json(
-        { error: "Order ID missing from metadata" },
-        { status: 400 }
+        {
+          error:
+            "Order ID missing from metadata",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    /* ===============================
-       FIND ORDER + ITEMS + PRODUCT
-    =============================== */
-    const order = await prisma.order.findUnique({
-      where: { orderId },
-      include: {
-        orderItems: {
-          include: {
-            product: true, // ✅ VERY IMPORTANT
-          },
-        },
-      },
-    });
+    /*
+     * ==========================================
+     * UNSUCCESSFUL / INCOMPLETE PAYMENT
+     * ==========================================
+     *
+     * Do not mark pending/abandoned transactions
+     * FAILED merely because verification was
+     * requested before Paystack confirmed success.
+     */
+    if (
+      paystackData.status !==
+      "success"
+    ) {
+      return NextResponse.json({
+        ok: true,
+        orderId,
+        paymentStatus:
+          "PENDING",
+        providerStatus:
+          paystackData.status ??
+          null,
+      });
+    }
 
-    if (!order) {
+    const amountPesewas =
+      paystackData.amount;
+
+    const currency =
+      typeof paystackData
+        .currency ===
+      "string"
+        ? paystackData.currency
+        : "";
+
+    if (
+      !Number.isInteger(
+        amountPesewas
+      ) ||
+      typeof amountPesewas !==
+        "number" ||
+      amountPesewas <= 0
+    ) {
       return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
+        {
+          error:
+            "Invalid payment amount",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    /* ===============================
-       ALREADY PROCESSED → EXIT
-    =============================== */
-    if (order.paymentStatus === PaymentStatus.PAID) {
-      return NextResponse.json({
-        ok: true,
+    /*
+     * ==========================================
+     * AUTHORITATIVE PAYMENT FINALISATION
+     * ==========================================
+     */
+    const finalization =
+      await finalizeWebsitePaystackPayment({
+        reference,
+
         orderId,
-        paymentStatus: PaymentStatus.PAID,
-      });
-    }
 
-    /* ===============================
-       CHECK PAYMENT STATUS
-    =============================== */
-    if (paystackData.status !== "success") {
-      await prisma.order.update({
-        where: { orderId },
-        data: {
-          paymentStatus: PaymentStatus.FAILED,
-          reference,
-        },
+        amountPesewas,
+
+        currency,
+
+        providerStatus:
+          paystackData.status,
       });
 
-      return NextResponse.json({
-        ok: true,
-        orderId,
-        paymentStatus: PaymentStatus.FAILED,
-      });
-    }
-
-    /* ===============================
-       STOCK + ORDER UPDATE
-    =============================== */
-    await prisma.$transaction(async (tx) => {
-      for (const item of order.orderItems) {
-        const inventory = await tx.inventory.findFirst({
+    /*
+     * ==========================================
+     * SEND SMS AFTER SAFE FINALISATION
+     * ==========================================
+     */
+    if (
+      finalization.paymentConfirmed &&
+      !finalization.requiresAttention
+    ) {
+      const order =
+        await prisma.order.findUnique({
           where: {
-            productId: item.productId,
-            locationId: order.locationId!,
+            orderId,
+          },
+
+          select: {
+            id: true,
+            orderId: true,
+            phone: true,
+            smsSent: true,
+            amount: true,
+            amountPesewas: true,
           },
         });
 
-        if (!inventory || inventory.quantity < item.quantity) {
-          throw new Error(
-            `Stock inconsistency for ${item.product?.name || item.productId}`
+      if (
+        order &&
+        !order.smsSent &&
+        order.phone
+      ) {
+        try {
+          const message =
+            `DeeGlobalGH:\n\n` +
+            `Payment received successfully ✅\n\n` +
+            `Order ID: ${order.orderId}\n` +
+            `Amount: GHS ${getOrderAmountGhs(order).toFixed(2)}\n\n` +
+            `We are processing your order and will contact you shortly.\n\n` +
+            `Thank you for shopping with us.`;
+
+          await sendOrderSMS({
+            phone:
+              order.phone,
+
+            message,
+          });
+
+          await prisma.order.update({
+            where: {
+              id:
+                order.id,
+            },
+
+            data: {
+              smsSent:
+                true,
+            },
+          });
+        } catch (smsError) {
+          console.error(
+            "SMS failed:",
+            smsError
           );
         }
-
-        await tx.inventory.updateMany({
-          where: {
-            productId: item.productId,
-            locationId: order.locationId!,
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
-
-        await tx.inventoryMovement.create({
-          data: {
-            productId: item.productId,
-            type: InventoryMovementType.SALE,
-            quantity: -item.quantity,
-            note: `Online Order ${order.orderId} - ${reference}`,
-          },
-        });
       }
-
-      // ✅ IMPORTANT FIX (use update, not updateMany)
-      await tx.order.update({
-        where: { orderId },
-        data: {
-  paymentStatus: PaymentStatus.PAID,
-  paymentMethod: "ONLINE_CARD",
-  reference,
-}
-      });
-    });
-
-    /* ===============================
-       SEND SMS (FIXED)
-    =============================== */
-    try {
-      if (!order.smsSent && order.phone) {
-        const message = `DeeGlobalGH:
-
-Payment received successfully ✅
-
-Order ID: ${order.orderId}
-Amount: GHS ${order.amount.toFixed(2)}
-
-We are processing your order and will contact you shortly.
-
-Thank you for shopping with us.`;
-
-        await sendOrderSMS({
-          phone: order.phone,
-          message,
-        });
-
-        await prisma.order.update({
-          where: { orderId },
-          data: { smsSent: true },
-        });
-      }
-    } catch (smsError) {
-      console.error("SMS failed:", smsError);
     }
 
     return NextResponse.json({
       ok: true,
       orderId,
-      paymentStatus: PaymentStatus.PAID,
+      paymentStatus:
+        finalization
+          .paymentConfirmed
+          ? "PAID"
+          : "PENDING",
+      orderFinalized:
+        finalization
+          .orderFinalized,
+      alreadyFinalized:
+        finalization
+          .alreadyFinalized,
+      requiresAttention:
+        finalization
+          .requiresAttention,
     });
-
-  } catch (err: any) {
-    console.error("❌ Paystack verify error:", err);
+  } catch (err) {
+    console.error(
+      "Paystack verification error:",
+      err
+    );
 
     return NextResponse.json(
-      { error: err?.message || "Server error" },
-      { status: 500 }
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Payment verification failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

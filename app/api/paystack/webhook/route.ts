@@ -1,12 +1,15 @@
-import {
+﻿import {
   NextRequest,
   NextResponse,
 } from "next/server";
+
 import crypto from "crypto";
 
 import { prisma } from "@/lib/prisma";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 import { finalizePosMomoPayment } from "@/lib/pos/finalizePosMomoPayment";
+import { finalizeWebsitePaystackPayment } from "@/lib/payments/finalizeWebsitePaystackPayment";
+import { getOrderAmountGhs } from "@/lib/pos/orderMoney";
 
 export const runtime = "nodejs";
 
@@ -82,9 +85,6 @@ function getString(
 /**
  * Verify Paystack's HMAC SHA-512
  * webhook signature.
- *
- * timingSafeEqual avoids a normal
- * string-comparison timing leak.
  */
 function verifyPaystackSignature(
   body: string,
@@ -132,31 +132,17 @@ function verifyPaystackSignature(
 export async function POST(
   req: NextRequest
 ) {
-  console.log(
-    "PAYSTACK WEBHOOK HIT"
-  );
-
   /*
    * ==========================================
    * READ RAW BODY
    * ==========================================
    *
-   * Signature validation must use the exact
-   * original request body sent by Paystack.
+   * Paystack signature validation must use
+   * the exact original request body.
    */
   const body =
     await req.text();
 
-  /*
-   * We parse the raw body only to determine
-   * which Paystack environment this event
-   * belongs to.
-   *
-   * IMPORTANT:
-   * Nothing from this unverified event is
-   * trusted or processed until its signature
-   * has been validated below.
-   */
   let event:
     PaystackWebhookEvent;
 
@@ -187,22 +173,8 @@ export async function POST(
 
   /*
    * ==========================================
-   * SELECT REQUIRED SECRET
+   * SELECT PAYSTACK SECRET
    * ==========================================
-   *
-   * Website payments continue using:
-   *
-   *   PAYSTACK_SECRET_KEY
-   *
-   * POS MoMo uses:
-   *
-   *   PAYSTACK_POS_SECRET_KEY
-   *
-   * when configured.
-   *
-   * The fallback preserves backwards
-   * compatibility after testing when the
-   * separate POS key is not configured.
    */
   const websiteSecret =
     process.env
@@ -244,24 +216,16 @@ export async function POST(
     );
   }
 
+  /*
+   * ==========================================
+   * VERIFY PAYSTACK SIGNATURE
+   * ==========================================
+   */
   const paystackSignature =
     req.headers.get(
       "x-paystack-signature"
     );
 
-  /*
-   * ==========================================
-   * VERIFY SIGNATURE
-   * ==========================================
-   *
-   * When PAYSTACK_POS_SECRET_KEY exists,
-   * POS_MOMO events MUST validate against
-   * that key.
-   *
-   * They cannot silently fall back to the
-   * website key merely because the website
-   * signature would validate.
-   */
   const signatureValid =
     verifyPaystackSignature(
       body,
@@ -288,14 +252,8 @@ export async function POST(
   }
 
   /*
-   * From this point onward the payload has
-   * passed Paystack signature validation.
-   */
-
-  /*
-   * We only deliver value for an
-   * independently confirmed successful
-   * Paystack charge.
+   * Only independently confirmed successful
+   * Paystack charges can deliver value.
    */
   if (
     event.event !==
@@ -332,11 +290,8 @@ export async function POST(
    * POS MOBILE MONEY
    * ==========================================
    *
-   * POS MoMo references belong to
-   * OrderPayment, not Order.orderId.
-   *
-   * These transactions therefore use the
-   * authoritative POS finalisation service.
+   * Preserve the existing hardened POS MoMo
+   * finalisation path.
    */
   if (
     source === "POS_MOMO"
@@ -360,11 +315,11 @@ export async function POST(
       );
 
     if (
+      typeof amount !==
+        "number" ||
       !Number.isInteger(
         amount
       ) ||
-      typeof amount !==
-        "number" ||
       amount <= 0
     ) {
       console.error(
@@ -446,16 +401,6 @@ export async function POST(
         );
       }
 
-      /*
-       * If payment is confirmed but stock
-       * finalisation requires manual attention,
-       * the service deliberately preserves the
-       * confirmed customer payment.
-       *
-       * We acknowledge the webhook so Paystack
-       * does not repeatedly redeliver a genuine
-       * payment that is already recorded.
-       */
       return NextResponse.json({
         received: true,
 
@@ -481,15 +426,6 @@ export async function POST(
           result.paymentId,
       });
     } catch (error) {
-      /*
-       * Validation/database lookup failures
-       * are not acknowledged as successfully
-       * processed.
-       *
-       * Returning 500 allows a legitimate
-       * Paystack webhook to be retried rather
-       * than silently discarded.
-       */
       console.error(
         "POS MoMo webhook finalisation error:",
         error
@@ -512,168 +448,276 @@ export async function POST(
 
   /*
    * ==========================================
-   * EXISTING WEBSITE PAYSTACK FLOW
+   * WEBSITE PAYSTACK PAYMENT
    * ==========================================
    *
-   * IMPORTANT:
-   * Keep the existing live website behaviour
-   * intact while POS MoMo is introduced.
+   * Website callback verification and Paystack
+   * webhook delivery now use exactly the same
+   * authoritative finalisation service.
    */
-  console.log(
-    "Payment success for:",
-    reference
-  );
+  const websiteOrderId =
+    getString(
+      metadata?.orderId
+    );
 
-  const order =
-    await prisma.order.findFirst({
-      where: {
-        orderId:
-          reference,
-      },
+  const amount =
+    event.data?.amount;
 
-      include: {
-        orderItems: true,
-      },
-    });
+  const currency =
+    getString(
+      event.data?.currency
+    );
 
-  if (!order) {
+  const providerStatus =
+    getString(
+      event.data?.status
+    );
+
+  if (!websiteOrderId) {
     console.error(
-      "Order not found:",
+      "Website Paystack webhook missing orderId metadata:",
       reference
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Missing order ID",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    typeof amount !==
+      "number" ||
+    !Number.isInteger(
+      amount
+    ) ||
+    amount <= 0
+  ) {
+    console.error(
+      "Invalid website Paystack amount:",
+      amount
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Invalid payment amount",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    !currency ||
+    !providerStatus
+  ) {
+    console.error(
+      "Incomplete website Paystack payment data:",
+      {
+        reference,
+        websiteOrderId,
+      }
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "Incomplete payment data",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  let finalization:
+    Awaited<
+      ReturnType<
+        typeof finalizeWebsitePaystackPayment
+      >
+    >;
+
+  try {
+    finalization =
+      await finalizeWebsitePaystackPayment({
+        reference,
+
+        orderId:
+          websiteOrderId,
+
+        amountPesewas:
+          amount,
+
+        currency,
+
+        providerStatus,
+      });
+  } catch (error) {
+    /*
+     * Do not acknowledge a genuine payment as
+     * fully processed when its authoritative
+     * finalisation failed.
+     *
+     * Paystack may retry the webhook.
+     */
+    console.error(
+      "Website Paystack webhook finalisation error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Website payment finalisation failed",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    finalization
+      .requiresAttention
+  ) {
+    /*
+     * A historical PAID order with ambiguous
+     * old stock state must never be deducted
+     * automatically a second time.
+     */
+    console.error(
+      "Website payment requires stock reconciliation:",
+      finalization
     );
 
     return NextResponse.json({
       received: true,
+
+      source:
+        "WEBSITE",
+
+      paymentConfirmed:
+        finalization
+          .paymentConfirmed,
+
+      orderFinalized:
+        finalization
+          .orderFinalized,
+
+      alreadyFinalized:
+        finalization
+          .alreadyFinalized,
+
+      requiresAttention:
+        true,
+
+      orderId:
+        finalization
+          .orderId,
     });
   }
 
   /*
-   * Existing website transaction:
-   * mark paid + reduce stock.
+   * ==========================================
+   * WEBSITE PAYMENT SMS
+   * ==========================================
    */
-  if (!order.stockReduced) {
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.order.update({
-          where: {
-            id:
-              order.id,
-          },
+  const order =
+    await prisma.order.findUnique({
+      where: {
+        orderId:
+          finalization.orderId,
+      },
 
-          data: {
-            paymentStatus:
-              "PAID",
+      select: {
+        id: true,
+        orderId: true,
+        phone: true,
+        smsSent: true,
+        amount: true,
+        amountPesewas: true,
+      },
+    });
 
-            reference,
-          },
+  if (
+    order &&
+    !order.smsSent
+  ) {
+    const customerPhone =
+      normalizeGhanaPhone(
+        order.phone
+      );
+
+    if (customerPhone) {
+      try {
+        const message =
+          `DeeGlobalGH:\n\n` +
+          `Payment received successfully ✅\n\n` +
+          `Order ID: ${order.orderId}\n` +
+          `Amount: GHS ${getOrderAmountGhs(order).toFixed(2)}\n\n` +
+          `We are processing your order and will contact you shortly.\n\n` +
+          `Thank you for shopping with us.`;
+
+        await sendOrderSMS({
+          phone:
+            customerPhone,
+
+          message,
         });
 
-        for (
-          const item of
-          order.orderItems
-        ) {
-          await tx.product.update({
-            where: {
-              id:
-                item.productId,
-            },
-
-            data: {
-              stockQty: {
-                decrement:
-                  item.quantity,
-              },
-            },
-          });
-
-          await tx.inventoryMovement.create({
-            data: {
-              productId:
-                item.productId,
-
-              orderId:
-                order.id,
-
-              type:
-                "SALE",
-
-              quantity:
-                item.quantity,
-
-              note:
-                `Sale for order ${reference}`,
-            },
-          });
-        }
-
-        await tx.order.update({
+        await prisma.order.update({
           where: {
             id:
               order.id,
           },
 
           data: {
-            stockReduced:
+            smsSent:
               true,
           },
         });
+      } catch (error) {
+        console.error(
+          "Website payment SMS failed:",
+          error
+        );
       }
-    );
-
-    console.log(
-      "Stock reduced successfully"
-    );
-  } else {
-    console.log(
-      "Stock already reduced, skipping"
-    );
-  }
-
-  /*
-   * Existing website SMS behaviour.
-   */
-  const customerPhone =
-    normalizeGhanaPhone(
-      order.phone
-    );
-
-  if (
-    customerPhone &&
-    !order.smsSent
-  ) {
-    try {
-      await sendOrderSMS({
-        phone:
-          customerPhone,
-
-        message:
-          `DeeglobalGh: Payment received for order ${reference}. We will contact you shortly.`,
-      });
-
-      await prisma.order.update({
-        where: {
-          id:
-            order.id,
-        },
-
-        data: {
-          smsSent:
-            true,
-        },
-      });
-
-      console.log(
-        "SMS sent"
-      );
-    } catch (error) {
-      console.error(
-        "SMS failed:",
-        error
-      );
     }
   }
 
   return NextResponse.json({
     received: true,
+
+    source:
+      "WEBSITE",
+
+    paymentConfirmed:
+      finalization
+        .paymentConfirmed,
+
+    orderFinalized:
+      finalization
+        .orderFinalized,
+
+    alreadyFinalized:
+      finalization
+        .alreadyFinalized,
+
+    requiresAttention:
+      finalization
+        .requiresAttention,
+
+    orderId:
+      finalization
+        .orderId,
   });
 }
