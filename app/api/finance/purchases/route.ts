@@ -1,74 +1,224 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
-const BRANCH_ID = "cmq4b407s0000g3jg31elgm80";
-const STAFF_ID = "cmq4b407s0000g3jg31elgm80";
+type AdminSession = {
+  adminId?: string;
+  role?: string;
+  staffId?: string | null;
+  branchId?: string | null;
+  staffName?: string | null;
+};
 
 export async function GET() {
   try {
-    const purchases = await prisma.purchase.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        branch: true,
-        enteredByStaff: true,
-      },
-    });
+    const session =
+      (await requireAdmin()) as AdminSession;
 
-    return NextResponse.json(purchases);
-  } catch (error) {
-    console.error(error);
+    if (!session.staffId) {
+      return NextResponse.json(
+        {
+          error:
+            "Your admin account is not linked to a staff record.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!session.branchId) {
+      return NextResponse.json(
+        {
+          error:
+            "Your staff account is not assigned to a branch.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const purchases =
+      await prisma.purchase.findMany({
+        where: {
+          branchId:
+            session.branchId,
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        include: {
+          branch: true,
+          enteredByStaff: true,
+        },
+      });
 
     return NextResponse.json(
-      { error: "Failed to fetch purchases" },
+      purchases
+    );
+  } catch (error) {
+    console.error(
+      "Purchase loading error:",
+      error
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "";
+
+    if (
+      message ===
+      "Unauthorized"
+    ) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to fetch purchases",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    const body = await req.json();
+    const session =
+      (await requireAdmin()) as AdminSession;
 
-    const {
-      supplierName,
-      amount,
-      referenceNumber,
-      notes,
-    } = body;
+    if (!session.staffId) {
+      return NextResponse.json(
+        {
+          error:
+            "Your admin account is not linked to a staff record.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!session.branchId) {
+      return NextResponse.json(
+        {
+          error:
+            "Your staff account is not assigned to a branch.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const body =
+      await req.json();
+
+    const supplierName =
+      typeof body?.supplierName ===
+      "string"
+        ? body.supplierName.trim()
+        : "";
+
+    const amount =
+      Number(body?.amount);
+
+    const referenceNumber =
+      typeof body?.referenceNumber ===
+        "string" &&
+      body.referenceNumber.trim()
+        ? body.referenceNumber.trim()
+        : null;
+
+    const notes =
+      typeof body?.notes ===
+        "string" &&
+      body.notes.trim()
+        ? body.notes.trim()
+        : null;
 
     if (!supplierName) {
       return NextResponse.json(
-        { error: "Supplier name is required" },
+        {
+          error:
+            "Supplier name is required",
+        },
         { status: 400 }
       );
     }
 
-    if (!amount || Number(amount) <= 0) {
+    if (
+      !Number.isFinite(
+        amount
+      ) ||
+      amount <= 0
+    ) {
       return NextResponse.json(
-        { error: "Amount must be greater than zero" },
+        {
+          error:
+            "Amount must be greater than zero",
+        },
         { status: 400 }
       );
     }
 
-    const purchase = await prisma.purchase.create({
-      data: {
-        supplierName,
-        amount,
-        referenceNumber,
-        notes,
-        branchId: BRANCH_ID,
-        enteredByStaffId: STAFF_ID,
-      },
-    });
+    const purchase =
+      await prisma.purchase.create({
+        data: {
+          supplierName,
+          amount,
+          referenceNumber,
+          notes,
 
-    return NextResponse.json(purchase);
-  } catch (error) {
-    console.error(error);
+          branchId:
+            session.branchId,
+
+          enteredByStaffId:
+            session.staffId,
+        },
+
+        include: {
+          branch: true,
+          enteredByStaff: true,
+        },
+      });
 
     return NextResponse.json(
-      { error: "Failed to create purchase" },
+      purchase
+    );
+  } catch (error) {
+    console.error(
+      "Purchase creation error:",
+      error
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "";
+
+    if (
+      message ===
+      "Unauthorized"
+    ) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "Failed to create purchase",
+      },
       { status: 500 }
     );
   }

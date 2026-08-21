@@ -1,54 +1,198 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+type BankDeposit = {
+  id: string;
+  bankName: string;
+  amount: string | number;
+  referenceNumber: string | null;
+  depositMethod: string;
+  notes: string | null;
+};
 
 export default function BankDepositsPage() {
-  const [bankName, setBankName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [referenceNumber, setReferenceNumber] = useState("");
-  const [depositMethod, setDepositMethod] = useState("");
-  const [notes, setNotes] = useState("");
+  const [bankName, setBankName] =
+    useState("");
 
-  const [deposits, setDeposits] = useState([]);
+  const [amount, setAmount] =
+    useState("");
 
-  async function loadDeposits() {
-    const response = await fetch("/api/finance/bank-deposits");
+  const [
+    referenceNumber,
+    setReferenceNumber,
+  ] = useState("");
 
-    const data = await response.json();
+  const [
+    depositMethod,
+    setDepositMethod,
+  ] = useState("");
 
-    setDeposits(data);
-  }
+  const [notes, setNotes] =
+    useState("");
+
+  const [
+    deposits,
+    setDeposits,
+  ] = useState<BankDeposit[]>([]);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    isSaving,
+    setIsSaving,
+  ] = useState(false);
+
+  const loadDeposits =
+    useCallback(async () => {
+      try {
+        const response =
+          await fetch(
+            "/api/finance/bank-deposits",
+            {
+              cache: "no-store",
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+              "Failed to load bank deposits"
+          );
+        }
+
+        setDeposits(
+          Array.isArray(data)
+            ? data
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "Bank deposit loading error:",
+          error
+        );
+
+        setDeposits([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
 
   useEffect(() => {
-    loadDeposits();
-  }, []);
+    void loadDeposits();
+  }, [loadDeposits]);
 
   async function handleSubmit() {
-    const response = await fetch("/api/finance/bank-deposits", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        bankName,
-        amount: Number(amount),
-        referenceNumber,
-        depositMethod,
-        notes,
-      }),
-    });
+    if (isSaving) {
+      return;
+    }
 
-    await response.json();
+    const numericAmount =
+      Number(amount);
 
-    await loadDeposits();
+    if (!bankName.trim()) {
+      alert(
+        "Bank name is required"
+      );
+      return;
+    }
 
-    setBankName("");
-    setAmount("");
-    setReferenceNumber("");
-    setDepositMethod("");
-    setNotes("");
+    if (
+      !Number.isFinite(
+        numericAmount
+      ) ||
+      numericAmount <= 0
+    ) {
+      alert(
+        "Amount must be greater than zero"
+      );
+      return;
+    }
 
-    alert("Bank deposit saved successfully");
+    if (!depositMethod.trim()) {
+      alert(
+        "Deposit method is required"
+      );
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response =
+        await fetch(
+          "/api/finance/bank-deposits",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              bankName:
+                bankName.trim(),
+
+              amount:
+                numericAmount,
+
+              referenceNumber:
+                referenceNumber.trim(),
+
+              depositMethod:
+                depositMethod.trim(),
+
+              notes:
+                notes.trim(),
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        alert(
+          data?.error ||
+            "Failed to save bank deposit"
+        );
+        return;
+      }
+
+      await loadDeposits();
+
+      setBankName("");
+      setAmount("");
+      setReferenceNumber("");
+      setDepositMethod("");
+      setNotes("");
+
+      alert(
+        "Bank deposit saved successfully"
+      );
+    } catch (error) {
+      console.error(
+        "Bank deposit save error:",
+        error
+      );
+
+      alert(
+        "Failed to save bank deposit"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -62,43 +206,68 @@ export default function BankDepositsPage() {
           className="border p-2 w-full"
           placeholder="Bank Name"
           value={bankName}
-          onChange={(e) => setBankName(e.target.value)}
+          onChange={(e) =>
+            setBankName(
+              e.target.value
+            )
+          }
         />
 
         <input
           className="border p-2 w-full"
           placeholder="Amount"
           type="number"
+          min="0.01"
+          step="0.01"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) =>
+            setAmount(
+              e.target.value
+            )
+          }
         />
 
         <input
           className="border p-2 w-full"
           placeholder="Reference Number"
           value={referenceNumber}
-          onChange={(e) => setReferenceNumber(e.target.value)}
+          onChange={(e) =>
+            setReferenceNumber(
+              e.target.value
+            )
+          }
         />
 
         <input
           className="border p-2 w-full"
           placeholder="Deposit Method"
           value={depositMethod}
-          onChange={(e) => setDepositMethod(e.target.value)}
+          onChange={(e) =>
+            setDepositMethod(
+              e.target.value
+            )
+          }
         />
 
         <textarea
           className="border p-2 w-full"
           placeholder="Notes"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) =>
+            setNotes(
+              e.target.value
+            )
+          }
         />
 
         <button
           onClick={handleSubmit}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={isSaving}
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
         >
-          Save Deposit
+          {isSaving
+            ? "Saving..."
+            : "Save Deposit"}
         </button>
       </div>
 
@@ -107,32 +276,64 @@ export default function BankDepositsPage() {
           Deposits
         </h2>
 
-        {deposits.map((deposit: any) => (
-          <div
-            key={deposit.id}
-            className="border rounded p-3 mb-2"
-          >
-            <div>
-              <strong>{deposit.bankName}</strong>
-            </div>
+        {isLoading ? (
+          <p>
+            Loading deposits...
+          </p>
+        ) : deposits.length ===
+          0 ? (
+          <p>
+            No bank deposits recorded.
+          </p>
+        ) : (
+          deposits.map(
+            (deposit) => (
+              <div
+                key={deposit.id}
+                className="border rounded p-3 mb-2"
+              >
+                <div>
+                  <strong>
+                    {
+                      deposit.bankName
+                    }
+                  </strong>
+                </div>
 
-            <div>
-              Amount: GHS {deposit.amount}
-            </div>
+                <div>
+                  Amount: GHS{" "}
+                  {Number(
+                    deposit.amount
+                  ).toFixed(2)}
+                </div>
 
-            <div>
-              Method: {deposit.depositMethod}
-            </div>
+                <div>
+                  Method:{" "}
+                  {
+                    deposit.depositMethod
+                  }
+                </div>
 
-            <div>
-              Ref: {deposit.referenceNumber}
-            </div>
+                {deposit.referenceNumber ? (
+                  <div>
+                    Ref:{" "}
+                    {
+                      deposit.referenceNumber
+                    }
+                  </div>
+                ) : null}
 
-            <div>
-              {deposit.notes}
-            </div>
-          </div>
-        ))}
+                {deposit.notes ? (
+                  <div>
+                    {
+                      deposit.notes
+                    }
+                  </div>
+                ) : null}
+              </div>
+            )
+          )
+        )}
       </div>
     </div>
   );
