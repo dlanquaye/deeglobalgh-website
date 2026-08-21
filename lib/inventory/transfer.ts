@@ -1,8 +1,13 @@
+﻿import {
+  LocationType,
+  MovementType,
+} from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
-import { LocationType, MovementType } from "@prisma/client";
 
 type TransferInventoryInput = {
   productId: string;
+
   fromLocationId: string;
   fromLocationType: LocationType;
 
@@ -21,87 +26,192 @@ export async function transferInventory({
   toLocationType,
   quantity,
   createdByStaffId,
-}: TransferInventoryInput){
-  const sourceInventory = await prisma.inventory.findFirst({
-    where: {
-      productId,
-      locationId: fromLocationId,
-    },
-  });
-
-  if (!sourceInventory) {
-    throw new Error("Source inventory record not found");
+}: TransferInventoryInput) {
+  if (
+    !Number.isInteger(quantity) ||
+    quantity <= 0
+  ) {
+    throw new Error(
+      "Transfer quantity must be a positive whole number"
+    );
   }
-  if (quantity <= 0) {
-  throw new Error("Transfer quantity must be greater than zero");
-}
 
-if (sourceInventory.quantity < quantity) {
-  throw new Error("Insufficient stock at source location");
-}
-const destinationInventory = await prisma.inventory.findFirst({
-  where: {
-    productId,
-    locationId: toLocationId,
-  },
-});
+  if (
+    fromLocationType ===
+      toLocationType &&
+    fromLocationId ===
+      toLocationId
+  ) {
+    throw new Error(
+      "Source and destination locations must be different"
+    );
+  }
 
-let destinationRecord = destinationInventory;
+  return prisma.$transaction(
+    async (tx) => {
+      const sourceInventory =
+        await tx.inventory.findUnique({
+          where: {
+            productId_locationType_locationId:
+              {
+                productId,
+                locationType:
+                  fromLocationType,
+                locationId:
+                  fromLocationId,
+              },
+          },
+          select: {
+            id: true,
+            quantity: true,
+          },
+        });
 
-if (!destinationRecord) {
-  destinationRecord = await prisma.inventory.create({
-    data: {
-      productId,
-      locationId: toLocationId,
-      locationType: toLocationType,
-      quantity: 0,
-    },
-  });
-}
-return await prisma.$transaction(async (tx) => {
-  await tx.inventory.update({
-    where: {
-      id: sourceInventory.id,
-    },
-    data: {
-      quantity: {
-        decrement: quantity,
-      },
-    },
-  });
+      if (!sourceInventory) {
+        throw new Error(
+          "Source inventory record not found"
+        );
+      }
 
-  await tx.inventory.update({
-    where: {
-      id: destinationRecord.id,
-    },
-    data: {
-      quantity: {
-        increment: quantity,
-      },
-    },
-  });
-  await tx.stockMovement.create({
-  data: {
-    productId,
-    type: MovementType.TRANSFER,
-    quantity,
+      const sourceDeduction =
+        await tx.inventory.updateMany({
+          where: {
+            id: sourceInventory.id,
+            quantity: {
+              gte: quantity,
+            },
+          },
+          data: {
+            quantity: {
+              decrement: quantity,
+            },
+          },
+        });
 
-    fromLocationType,
-    fromLocationId,
+      if (
+        sourceDeduction.count !== 1
+      ) {
+        throw new Error(
+          "Insufficient stock at source location"
+        );
+      }
 
-    toLocationType,
-    toLocationId,
+      const destinationInventory =
+        await tx.inventory.upsert({
+          where: {
+            productId_locationType_locationId:
+              {
+                productId,
+                locationType:
+                  toLocationType,
+                locationId:
+                  toLocationId,
+              },
+          },
+          update: {
+            quantity: {
+              increment: quantity,
+            },
+          },
+          create: {
+            productId,
+            locationType:
+              toLocationType,
+            locationId:
+              toLocationId,
+            quantity,
+          },
+          select: {
+            id: true,
+            quantity: true,
+          },
+        });
 
-    createdByStaffId,
-    status: "COMPLETED",
-  },
-});
-return {
-  success: true,
-  productId,
-  quantity,
-  fromLocationId,
-  toLocationId,
-};
-});
+      if (
+        toLocationType ===
+        LocationType.BRANCH
+      ) {
+        await tx.product.update({
+          where: {
+            id: productId,
+          },
+          data: {
+            stockQty:
+              destinationInventory.quantity,
+          },
+        });
+      }
+
+      if (
+        fromLocationType ===
+          LocationType.BRANCH &&
+        toLocationType !==
+          LocationType.BRANCH
+      ) {
+        const remainingBranchInventory =
+          await tx.inventory.findUnique({
+            where: {
+              productId_locationType_locationId:
+                {
+                  productId,
+                  locationType:
+                    fromLocationType,
+                  locationId:
+                    fromLocationId,
+                },
+            },
+            select: {
+              quantity: true,
+            },
+          });
+
+        await tx.product.update({
+          where: {
+            id: productId,
+          },
+          data: {
+            stockQty:
+              remainingBranchInventory
+                ?.quantity ?? 0,
+          },
+        });
+      }
+
+      const movement =
+        await tx.stockMovement.create({
+          data: {
+            productId,
+            type:
+              MovementType.TRANSFER,
+            quantity,
+
+            fromLocationType,
+            fromLocationId,
+
+            toLocationType,
+            toLocationId,
+
+            createdByStaffId,
+            status: "COMPLETED",
+          },
+        });
+
+      return {
+        success: true,
+        productId,
+        quantity,
+        fromLocationType,
+        fromLocationId,
+        toLocationType,
+        toLocationId,
+        sourceQuantityAfter:
+          sourceInventory.quantity -
+          quantity,
+        destinationQuantityAfter:
+          destinationInventory.quantity,
+        movementId:
+          movement.id,
+      };
+    }
+  );
 }
