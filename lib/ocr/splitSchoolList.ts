@@ -117,7 +117,56 @@ export function splitSchoolListWithSections(
       ) ||
       /^note\s*:/i.test(
         value
+      ) ||
+      /\brequired\s+to\s+purchase\b.*\bunder\s+listed\s+books\b/i.test(
+        value
+      ) ||
+      /\bunder\s+listed\s+books\b.*\bbookshop\b/i.test(
+        value
       )
+    );
+  }
+
+  function isDocumentTitleLine(
+    value: string
+  ): boolean {
+    return (
+      /^kg\b.*books?\s*&\s*stationar.*list$/i.test(
+        value
+      ) ||
+      /^books?\s*&\s*stationar.*list$/i.test(
+        value
+      ) ||
+      /\bnext\s+term\b.*\bkindergarten\b/i.test(
+        value
+      )
+    );
+  }
+
+  /*
+   * Some photographed school lists contain no numbering and
+   * no explicit "Text Books" heading. Google Vision still
+   * preserves each printed book as its own OCR line.
+   *
+   * Example:
+   *
+   * Activities in numeracy - Masterman Series
+   * Activities in OWOP - Essential Series
+   * Comprehensive Reader - Excellence Series
+   * Writing - Fun series
+   *
+   * Those are already complete book identities and must not
+   * be concatenated merely because no numbered prefix exists.
+   *
+   * Keep this deliberately narrow: require a dash followed
+   * somewhere by "Series". This avoids treating ordinary OCR
+   * prose as separate products.
+   */
+  function isUnnumberedBookSeriesLine(
+    value: string
+  ): boolean {
+    return /\s[-–—]\s.+\bseries\b/i.test(
+      value
     );
   }
 
@@ -209,10 +258,7 @@ export function splitSchoolListWithSections(
      * ==========================================
      */
     if (
-      /^kg\b.*books?\s*&\s*stationar.*list$/i.test(
-        line
-      ) ||
-      /^books?\s*&\s*stationar.*list$/i.test(
+      isDocumentTitleLine(
         line
       )
     ) {
@@ -278,8 +324,12 @@ export function splitSchoolListWithSections(
      * These are customer instructions rather than
      * products to quote.
      *
-     * Example:
+     * Examples:
+     *
      * NB Please all books must be covered.
+     *
+     * Pupils are required to purchase the under
+     * listed books from any bookshop nearby.
      */
     if (
       isInstructionLine(
@@ -464,6 +514,65 @@ export function splitSchoolListWithSections(
 
         continue;
       }
+
+      continue;
+    }
+
+    /*
+     * ==========================================
+     * UNNUMBERED TEXTBOOK ROW
+     * ==========================================
+     *
+     * Some school lists have no explicit textbook
+     * heading or numbering. When OCR gives us a
+     * complete "Title - Series" line, preserve that
+     * line as its own textbook item.
+     */
+    if (
+      section !==
+        "STATIONERY" &&
+      isUnnumberedBookSeriesLine(
+        line
+      )
+    ) {
+      flushCurrentItem();
+
+      if (
+        section ===
+        null
+      ) {
+        section =
+          "TEXTBOOKS";
+      }
+
+      items.push({
+        text:
+          line,
+
+        section:
+          "TEXTBOOKS",
+      });
+
+      continue;
+    }
+
+    /*
+     * ==========================================
+     * STRAY NUMERIC OCR NOISE
+     * ==========================================
+     *
+     * Outside stationery, a standalone number such
+     * as a handwritten price or OCR artefact is not
+     * a safe school-list item.
+     */
+    if (
+      section !==
+        "STATIONERY" &&
+      isBareNumericQuantity(
+        line
+      )
+    ) {
+      flushCurrentItem();
 
       continue;
     }

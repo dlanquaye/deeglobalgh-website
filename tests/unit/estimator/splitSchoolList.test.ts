@@ -432,5 +432,74 @@ NB Please all books must be covered.
         );
       }
     );
+
+    it(
+      "keeps each unnumbered Mrs Doe KG1 book line separate while ignoring heading instruction and stray numeric OCR noise",
+      () => {
+        const text = `
+S FOR THE NEXT TERM - KINDERGARTEN ONE (1)
+e required to purchase the under listed books from any bookshop nea
+Activities in numeracy - Masterman Series
+Activities in OWOP - Essential Series
+150
+Activities in Language and Literacy - Essential Series, N
+Activities in Creative Arts - Masterman Series
+Comprehensive Reader - Excellence Series
+Writing - Fun series,
+`;
+
+        const result =
+          splitSchoolListWithSections(
+            text
+          );
+
+        expect(
+          result
+        ).toEqual([
+          {
+            text:
+              "Activities in numeracy - Masterman Series",
+            section:
+              "TEXTBOOKS",
+          },
+          {
+            text:
+              "Activities in OWOP - Essential Series",
+            section:
+              "TEXTBOOKS",
+          },
+          {
+            text:
+              "Activities in Language and Literacy - Essential Series, N",
+            section:
+              "TEXTBOOKS",
+          },
+          {
+            text:
+              "Activities in Creative Arts - Masterman Series",
+            section:
+              "TEXTBOOKS",
+          },
+          {
+            text:
+              "Comprehensive Reader - Excellence Series",
+            section:
+              "TEXTBOOKS",
+          },
+          {
+            text:
+              "Writing - Fun series,",
+            section:
+              "TEXTBOOKS",
+          },
+        ]);
+
+        expect(
+          result
+        ).toHaveLength(
+          6
+        );
+      }
+    );
   }
 );
