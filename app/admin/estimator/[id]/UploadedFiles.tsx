@@ -32,48 +32,65 @@ interface Props {
 export default function UploadedFiles({
   attachments,
 }: Props) {
+  const router = useRouter();
 
-    const router = useRouter();
+  const [processingId, setProcessingId] =
+    useState<string | null>(null);
 
-const [processingId, setProcessingId] =
-  useState<string | null>(null);
+  async function processSchoolList(
+    attachmentId: string
+  ) {
+    try {
+      setProcessingId(
+        attachmentId
+      );
 
-async function processSchoolList(
-  attachmentId: string
-) {
-  try {
-    setProcessingId(attachmentId);
+      const res =
+        await fetch(
+          "/api/estimator/process-school-list",
+          {
+            method:
+              "POST",
 
-    const res = await fetch(
-      "/api/estimator/process-school-list",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          attachmentId,
-        }),
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                attachmentId,
+              }),
+          }
+        );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) {
+        alert(
+          data.message
+        );
+
+        return;
       }
-    );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message);
-      return;
+      router.refresh();
+    } catch {
+      alert(
+        "Unable to process school list."
+      );
+    } finally {
+      setProcessingId(
+        null
+      );
     }
-
-    router.refresh();
-
-  } catch {
-    alert("Unable to process school list.");
-  } finally {
-    setProcessingId(null);
   }
-}
 
-  if (attachments.length === 0) {
+  if (
+    attachments.length ===
+    0
+  ) {
     return null;
   }
 
@@ -86,91 +103,147 @@ async function processSchoolList(
 
       <div className="space-y-4">
 
-        {attachments.map((attachment) => (
+        {attachments.map(
+          (
+            attachment
+          ) => {
+            const isCompleted =
+              attachment.ocrStatus ===
+              "COMPLETED";
 
-          <div
-            key={attachment.id}
-            className="flex items-center justify-between rounded-lg border p-4"
-          >
+            const isProcessing =
+              attachment.ocrStatus ===
+              "PROCESSING";
 
-            <div>
+            const isLocallyProcessing =
+              processingId ===
+              attachment.id;
 
-              <div className="font-semibold">
-                {attachment.fileName}
-              </div>
+            const canProcess =
+              !isCompleted &&
+              !isProcessing &&
+              !isLocallyProcessing;
 
-              <div className="mt-1 text-sm text-gray-500">
-                {attachment.fileType}
-              </div>
-
-              <div className="text-sm text-gray-500">
-                Uploaded:{" "}
-                {new Date(
-                  attachment.createdAt
-                ).toLocaleString()}
-              </div>
-
-              <div className="text-sm mt-2">
-  OCR Status:{" "}
-  <span
-    className={
-      attachment.ocrStatus === "COMPLETED"
-        ? "font-semibold text-green-600"
-        : attachment.ocrStatus === "PROCESSING"
-        ? "font-semibold text-blue-600"
-        : attachment.ocrStatus === "FAILED"
-        ? "font-semibold text-red-600"
-        : "font-semibold text-yellow-600"
-    }
-  >
-    {attachment.ocrStatus}
-  </span>
-</div>
-
-<div className="text-sm text-gray-500">
-  Books Found: {attachment.booksFound ?? "-"}
-</div>
-
-<div className="text-sm text-gray-500">
-  Matched Books: {attachment.matchedBooks ?? "-"}
-</div>
-
-              {attachment.fileSize && (
-                <div className="text-sm text-gray-500">
-                  {(attachment.fileSize / 1024).toFixed(1)} KB
-                </div>
-              )}
-
-            </div>
-
-            <div className="flex gap-2">
-
-              <button
-  type="button"
-  onClick={() =>
-    processSchoolList(attachment.id)
-  }
-  disabled={
-    processingId === attachment.id
-  }
-  className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
->
-  {processingId === attachment.id
-    ? "Processing..."
-    : "Process School List"}
-</button>
-
-              <button
-                className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+            return (
+              <div
+                key={
+                  attachment.id
+                }
+                className="flex items-center justify-between rounded-lg border p-4"
               >
-                Delete
-              </button>
 
-            </div>
+                <div>
 
-          </div>
+                  <div className="font-semibold">
+                    {
+                      attachment.fileName
+                    }
+                  </div>
 
-        ))}
+                  <div className="mt-1 text-sm text-gray-500">
+                    {
+                      attachment.fileType
+                    }
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    Uploaded:{" "}
+                    {new Date(
+                      attachment.createdAt
+                    ).toLocaleString()}
+                  </div>
+
+                  <div className="mt-2 text-sm">
+                    OCR Status:{" "}
+
+                    <span
+                      className={
+                        attachment.ocrStatus ===
+                        "COMPLETED"
+                          ? "font-semibold text-green-600"
+                          : attachment.ocrStatus ===
+                            "PROCESSING"
+                          ? "font-semibold text-blue-600"
+                          : attachment.ocrStatus ===
+                            "FAILED"
+                          ? "font-semibold text-red-600"
+                          : "font-semibold text-yellow-600"
+                      }
+                    >
+                      {
+                        attachment.ocrStatus
+                      }
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    Books Found:{" "}
+                    {attachment.booksFound ??
+                      "-"}
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    Matched Books:{" "}
+                    {attachment.matchedBooks ??
+                      "-"}
+                  </div>
+
+                  {attachment.fileSize ? (
+                    <div className="text-sm text-gray-500">
+                      {(
+                        attachment.fileSize /
+                        1024
+                      ).toFixed(
+                        1
+                      )}{" "}
+                      KB
+                    </div>
+                  ) : null}
+
+                </div>
+
+                <div className="flex gap-2">
+
+                  {isCompleted ? (
+                    <div className="rounded-lg bg-green-50 px-4 py-2 font-semibold text-green-700">
+                      Processed
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        processSchoolList(
+                          attachment.id
+                        )
+                      }
+                      disabled={
+                        !canProcess
+                      }
+                      className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isProcessing ||
+                      isLocallyProcessing
+                        ? "Processing..."
+                        : attachment.ocrStatus ===
+                          "FAILED"
+                        ? "Retry Processing"
+                        : "Process School List"}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </div>
+            );
+          }
+        )}
 
       </div>
 

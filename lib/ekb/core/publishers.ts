@@ -175,13 +175,25 @@ export const PUBLISHERS: Publisher[] = [
     active: true,
   },
 
-  {
+    {
     id: "publisher-practical-education-network",
     code: "PUB_PEN",
     name: "Practical Education Network",
     aliases: [
       "practical education network",
       "pen",
+    ],
+    active: true,
+  },
+
+  {
+    id: "publisher-kenmas",
+    code: "PUB_KENMAS",
+    name: "Kenmas Company Limited",
+    aliases: [
+      "kenmas",
+      "kenmas company",
+      "kenmas company limited",
     ],
     active: true,
   },

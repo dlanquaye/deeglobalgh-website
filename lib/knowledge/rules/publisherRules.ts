@@ -100,5 +100,28 @@ export const publisherRules: KnowledgeRule[] = [
       "a+",
       "a plus"
     ]
+  },
+
+  {
+    nodeCode: "PUB_MASTERMAN",
+    priority: 100,
+    baseScore: 100,
+    patterns: [
+      "masterman",
+      "masterman publications",
+      "masterman publications ltd"
+    ]
+  },
+
+  {
+    nodeCode: "PUB_KENMAS",
+    priority: 100,
+    baseScore: 100,
+    patterns: [
+      "kenmas",
+      "kenmas company",
+      "kenmas company limited",
+      "active kids"
+    ]
   }
 ];

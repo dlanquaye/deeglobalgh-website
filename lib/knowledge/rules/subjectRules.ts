@@ -2,14 +2,18 @@ import { KnowledgeRule } from "../engine/types"
 
 export const subjectRules: KnowledgeRule[] = [
   {
-    nodeCode: "SUB_ENGLISH",
-    priority: 100,
-    baseScore: 100,
-    patterns: [
-      "english language",
-      "english"
-    ]
-  },
+  nodeCode: "SUB_ENGLISH",
+  priority: 100,
+  baseScore: 100,
+  patterns: [
+    "english language",
+    "english",
+    "language and literacy",
+    "language & literacy",
+    "literacy skills",
+    "phonics"
+  ]
+},
 
   {
     nodeCode: "SUB_CORE_MATHEMATICS",
@@ -39,15 +43,16 @@ export const subjectRules: KnowledgeRule[] = [
   },
 
   {
-    nodeCode: "SUB_MATHEMATICS",
-    priority: 90,
-    baseScore: 100,
-    patterns: [
-      "mathematics",
-      "maths",
-      "math"
-    ]
-  },
+  nodeCode: "SUB_MATHEMATICS",
+  priority: 90,
+  baseScore: 100,
+  patterns: [
+    "mathematics",
+    "maths",
+    "math",
+    "numeracy"
+  ]
+},
 
   {
     nodeCode: "SUB_INTEGRATED_SCIENCE",
@@ -86,14 +91,15 @@ export const subjectRules: KnowledgeRule[] = [
   },
 
   {
-    nodeCode: "SUB_CREATIVE_ARTS",
-    priority: 120,
-    baseScore: 100,
-    patterns: [
-      "creative arts",
-      "creative art"
-    ]
-  },
+  nodeCode: "SUB_CREATIVE_ARTS",
+  priority: 120,
+  baseScore: 100,
+  patterns: [
+    "creative arts",
+    "creative art",
+    "creativity"
+  ]
+},
 
   {
     nodeCode: "SUB_RME",
@@ -259,11 +265,23 @@ export const subjectRules: KnowledgeRule[] = [
 },
 
 {
+  nodeCode: "SUB_OUR_WORLD",
+  priority: 120,
+  baseScore: 100,
+  patterns: [
+    "owop",
+    "our world our people",
+    "our world and our people",
+  ]
+},
+
+
+{
   nodeCode: "SUB_MUSIC",
   priority: 120,
   baseScore: 100,
   patterns: [
     "music"
   ]
-}
+},
 ]

@@ -1,9 +1,19 @@
 ﻿"use client";
 
 import {
+  useEffect,
   useState,
 } from "react";
+
 import { useRouter } from "next/navigation";
+
+interface SearchProduct {
+  id: string;
+  sku: string;
+  name: string;
+  retailPrice: number;
+  stockQty: number;
+}
 
 interface Props {
   estimateId: string;
@@ -36,8 +46,23 @@ export default function EstimateItemRow({
   ] = useState(false);
 
   const [
+    replacing,
+    setReplacing,
+  ] = useState(false);
+
+  const [
     saving,
     setSaving,
+  ] = useState(false);
+
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  const [
+    replacingProduct,
+    setReplacingProduct,
   ] = useState(false);
 
   const [
@@ -64,6 +89,89 @@ export default function EstimateItemRow({
         )
       : ""
   );
+
+  const [
+    productQuery,
+    setProductQuery,
+  ] = useState("");
+
+  const [
+    productResults,
+    setProductResults,
+  ] = useState<
+    SearchProduct[]
+  >([]);
+
+  const [
+    selectedProduct,
+    setSelectedProduct,
+  ] = useState<
+    SearchProduct | null
+  >(null);
+
+  const [
+    showProductResults,
+    setShowProductResults,
+  ] = useState(false);
+
+  useEffect(() => {
+    if (
+      !replacing
+    ) {
+      return;
+    }
+
+    const query =
+      productQuery.trim();
+
+    if (
+      query.length < 2
+    ) {
+      setProductResults(
+        []
+      );
+
+      return;
+    }
+
+    const timer =
+      setTimeout(
+        async () => {
+          try {
+            const response =
+              await fetch(
+                `/api/products/search?query=${encodeURIComponent(
+                  query
+                )}`
+              );
+
+            const data =
+              await response.json();
+
+            setProductResults(
+              Array.isArray(
+                data
+              )
+                ? data
+                : []
+            );
+          } catch {
+            setProductResults(
+              []
+            );
+          }
+        },
+        250
+      );
+
+    return () =>
+      clearTimeout(
+        timer
+      );
+  }, [
+    productQuery,
+    replacing,
+  ]);
 
   const parsedPrice =
     Number(
@@ -105,6 +213,71 @@ export default function EstimateItemRow({
     );
   }
 
+  function startReplacement() {
+    setReplacing(
+      true
+    );
+
+    setSelectedProduct(
+      null
+    );
+
+    setProductResults(
+      []
+    );
+
+    setProductQuery(
+      item.product?.name ??
+        item.description
+    );
+
+    setShowProductResults(
+      true
+    );
+  }
+
+  function cancelReplacement() {
+    setReplacing(
+      false
+    );
+
+    setSelectedProduct(
+      null
+    );
+
+    setProductResults(
+      []
+    );
+
+    setProductQuery(
+      ""
+    );
+
+    setShowProductResults(
+      false
+    );
+  }
+
+  function chooseReplacementProduct(
+    product: SearchProduct
+  ) {
+    setSelectedProduct(
+      product
+    );
+
+    setProductQuery(
+      product.name
+    );
+
+    setProductResults(
+      []
+    );
+
+    setShowProductResults(
+      false
+    );
+  }
+
   async function saveEdit() {
     const cleanDescription =
       description.trim();
@@ -115,6 +288,7 @@ export default function EstimateItemRow({
       alert(
         "Item description is required."
       );
+
       return;
     }
 
@@ -127,6 +301,7 @@ export default function EstimateItemRow({
       alert(
         "Quantity must be a whole number greater than 0."
       );
+
       return;
     }
 
@@ -137,6 +312,7 @@ export default function EstimateItemRow({
       alert(
         "Enter the quotation unit price."
       );
+
       return;
     }
 
@@ -154,6 +330,7 @@ export default function EstimateItemRow({
       alert(
         "Unit price must be 0 or greater."
       );
+
       return;
     }
 
@@ -177,9 +354,12 @@ export default function EstimateItemRow({
             body:
               JSON.stringify({
                 estimateId,
+
                 description:
                   cleanDescription,
+
                 quantity,
+
                 unitPrice:
                   price,
               }),
@@ -214,6 +394,342 @@ export default function EstimateItemRow({
         false
       );
     }
+  }
+
+  async function replaceProduct() {
+    if (
+      !selectedProduct
+    ) {
+      alert(
+        "Select a catalogue product first."
+      );
+
+      return;
+    }
+
+    setReplacingProduct(
+      true
+    );
+
+    try {
+      const response =
+        await fetch(
+          `/api/estimator/items/${item.id}`,
+          {
+            method:
+              "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                estimateId,
+
+                productId:
+                  selectedProduct.id,
+              }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok
+      ) {
+        throw new Error(
+          data?.message ??
+            "Unable to replace quotation product."
+        );
+      }
+
+      cancelReplacement();
+
+      router.refresh();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to replace quotation product."
+      );
+    } finally {
+      setReplacingProduct(
+        false
+      );
+    }
+  }
+
+  async function deleteItem() {
+    const confirmed =
+      window.confirm(
+        `Delete "${item.description}" from this estimate?`
+      );
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+    setDeleting(
+      true
+    );
+
+    try {
+      const response =
+        await fetch(
+          `/api/estimator/items/${item.id}`,
+          {
+            method:
+              "DELETE",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                estimateId,
+              }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok
+      ) {
+        throw new Error(
+          data?.message ??
+            "Unable to delete quotation item."
+        );
+      }
+
+      router.refresh();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete quotation item."
+      );
+    } finally {
+      setDeleting(
+        false
+      );
+    }
+  }
+
+  if (
+    replacing
+  ) {
+    return (
+      <tr className="border-t bg-amber-50/40">
+        <td className="px-4 py-3 align-top">
+          {
+            item.lineNumber
+          }
+        </td>
+
+        <td className="px-4 py-3 align-top">
+          <div className="font-medium">
+            {
+              item.description
+            }
+          </div>
+
+          <div className="mt-1 text-xs text-gray-500">
+            Quantity:{" "}
+            {
+              item.quantity
+            }
+          </div>
+        </td>
+
+        <td
+          colSpan={4}
+          className="px-4 py-3 align-top"
+        >
+          <div className="max-w-2xl">
+
+            <label className="block text-sm font-semibold text-gray-800">
+              Search replacement catalogue product
+            </label>
+
+            <div className="relative mt-2">
+
+              <input
+                value={
+                  productQuery
+                }
+                onFocus={() =>
+                  setShowProductResults(
+                    true
+                  )
+                }
+                onBlur={() =>
+                  setTimeout(
+                    () =>
+                      setShowProductResults(
+                        false
+                      ),
+                    200
+                  )
+                }
+                onChange={(e) => {
+                  setProductQuery(
+                    e.target.value
+                  );
+
+                  setSelectedProduct(
+                    null
+                  );
+
+                  setShowProductResults(
+                    true
+                  );
+                }}
+                placeholder="Type product name or SKU..."
+                className="w-full rounded-lg border bg-white px-4 py-3"
+              />
+
+              {showProductResults &&
+                productResults.length >
+                  0 && (
+
+                <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+
+                  {productResults.map(
+                    (
+                      product
+                    ) => (
+
+                      <button
+                        key={
+                          product.id
+                        }
+                        type="button"
+                        onClick={() =>
+                          chooseReplacementProduct(
+                            product
+                          )
+                        }
+                        className="block w-full border-b px-4 py-3 text-left hover:bg-gray-100"
+                      >
+                        <div className="font-medium">
+                          {
+                            product.name
+                          }
+                        </div>
+
+                        <div className="mt-1 text-sm text-gray-500">
+                          {
+                            product.sku
+                          }{" "}
+                          · GHS{" "}
+                          {
+                            product.retailPrice
+                          }{" "}
+                          · Stock{" "}
+                          {
+                            product.stockQty
+                          }
+                        </div>
+
+                        {product.stockQty ===
+                          0 && (
+                          <div className="mt-1 text-xs font-semibold text-amber-700">
+                            Zero stock — still available for quotation
+                          </div>
+                        )}
+
+                      </button>
+
+                    )
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+            {selectedProduct && (
+              <div className="mt-3 rounded-lg border bg-white p-3 text-sm">
+
+                <div className="font-semibold text-gray-900">
+                  Selected replacement
+                </div>
+
+                <div className="mt-1">
+                  {
+                    selectedProduct.name
+                  }
+                </div>
+
+                <div className="mt-1 text-gray-600">
+                  SKU:{" "}
+                  {
+                    selectedProduct.sku
+                  }{" "}
+                  · Retail price: GHS{" "}
+                  {
+                    selectedProduct.retailPrice
+                  }{" "}
+                  · Stock:{" "}
+                  {
+                    selectedProduct.stockQty
+                  }
+                </div>
+
+                <div className="mt-2 text-xs text-gray-500">
+                  Replacing an estimate item does not change or reserve inventory.
+                </div>
+
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap gap-2">
+
+              <button
+                type="button"
+                onClick={
+                  replaceProduct
+                }
+                disabled={
+                  replacingProduct ||
+                  !selectedProduct
+                }
+                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {replacingProduct
+                  ? "Replacing..."
+                  : "Replace Product"}
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  cancelReplacement
+                }
+                disabled={
+                  replacingProduct
+                }
+                className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+            </div>
+
+          </div>
+        </td>
+      </tr>
+    );
   }
 
   if (
@@ -289,6 +805,7 @@ export default function EstimateItemRow({
 
         <td className="px-4 py-3 align-top">
           <div className="space-y-2">
+
             <div>
               <label className="block text-xs font-semibold text-gray-600">
                 Unit Price
@@ -323,6 +840,7 @@ export default function EstimateItemRow({
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
+
               <button
                 type="button"
                 onClick={
@@ -350,7 +868,9 @@ export default function EstimateItemRow({
               >
                 Cancel
               </button>
+
             </div>
+
           </div>
         </td>
       </tr>
@@ -359,6 +879,7 @@ export default function EstimateItemRow({
 
   return (
     <tr className="border-t">
+
       <td className="px-4 py-3">
         {
           item.lineNumber
@@ -390,6 +911,7 @@ export default function EstimateItemRow({
       </td>
 
       <td className="px-4 py-3">
+
         <div className="font-semibold">
           {item.totalPrice !=
           null
@@ -409,17 +931,53 @@ export default function EstimateItemRow({
             : "-"}
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            setEditing(
-              true
-            )
-          }
-          className="mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-50"
-        >
-          Edit
-        </button>
+        <div className="mt-2 flex flex-wrap gap-2">
+
+          <button
+            type="button"
+            onClick={() =>
+              setEditing(
+                true
+              )
+            }
+            disabled={
+              deleting
+            }
+            className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-50"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={
+              startReplacement
+            }
+            disabled={
+              deleting
+            }
+            className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+          >
+            Replace
+          </button>
+
+          <button
+            type="button"
+            onClick={
+              deleteItem
+            }
+            disabled={
+              deleting
+            }
+            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleting
+              ? "Deleting..."
+              : "Delete"}
+          </button>
+
+        </div>
+
       </td>
     </tr>
   );
