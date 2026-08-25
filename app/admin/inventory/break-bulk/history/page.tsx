@@ -121,7 +121,7 @@ export default async function BreakBulkHistoryPage() {
                       <div className="text-xs text-gray-500">
                         SKU:{" "}
                         {conversion.sourceProduct
-                          .sku || "—"}
+                          .sku || "-"}
                       </div>
                     </td>
 
@@ -152,7 +152,7 @@ export default async function BreakBulkHistoryPage() {
                     </td>
 
                     <td className="p-3 whitespace-nowrap">
-                      1 →{" "}
+                      1 to{" "}
                       <strong>
                         {
                           conversion.conversionRatio
@@ -173,7 +173,7 @@ export default async function BreakBulkHistoryPage() {
                         SKU:{" "}
                         {conversion
                           .destinationProduct
-                          .sku || "—"}
+                          .sku || "-"}
                       </div>
                     </td>
 
@@ -222,7 +222,7 @@ export default async function BreakBulkHistoryPage() {
                     </td>
 
                     <td className="p-3">
-                      {conversion.note || "—"}
+                      {conversion.note || "-"}
                     </td>
                   </tr>
                 )
