@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -79,6 +80,38 @@ type FailedSplitPayment = {
   orderId: string;
   cashAmountPesewas: number;
   momoAmountPesewas: number;
+};
+
+type RecoverableSplitItem = {
+  productId: string;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  currentStockQty: number;
+};
+
+type RecoverableSplitOrder = {
+  orderId: string;
+  createdAt: string;
+  customerName: string | null;
+  customerPhone: string;
+  requiredAmountPesewas: number;
+  confirmedAmountPesewas: number;
+  confirmedCashPesewas: number;
+  outstandingAmountPesewas: number;
+  stockReduced: boolean;
+  paymentStatus: string;
+  provider: string | null;
+  momoPhone: string | null;
+  hasPendingMomo: boolean;
+  safeToRetry: boolean;
+  items: RecoverableSplitItem[];
+};
+
+type RecoverableSplitResponse = {
+  success?: boolean;
+  error?: string;
+  orders?: RecoverableSplitOrder[];
 };
 
 type MomoInitiateResponse = {
@@ -339,6 +372,24 @@ export default function POSPage() {
     );
 
   const [
+    recoverableSplitOrders,
+    setRecoverableSplitOrders,
+  ] =
+    useState<RecoverableSplitOrder[]>(
+      []
+    );
+
+  const [
+    isLoadingRecoverableSplits,
+    setIsLoadingRecoverableSplits,
+  ] = useState(false);
+
+  const [
+    recoverableSplitError,
+    setRecoverableSplitError,
+  ] = useState("");
+
+  const [
     momoMessage,
     setMomoMessage,
   ] = useState("");
@@ -358,6 +409,63 @@ export default function POSPage() {
     momoSecondsRemaining,
     setMomoSecondsRemaining,
   ] = useState(0);
+
+  const loadRecoverableSplitOrders =
+    async () => {
+      setIsLoadingRecoverableSplits(
+        true
+      );
+
+      setRecoverableSplitError("");
+
+      try {
+        const response =
+          await fetch(
+            "/api/pos/split/recover",
+            {
+              method:
+                "GET",
+
+              cache:
+                "no-store",
+            }
+          );
+
+        const data =
+          (await response.json()) as
+            RecoverableSplitResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to load recoverable split sales"
+          );
+        }
+
+        setRecoverableSplitOrders(
+          data.orders ??
+            []
+        );
+      } catch (error) {
+        setRecoverableSplitOrders(
+          []
+        );
+
+        setRecoverableSplitError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load recoverable split sales"
+        );
+      } finally {
+        setIsLoadingRecoverableSplits(
+          false
+        );
+      }
+    };
+
+  useEffect(() => {
+    void loadRecoverableSplitOrders();
+  }, []);
 
   const resetDiscountApproval =
     () => {
@@ -2255,6 +2363,102 @@ export default function POSPage() {
     };
 
   // ==========================================
+  // RESUME RECOVERABLE SPLIT SALE
+  // ==========================================
+  const resumeRecoverableSplitOrder =
+    (
+      order: RecoverableSplitOrder
+    ) => {
+      if (
+        isProcessing ||
+        pendingMomo
+      ) {
+        return;
+      }
+
+      if (
+        cart.length > 0 &&
+        !window.confirm(
+          "There is already another sale in the cart. Resume this saved Split sale and clear the current cart?"
+        )
+      ) {
+        return;
+      }
+
+      setCart([]);
+      setQuery("");
+      setResults([]);
+      setScanValue("");
+      setScanMessage("");
+
+      resetDiscountState();
+
+      setCustomerName(
+        order.customerName ??
+          ""
+      );
+
+      setCustomerPhone(
+        order.momoPhone ||
+          order.customerPhone ||
+          ""
+      );
+
+      if (
+        order.provider ===
+          "mtn" ||
+        order.provider ===
+          "atl" ||
+        order.provider ===
+          "vod"
+      ) {
+        setMomoProvider(
+          order.provider
+        );
+      } else {
+        setMomoProvider("");
+      }
+
+      setPaymentMethod(
+        "SPLIT"
+      );
+
+      setSplitCashAmount(
+        (
+          order.confirmedCashPesewas /
+          100
+        ).toFixed(2)
+      );
+
+      setPendingMomo(
+        null
+      );
+
+      setFailedSplitPayment({
+        orderId:
+          order.orderId,
+
+        cashAmountPesewas:
+          order.confirmedCashPesewas,
+
+        momoAmountPesewas:
+          order.outstandingAmountPesewas,
+      });
+
+      setMomoSecondsRemaining(
+        0
+      );
+
+      setMomoMessageType(
+        "warning"
+      );
+
+      setMomoMessage(
+        `Recovered ${order.orderId}. Cash already recorded: GHS ${(order.confirmedCashPesewas / 100).toFixed(2)}. Remaining Mobile Money: GHS ${(order.outstandingAmountPesewas / 100).toFixed(2)}. Do not take the Cash again.`
+      );
+    };
+
+  // ==========================================
   // RETRY FAILED SPLIT MOMO BALANCE
   // ==========================================
   const handleSplitRetry =
@@ -3483,6 +3687,169 @@ export default function POSPage() {
                     and stock is
                     reduced.
                   </p>
+                )}
+              </div>
+            )}
+
+            {(isLoadingRecoverableSplits ||
+              recoverableSplitError ||
+              recoverableSplitOrders.length >
+                0) && (
+              <div className="border border-blue-300 bg-blue-50 text-blue-950 rounded-lg p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold">
+                    Recoverable Split
+                    Sales
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void loadRecoverableSplitOrders()
+                    }
+                    disabled={
+                      isLoadingRecoverableSplits
+                    }
+                    className="text-sm border border-blue-300 bg-white px-3 py-1 rounded-md disabled:opacity-50"
+                  >
+                    {isLoadingRecoverableSplits
+                      ? "Refreshing..."
+                      : "Refresh"}
+                  </button>
+                </div>
+
+                <p className="text-sm">
+                  These sales already
+                  exist in the database.
+                  Resume them instead of
+                  creating a new sale or
+                  taking the Cash again.
+                </p>
+
+                {recoverableSplitError && (
+                  <div className="border border-red-300 bg-red-50 text-red-800 rounded-md p-2 text-sm">
+                    {
+                      recoverableSplitError
+                    }
+                  </div>
+                )}
+
+                {recoverableSplitOrders.map(
+                  (order) => (
+                    <div
+                      key={
+                        order.orderId
+                      }
+                      className="border border-blue-200 bg-white rounded-lg p-3 space-y-3"
+                    >
+                      <div className="font-semibold">
+                        {
+                          order.orderId
+                        }
+                      </div>
+
+                      <div className="text-sm space-y-1">
+                        <div>
+                          Customer:{" "}
+                          {order.customerName ||
+                            "Walk-in customer"}
+                        </div>
+
+                        <div>
+                          Phone:{" "}
+                          {order.momoPhone ||
+                            order.customerPhone ||
+                            "-"}
+                        </div>
+
+                        <div>
+                          Cash already
+                          recorded:{" "}
+                          <strong>
+                            GHS{" "}
+                            {(
+                              order.confirmedCashPesewas /
+                              100
+                            ).toFixed(
+                              2
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          MoMo still
+                          required:{" "}
+                          <strong>
+                            GHS{" "}
+                            {(
+                              order.outstandingAmountPesewas /
+                              100
+                            ).toFixed(
+                              2
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="text-sm">
+                        <div className="font-medium mb-1">
+                          Items
+                        </div>
+
+                        <ul className="list-disc pl-5 space-y-1">
+                          {order.items.map(
+                            (item) => (
+                              <li
+                                key={
+                                  item.productId
+                                }
+                              >
+                                {
+                                  item.name
+                                }{" "}
+                                ×{" "}
+                                {
+                                  item.quantity
+                                }
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+
+                      {order.hasPendingMomo && (
+                        <div className="text-sm border border-amber-300 bg-amber-50 text-amber-900 rounded-md p-2">
+                          A Mobile Money
+                          payment is already
+                          pending for this
+                          sale. Do not create
+                          another payment.
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          resumeRecoverableSplitOrder(
+                            order
+                          )
+                        }
+                        disabled={
+                          isProcessing ||
+                          pendingMomo !==
+                            null ||
+                          !order.safeToRetry
+                        }
+                        className="w-full bg-blue-700 text-white px-3 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {order.safeToRetry
+                          ? "Resume Sale"
+                          : order.hasPendingMomo
+                            ? "Payment Pending"
+                            : "Not Ready to Resume"}
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             )}
