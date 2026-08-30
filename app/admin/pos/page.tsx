@@ -114,6 +114,44 @@ type RecoverableSplitResponse = {
   orders?: RecoverableSplitOrder[];
 };
 
+type HeldDiscountSnapshot = {
+  enabled: boolean;
+  type: string;
+  value: string;
+  reason: string;
+  note: string;
+};
+
+type PosHeldSale = {
+  id: string;
+  holdNumber: string;
+  branchId: string;
+  createdByStaffId: string;
+  createdByName: string | null;
+  label: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  paymentMethod: string;
+  momoProvider: string | null;
+  splitCashAmount: string | null;
+  itemCount: number;
+  subtotalPesewas: number;
+  cartSnapshot: unknown;
+  discountSnapshot: unknown;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  resumedAt: string | null;
+  cancelledAt: string | null;
+};
+
+type HeldSalesResponse = {
+  success?: boolean;
+  error?: string;
+  heldSales?: PosHeldSale[];
+  heldSale?: PosHeldSale;
+};
+
 type MomoInitiateResponse = {
   success?: boolean;
   error?: string;
@@ -380,6 +418,14 @@ export default function POSPage() {
     );
 
   const [
+    activeRecoveredSplitOrder,
+    setActiveRecoveredSplitOrder,
+  ] =
+    useState<RecoverableSplitOrder | null>(
+      null
+    );
+
+  const [
     isLoadingRecoverableSplits,
     setIsLoadingRecoverableSplits,
   ] = useState(false);
@@ -388,6 +434,39 @@ export default function POSPage() {
     recoverableSplitError,
     setRecoverableSplitError,
   ] = useState("");
+
+  const [
+    heldSales,
+    setHeldSales,
+  ] = useState<PosHeldSale[]>([]);
+
+  const [
+    isLoadingHeldSales,
+    setIsLoadingHeldSales,
+  ] = useState(false);
+
+  const [
+    heldSalesError,
+    setHeldSalesError,
+  ] = useState("");
+
+  const [
+    holdLabel,
+    setHoldLabel,
+  ] = useState("");
+
+  const [
+    activeHeldSale,
+    setActiveHeldSale,
+  ] =
+    useState<PosHeldSale | null>(
+      null
+    );
+
+  const [
+    isHoldingSale,
+    setIsHoldingSale,
+  ] = useState(false);
 
   const [
     momoMessage,
@@ -463,8 +542,60 @@ export default function POSPage() {
       }
     };
 
+  const loadHeldSales =
+    async () => {
+      setIsLoadingHeldSales(
+        true
+      );
+
+      setHeldSalesError("");
+
+      try {
+        const response =
+          await fetch(
+            "/api/pos/held-sales",
+            {
+              method:
+                "GET",
+
+              cache:
+                "no-store",
+            }
+          );
+
+        const data =
+          (await response.json()) as
+            HeldSalesResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to load held sales"
+          );
+        }
+
+        setHeldSales(
+          data.heldSales ??
+            []
+        );
+      } catch (error) {
+        setHeldSales([]);
+
+        setHeldSalesError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load held sales"
+        );
+      } finally {
+        setIsLoadingHeldSales(
+          false
+        );
+      }
+    };
+
   useEffect(() => {
     void loadRecoverableSplitOrders();
+    void loadHeldSales();
   }, []);
 
   const resetDiscountApproval =
@@ -789,6 +920,31 @@ export default function POSPage() {
   // ==========================================
   // CLEAR CART
   // ==========================================
+  const resetCurrentDraftSale =
+    () => {
+      setCart([]);
+      setQuery("");
+      setResults([]);
+      setScanValue("");
+      setScanMessage("");
+      setScanSuccess(false);
+
+      setCustomerName("");
+      setCustomerPhone("");
+
+      setPaymentMethod(
+        "CASH"
+      );
+
+      setMomoProvider("");
+      setSplitCashAmount("");
+
+      setHoldLabel("");
+      setActiveHeldSale(null);
+
+      resetDiscountState();
+    };
+
   const clearCart = () => {
     if (momoPaymentLocked) {
       return;
@@ -797,6 +953,567 @@ export default function POSPage() {
     setCart([]);
     resetDiscountState();
   };
+
+  const normaliseHeldCartSnapshot =
+    (
+      value: unknown
+    ): CartItem[] | null => {
+      if (
+        !Array.isArray(value) ||
+        value.length === 0
+      ) {
+        return null;
+      }
+
+      const items:
+        CartItem[] = [];
+
+      for (const rawItem of value) {
+        if (
+          !rawItem ||
+          typeof rawItem !==
+            "object" ||
+          !("id" in rawItem) ||
+          !("name" in rawItem) ||
+          !("retailPrice" in rawItem) ||
+          !("quantity" in rawItem)
+        ) {
+          return null;
+        }
+
+        const id =
+          String(
+            rawItem.id
+          ).trim();
+
+        const name =
+          String(
+            rawItem.name
+          ).trim();
+
+        const retailPrice =
+          Number(
+            rawItem.retailPrice
+          );
+
+        const quantity =
+          Number(
+            rawItem.quantity
+          );
+
+        if (
+          !id ||
+          !name ||
+          !Number.isFinite(
+            retailPrice
+          ) ||
+          retailPrice <= 0 ||
+          !Number.isInteger(
+            quantity
+          ) ||
+          quantity <= 0
+        ) {
+          return null;
+        }
+
+        items.push({
+          id,
+          name,
+          retailPrice,
+          quantity,
+        });
+      }
+
+      return items;
+    };
+
+  const holdCurrentSale =
+    async () => {
+      if (
+        isHoldingSale ||
+        isProcessing
+      ) {
+        return;
+      }
+
+      if (
+        pendingMomo ||
+        failedSplitPayment ||
+        activeRecoveredSplitOrder
+      ) {
+        alert(
+          "This sale already has payment activity. Complete or recover the existing payment instead of holding it."
+        );
+
+        return;
+      }
+
+      /*
+       * A resumed held sale already has a persistent
+       * database record.
+       *
+       * Creating another held-sale record here would
+       * duplicate the same customer transaction.
+       *
+       * The cashier must either complete the resumed
+       * sale or abandon its existing held record.
+       */
+      if (activeHeldSale) {
+        alert(
+          "This sale is already a resumed held sale. Complete it or abandon it instead of holding it again."
+        );
+
+        return;
+      }
+
+      if (
+        cart.length === 0
+      ) {
+        alert(
+          "Cart is empty"
+        );
+
+        return;
+      }
+
+      setIsHoldingSale(
+        true
+      );
+
+      setHeldSalesError("");
+
+      try {
+        const response =
+          await fetch(
+            "/api/pos/held-sales",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  label:
+                    holdLabel,
+
+                  customerName,
+                  customerPhone,
+                  paymentMethod,
+                  momoProvider,
+                  splitCashAmount,
+
+                  cart,
+
+                  discount: {
+                    enabled:
+                      discountEnabled,
+
+                    type:
+                      discountType,
+
+                    value:
+                      discountValue,
+
+                    reason:
+                      discountReason,
+
+                    note:
+                      discountNote,
+                  },
+
+                  hasPendingMomo:
+                    pendingMomo !==
+                    null,
+
+                  hasFailedSplitPayment:
+                    failedSplitPayment !==
+                    null,
+                }),
+            }
+          );
+
+        const data =
+          (await response.json()) as
+            HeldSalesResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to hold sale"
+          );
+        }
+
+        resetCurrentDraftSale();
+
+        await loadHeldSales();
+
+        alert(
+          data.heldSale
+            ? `Sale held as ${data.heldSale.holdNumber}`
+            : "Sale held successfully"
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to hold sale";
+
+        setHeldSalesError(
+          message
+        );
+
+        alert(message);
+      } finally {
+        setIsHoldingSale(
+          false
+        );
+      }
+    };
+
+  const resumeHeldSale =
+    async (
+      heldSale: PosHeldSale
+    ) => {
+      if (
+        isProcessing ||
+        isHoldingSale ||
+        pendingMomo ||
+        failedSplitPayment ||
+        activeRecoveredSplitOrder
+      ) {
+        return;
+      }
+
+      if (
+        cart.length > 0 &&
+        !window.confirm(
+          "There is already another sale in the cart. Resume this held sale and replace the current cart?"
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response =
+          await fetch(
+            `/api/pos/held-sales/${encodeURIComponent(
+              heldSale.id
+            )}`,
+            {
+              method:
+                "PATCH",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  action:
+                    "RESUME",
+                }),
+            }
+          );
+
+        const data =
+          (await response.json()) as
+            HeldSalesResponse;
+
+        if (
+          !response.ok ||
+          !data.heldSale
+        ) {
+          throw new Error(
+            data.error ||
+              "Unable to resume held sale"
+          );
+        }
+
+        const resumedSale =
+          data.heldSale;
+
+        const restoredCart =
+          normaliseHeldCartSnapshot(
+            resumedSale.cartSnapshot
+          );
+
+        if (!restoredCart) {
+          throw new Error(
+            "This held sale contains an invalid cart snapshot and cannot be restored safely."
+          );
+        }
+
+        resetCurrentDraftSale();
+
+        setCart(
+          restoredCart
+        );
+
+        setCustomerName(
+          resumedSale.customerName ??
+            ""
+        );
+
+        setCustomerPhone(
+          resumedSale.customerPhone ??
+            ""
+        );
+
+        if (
+          [
+            "CASH",
+            "BANK_TRANSFER",
+            "MOMO",
+            "SPLIT",
+          ].includes(
+            resumedSale.paymentMethod
+          )
+        ) {
+          setPaymentMethod(
+            resumedSale.paymentMethod
+          );
+        }
+
+        if (
+          resumedSale.momoProvider ===
+            "mtn" ||
+          resumedSale.momoProvider ===
+            "atl" ||
+          resumedSale.momoProvider ===
+            "vod"
+        ) {
+          setMomoProvider(
+            resumedSale.momoProvider
+          );
+        }
+
+        setSplitCashAmount(
+          resumedSale.splitCashAmount ??
+            ""
+        );
+
+        setHoldLabel(
+          resumedSale.label ??
+            ""
+        );
+
+        setActiveHeldSale(
+          resumedSale
+        );
+
+        if (
+          resumedSale.discountSnapshot &&
+          typeof resumedSale.discountSnapshot ===
+            "object" &&
+          !Array.isArray(
+            resumedSale.discountSnapshot
+          )
+        ) {
+          const snapshot =
+            resumedSale.discountSnapshot as
+              Partial<HeldDiscountSnapshot>;
+
+          setDiscountEnabled(
+            snapshot.enabled ===
+              true
+          );
+
+          if (
+            snapshot.type ===
+              "AMOUNT" ||
+            snapshot.type ===
+              "PERCENTAGE"
+          ) {
+            setDiscountType(
+              snapshot.type
+            );
+          }
+
+          setDiscountValue(
+            typeof snapshot.value ===
+              "string"
+              ? snapshot.value
+              : ""
+          );
+
+          if (
+            [
+              "",
+              "CUSTOMER_NEGOTIATION",
+              "BULK_PURCHASE",
+              "SCHOOL_LIST",
+              "PROMOTION",
+              "LOYAL_CUSTOMER",
+              "DAMAGED_PACKAGING",
+              "MANAGER_ADJUSTMENT",
+              "OTHER",
+            ].includes(
+              typeof snapshot.reason ===
+                "string"
+                ? snapshot.reason
+                : ""
+            )
+          ) {
+            setDiscountReason(
+              (
+                snapshot.reason ??
+                ""
+              ) as DiscountReasonOption
+            );
+          }
+
+          setDiscountNote(
+            typeof snapshot.note ===
+              "string"
+              ? snapshot.note
+              : ""
+          );
+
+          resetDiscountApproval();
+        }
+
+        await loadHeldSales();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to resume held sale";
+
+        setHeldSalesError(
+          message
+        );
+
+        alert(message);
+
+        await loadHeldSales();
+      }
+    };
+
+  const abandonHeldSale =
+    async (
+      heldSale: PosHeldSale
+    ) => {
+      if (
+        isProcessing ||
+        isHoldingSale
+      ) {
+        return;
+      }
+
+      if (
+        !window.confirm(
+          `Abandon ${heldSale.holdNumber}? This removes it from active held sales. No stock movement has occurred.`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response =
+          await fetch(
+            `/api/pos/held-sales/${encodeURIComponent(
+              heldSale.id
+            )}`,
+            {
+              method:
+                "DELETE",
+            }
+          );
+
+        const data =
+          (await response.json()) as
+            HeldSalesResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Unable to abandon held sale"
+          );
+        }
+
+        /*
+         * If the cashier is abandoning the same
+         * held sale currently restored into the
+         * working cart, clear the local draft only
+         * AFTER the database cancellation succeeds.
+         *
+         * This prevents the UI from losing the sale
+         * if the DELETE request itself fails.
+         */
+        if (
+          activeHeldSale?.id ===
+          heldSale.id
+        ) {
+          resetCurrentDraftSale();
+        }
+
+        await loadHeldSales();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to abandon held sale";
+
+        setHeldSalesError(
+          message
+        );
+
+        alert(message);
+      }
+    };
+
+  const abandonCurrentSale =
+    async () => {
+      if (
+        pendingMomo ||
+        failedSplitPayment ||
+        activeRecoveredSplitOrder
+      ) {
+        alert(
+          "This sale already has payment activity and cannot be abandoned here. Complete or recover the payment instead."
+        );
+
+        return;
+      }
+
+      /*
+       * A resumed held sale is persisted in the
+       * database. Abandoning it must cancel that
+       * record rather than merely clearing the
+       * browser state.
+       *
+       * abandonHeldSale() also clears the current
+       * draft after the DELETE succeeds.
+       */
+      if (activeHeldSale) {
+        await abandonHeldSale(
+          activeHeldSale
+        );
+
+        return;
+      }
+
+      if (
+        cart.length === 0
+      ) {
+        return;
+      }
+
+      if (
+        !window.confirm(
+          "Abandon this current sale? The cart and customer/payment selections will be cleared. Stock has not been reduced."
+        )
+      ) {
+        return;
+      }
+
+      resetCurrentDraftSale();
+    };
 
   // ==========================================
   // EXACT CASHIER-SIDE RETAIL TOTAL
@@ -1145,6 +1862,10 @@ export default function POSPage() {
                   customerPhone,
                   paymentMethod,
 
+                  heldSaleId:
+                    activeHeldSale?.id ??
+                    null,
+
                   items:
                     cart.map(
                       (
@@ -1395,12 +2116,33 @@ export default function POSPage() {
             data.message ||
               "The Mobile Money part of this split payment failed. The Cash payment is still recorded. Retry the remaining Mobile Money balance for this same order."
           );
-        } else {
-          setMomoMessage(
-            data.message ||
-              "The Mobile Money payment was not completed."
+
+          setPendingMomo(
+            null
           );
+
+          setMomoSecondsRemaining(
+            0
+          );
+
+          return "FAILED";
         }
+
+        /*
+         * PURE MOMO terminal failure.
+         *
+         * A real Order/payment attempt already
+         * exists and is now definitively failed.
+         *
+         * Keep the audit history in the database,
+         * but retire the failed transaction from
+         * the working POS so the cashier cannot
+         * Hold, Abandon or accidentally resubmit
+         * the same cart as though it were fresh.
+         */
+        const failureMessage =
+          data.message ||
+          "The Mobile Money payment was not completed.";
 
         setPendingMomo(
           null
@@ -1409,6 +2151,18 @@ export default function POSPage() {
         setMomoSecondsRemaining(
           0
         );
+
+        resetCurrentDraftSale();
+
+        setMomoMessageType(
+          "error"
+        );
+
+        setMomoMessage(
+          `${failureMessage} The failed payment has been recorded. Start a new sale if the customer wants to try again.`
+        );
+
+        await loadHeldSales();
 
         return "FAILED";
       }
@@ -1497,7 +2251,7 @@ export default function POSPage() {
       );
 
       setMomoMessage(
-        "Automatic checking has paused because the approval window has elapsed. Do not start another payment yet. Use “Check Payment Status” below to confirm the existing payment first."
+        "Automatic checking has paused because the approval window has elapsed. Do not start another payment yet. Use Check Payment Status to verify this existing payment before trying again."
       );
 
       setIsProcessing(
@@ -1593,6 +2347,10 @@ export default function POSPage() {
 
                   provider:
                     momoProvider,
+
+                  heldSaleId:
+                    activeHeldSale?.id ??
+                    null,
 
                   items:
                     cart.map(
@@ -1703,6 +2461,27 @@ export default function POSPage() {
             resetDiscountApproval();
           }
 
+          /*
+           * Once an Order ID exists, the backend has
+           * crossed from held-draft lifecycle into the
+           * real payment lifecycle.
+           *
+           * The held sale has already been converted
+           * atomically with that Order. Never keep the
+           * old held-sale ID active in browser state,
+           * otherwise a second click could resend an
+           * already-converted heldSaleId.
+           */
+          if (data.orderId) {
+            setActiveHeldSale(
+              null
+            );
+
+            setHoldLabel("");
+
+            await loadHeldSales();
+          }
+
           if (
             data.orderId &&
             data.paymentId &&
@@ -1778,6 +2557,22 @@ export default function POSPage() {
            * payment polling.
            */
           resetDiscountApproval();
+        }
+
+        /*
+         * A successful initiation response means
+         * a real Order/payment now owns this sale.
+         * The original held draft must no longer
+         * remain active in the cashier UI.
+         */
+        if (data.orderId) {
+          setActiveHeldSale(
+            null
+          );
+
+          setHoldLabel("");
+
+          await loadHeldSales();
         }
 
         const payment: PendingMomoPayment =
@@ -2047,6 +2842,10 @@ export default function POSPage() {
                   cashAmount:
                     splitCashAmount,
 
+                  heldSaleId:
+                    activeHeldSale?.id ??
+                    null,
+
                   items:
                     cart.map(
                       (
@@ -2171,6 +2970,27 @@ export default function POSPage() {
             resetDiscountApproval();
           }
 
+          /*
+           * Once an Order ID exists, the backend has
+           * crossed from held-draft lifecycle into the
+           * real payment lifecycle.
+           *
+           * The held sale has already been converted
+           * atomically with that Order. Never keep the
+           * old held-sale ID active in browser state,
+           * otherwise a second click could resend an
+           * already-converted heldSaleId.
+           */
+          if (data.orderId) {
+            setActiveHeldSale(
+              null
+            );
+
+            setHoldLabel("");
+
+            await loadHeldSales();
+          }
+
           if (
             data.orderId &&
             data.paymentId &&
@@ -2192,6 +3012,28 @@ export default function POSPage() {
                 momoAmountPesewas:
                   returnedMomoPesewas,
               });
+
+              /*
+               * Cash is already recorded on the real
+               * Split Order. The editable basket must
+               * therefore disappear.
+               *
+               * Do NOT call resetCurrentDraftSale()
+               * here because that would also destroy
+               * failedSplitPayment, which is required
+               * for the safe retry workflow.
+               */
+              setCart([]);
+              setQuery("");
+              setResults([]);
+              setScanValue("");
+              setScanMessage("");
+
+              setActiveHeldSale(
+                null
+              );
+
+              setHoldLabel("");
 
               setPendingMomo(
                 null
@@ -2295,6 +3137,21 @@ export default function POSPage() {
           resetDiscountApproval();
         }
 
+        /*
+         * The Split Order and its Cash/MoMo
+         * allocations now exist. The held draft
+         * must no longer remain active in the POS.
+         */
+        if (data.orderId) {
+          setActiveHeldSale(
+            null
+          );
+
+          setHoldLabel("");
+
+          await loadHeldSales();
+        }
+
         const payment:
           PendingMomoPayment =
           {
@@ -2390,6 +3247,10 @@ export default function POSPage() {
       setResults([]);
       setScanValue("");
       setScanMessage("");
+
+      setActiveRecoveredSplitOrder(
+        order
+      );
 
       resetDiscountState();
 
@@ -2972,7 +3833,330 @@ export default function POSPage() {
             Cart
           </h2>
 
-          {cart.length ===
+          {/* ==========================================
+              HELD SALES
+              ========================================== */}
+          <div className="mb-4 border rounded-xl bg-slate-50 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-sm">
+                  Held Sales
+                </h3>
+
+                <p className="text-xs text-gray-600 mt-1">
+                  Save an unfinished sale, serve another customer, then resume it later.
+                </p>
+              </div>
+
+              <span className="text-xs font-semibold bg-white border px-2 py-1 rounded-full">
+                {heldSales.length}
+              </span>
+            </div>
+
+            {heldSalesError && (
+              <div className="border border-red-200 bg-red-50 text-red-800 rounded-lg p-2 text-xs">
+                {heldSalesError}
+              </div>
+            )}
+
+            {isLoadingHeldSales ? (
+              <p className="text-xs text-gray-500">
+                Loading held sales...
+              </p>
+            ) : heldSales.length === 0 ? (
+              <p className="text-xs text-gray-500">
+                No active held sales.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {heldSales.map(
+                  (heldSale) => {
+                    const isActive =
+                      activeHeldSale?.id ===
+                      heldSale.id;
+
+                    const statusLabel =
+                      heldSale.status ===
+                      "RESUMED"
+                        ? "Resumed"
+                        : "Held";
+
+                    return (
+                      <div
+                        key={
+                          heldSale.id
+                        }
+                        className={`border rounded-lg p-3 bg-white ${
+                          isActive
+                            ? "ring-2 ring-blue-200 border-blue-300"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {heldSale.label ||
+                                heldSale.customerName ||
+                                heldSale.holdNumber}
+                            </div>
+
+                            <div className="text-xs text-gray-500 mt-1">
+                              {
+                                heldSale.holdNumber
+                              }
+                            </div>
+                          </div>
+
+                          <span
+                            className={`text-xs font-semibold px-2 py-1 rounded ${
+                              heldSale.status ===
+                              "RESUMED"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {
+                              statusLabel
+                            }
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-600">
+                          <div>
+                            Items:{" "}
+                            <span className="font-medium text-gray-900">
+                              {
+                                heldSale.itemCount
+                              }
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            GHS{" "}
+                            <span className="font-medium text-gray-900">
+                              {(
+                                heldSale.subtotalPesewas /
+                                100
+                              ).toFixed(
+                                2
+                              )}
+                            </span>
+                          </div>
+                        </div>
+
+                        {heldSale.customerName && (
+                          <div className="text-xs text-gray-600 mt-2">
+                            Customer:{" "}
+                            <span className="font-medium text-gray-900">
+                              {
+                                heldSale.customerName
+                              }
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="text-[11px] text-gray-400 mt-2">
+                          {new Date(
+                            heldSale.createdAt
+                          ).toLocaleString(
+                            "en-GB"
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void resumeHeldSale(
+                                heldSale
+                              )
+                            }
+                            disabled={
+                              isProcessing ||
+                              isHoldingSale ||
+                              momoPaymentLocked ||
+                              Boolean(
+                                activeRecoveredSplitOrder
+                              ) ||
+                              isActive
+                            }
+                            className="border border-blue-300 bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isActive
+                              ? "Active"
+                              : "Resume"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void abandonHeldSale(
+                                heldSale
+                              )
+                            }
+                            disabled={
+                              isProcessing ||
+                              isHoldingSale ||
+                              momoPaymentLocked
+                            }
+                            className="border border-red-300 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Abandon
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            )}
+          </div>
+
+          {activeHeldSale && !activeRecoveredSplitOrder && (
+            <div className="mb-4 border border-blue-300 bg-blue-50 rounded-lg p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-blue-950">
+                    Resumed Held Sale
+                  </div>
+
+                  <div className="text-xs text-blue-800 mt-1">
+                    {
+                      activeHeldSale.holdNumber
+                    }
+                    {activeHeldSale.label
+                      ? ` - ${activeHeldSale.label}`
+                      : ""}
+                  </div>
+                </div>
+
+                <span className="text-xs font-semibold bg-blue-200 text-blue-950 px-2 py-1 rounded">
+                  Active
+                </span>
+              </div>
+
+              <p className="text-xs text-blue-900 mt-3">
+                This sale was restored from Held Sales. Prices and stock will be checked again when checkout is completed.
+              </p>
+
+              <p className="text-xs text-blue-900 mt-2">
+                Do not hold it again. Complete the sale or use Abandon Sale below.
+              </p>
+            </div>
+          )}
+
+          {activeRecoveredSplitOrder ? (
+            <div className="space-y-3">
+              <div className="border border-amber-300 bg-amber-50 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold text-amber-950">
+                      Recovered Sale
+                    </div>
+
+                    <div className="text-xs text-amber-800 mt-1">
+                      {
+                        activeRecoveredSplitOrder.orderId
+                      }
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-semibold bg-amber-200 text-amber-950 px-2 py-1 rounded">
+                    Read Only
+                  </span>
+                </div>
+
+                <p className="text-xs text-amber-900 mt-3">
+                  This sale already exists
+                  in the database. Its
+                  products cannot be edited
+                  here and the Cash already
+                  recorded must not be taken
+                  again.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {activeRecoveredSplitOrder.items.map(
+                  (item) => (
+                    <div
+                      key={
+                        item.productId
+                      }
+                      className="border rounded-lg p-3 text-sm bg-gray-50"
+                    >
+                      <div className="font-medium">
+                        {
+                          item.name
+                        }
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 mt-1 text-gray-600">
+                        <span>
+                          Qty:{" "}
+                          {
+                            item.quantity
+                          }
+                        </span>
+
+                        {item.sku && (
+                          <span className="text-xs">
+                            {
+                              item.sku
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div className="border-t pt-3 space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span>
+                    Original sale total
+                  </span>
+
+                  <span className="font-semibold">
+                    GHS{" "}
+                    {(
+                      activeRecoveredSplitOrder.requiredAmountPesewas /
+                      100
+                    ).toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-3 text-green-800">
+                  <span>
+                    Cash already recorded
+                  </span>
+
+                  <span className="font-semibold">
+                    GHS{" "}
+                    {(
+                      activeRecoveredSplitOrder.confirmedCashPesewas /
+                      100
+                    ).toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-3 text-amber-900">
+                  <span>
+                    Mobile Money remaining
+                  </span>
+
+                  <span className="font-bold">
+                    GHS{" "}
+                    {(
+                      activeRecoveredSplitOrder.outstandingAmountPesewas /
+                      100
+                    ).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : cart.length ===
           0 ? (
             <p className="text-sm text-gray-500">
               Cart is empty
@@ -3807,7 +4991,7 @@ export default function POSPage() {
                                 {
                                   item.name
                                 }{" "}
-                                ×{" "}
+                                x{" "}
                                 {
                                   item.quantity
                                 }
@@ -3944,7 +5128,7 @@ export default function POSPage() {
                 <div className="font-semibold">
                   {pendingMomo.mode ===
                   "SPLIT"
-                    ? "Split Payment — Mobile Money Balance"
+                    ? "Split Payment - Waiting for Approval"
                     : "Mobile Money Payment"}
                 </div>
 
@@ -4061,18 +5245,86 @@ export default function POSPage() {
                 </div>
               )}
 
-            <button
-              type="button"
-              onClick={
-                clearCart
-              }
-              disabled={
-                momoPaymentLocked
-              }
-              className="w-full bg-gray-200 text-black p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clear Cart
-            </button>
+            {!activeRecoveredSplitOrder && (
+              <div className="border rounded-xl p-3 bg-amber-50 border-amber-200 space-y-3">
+                <div>
+                  <div className="font-semibold text-sm text-amber-950">
+                    Hold / Suspend Sale
+                  </div>
+
+                  <p className="text-xs text-amber-800 mt-1">
+                    Holding a sale does not take payment and does not reduce stock.
+                  </p>
+                </div>
+
+                <input
+                  type="text"
+                  value={
+                    holdLabel
+                  }
+                  onChange={(e) =>
+                    setHoldLabel(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Customer / reference for held sale (optional)"
+                  disabled={
+                    isProcessing ||
+                    isHoldingSale ||
+                    momoPaymentLocked ||
+                    Boolean(
+                      activeHeldSale
+                    )
+                  }
+                  className="w-full border p-2 rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void holdCurrentSale()
+                  }
+                  disabled={
+                    cart.length ===
+                      0 ||
+                    isProcessing ||
+                    isHoldingSale ||
+                    momoPaymentLocked ||
+                    Boolean(
+                      activeHeldSale
+                    )
+                  }
+                  className="w-full border border-amber-400 bg-amber-100 text-amber-950 p-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isHoldingSale
+                    ? "Holding Sale..."
+                    : activeHeldSale
+                      ? "Sale Already Resumed"
+                      : "Hold Sale"}
+                </button>
+              </div>
+            )}
+
+            {!activeRecoveredSplitOrder && (
+              <button
+                type="button"
+                onClick={() =>
+                  void abandonCurrentSale()
+                }
+                disabled={
+                  cart.length ===
+                    0 ||
+                  isProcessing ||
+                  isHoldingSale ||
+                  momoPaymentLocked
+                }
+                className="w-full border border-red-300 bg-red-50 text-red-700 p-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {activeHeldSale
+                  ? "Abandon Resumed Sale"
+                  : "Abandon Sale"}
+              </button>
+            )}
 
             <button
               type="button"
@@ -4081,9 +5333,12 @@ export default function POSPage() {
               }
               disabled={
                 isProcessing ||
-                momoPaymentLocked
+                momoPaymentLocked ||
+                Boolean(
+                  activeRecoveredSplitOrder
+                )
               }
-              className="w-full bg-black text-white p-2 rounded-lg disabled:opacity-50"
+              className="w-full bg-black text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {paymentMethod ===
               "MOMO"

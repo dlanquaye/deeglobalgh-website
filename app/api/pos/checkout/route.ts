@@ -262,6 +262,8 @@ export async function POST(
       customerName,
       customerPhone,
       paymentMethod,
+      heldSaleId:
+        rawHeldSaleId,
       discount:
         rawDiscount,
     } = body;
@@ -330,12 +332,73 @@ export async function POST(
         ? customerPhone.trim()
         : "";
 
+    const heldSaleId =
+      typeof rawHeldSaleId ===
+        "string"
+        ? rawHeldSaleId.trim()
+        : "";
+
     const receiptToken =
       createReceiptToken();
 
     const result =
       await prisma.$transaction(
         async (tx) => {
+          // ======================================
+          // OPTIONAL RESUMED HELD-SALE GUARD
+          // ======================================
+          //
+          // A normal POS checkout has no heldSaleId
+          // and continues exactly as before.
+          //
+          // When checkout originates from a resumed
+          // held sale, that record must still:
+          //
+          // - belong to this branch;
+          // - have status RESUMED;
+          // - have no previous conversion.
+          //
+          // We deliberately do NOT mark it converted
+          // yet. Conversion happens only after the
+          // complete Order + inventory workflow below
+          // has succeeded.
+          //
+          // Both actions occur inside this same Prisma
+          // transaction so a conversion conflict rolls
+          // the entire checkout back.
+          if (heldSaleId) {
+            const heldSale =
+              await tx.posHeldSale.findFirst({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                select: {
+                  id:
+                    true,
+                },
+              });
+
+            if (!heldSale) {
+              throw new CheckoutError(
+                "This held sale is no longer available for checkout. Refresh the held-sales list before continuing.",
+                409
+              );
+            }
+          }
+
           const productIds =
             items.map(
               (item) =>
@@ -955,6 +1018,61 @@ export async function POST(
                   100,
               },
             });
+          }
+
+          // ======================================
+          // FINALISE RESUMED HELD SALE
+          // ======================================
+          //
+          // By this point the Order, OrderItems and
+          // all SALE stock movements have completed
+          // successfully inside this transaction.
+          //
+          // updateMany acts as the final atomic claim.
+          // If another checkout has already converted
+          // this same held sale, count will be zero and
+          // throwing here rolls back THIS entire order
+          // and its inventory movements.
+          if (heldSaleId) {
+            const heldSaleConversion =
+              await tx.posHeldSale.updateMany({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                data: {
+                  status:
+                    "CONVERTED",
+
+                  convertedAt:
+                    new Date(),
+
+                  convertedOrderId:
+                    order.orderId,
+                },
+              });
+
+            if (
+              heldSaleConversion.count !==
+              1
+            ) {
+              throw new CheckoutError(
+                "This held sale has already been completed in another checkout. No duplicate sale was created.",
+                409
+              );
+            }
           }
 
           return order;

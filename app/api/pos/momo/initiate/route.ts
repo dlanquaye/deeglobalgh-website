@@ -374,6 +374,8 @@ export async function POST(
       customerPhone,
       provider:
         rawProvider,
+      heldSaleId:
+        rawHeldSaleId,
       discount:
         rawDiscount,
     } = body;
@@ -403,6 +405,12 @@ export async function POST(
 
     const branchId =
       session.branchId;
+
+    const heldSaleId =
+      typeof rawHeldSaleId ===
+        "string"
+        ? rawHeldSaleId.trim()
+        : "";
 
     /*
      * The provider reference belongs to the
@@ -435,6 +443,50 @@ export async function POST(
     const prepared =
       await prisma.$transaction(
         async (tx) => {
+          // ======================================
+          // OPTIONAL RESUMED HELD-SALE GUARD
+          // ======================================
+          //
+          // If this MoMo payment originates from
+          // a resumed held basket, the held record
+          // must still be available before ANY real
+          // Order or OrderPayment is created.
+          //
+          // Normal POS MoMo sales omit heldSaleId
+          // and continue exactly as before.
+          if (heldSaleId) {
+            const heldSale =
+              await tx.posHeldSale.findFirst({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                select: {
+                  id:
+                    true,
+                },
+              });
+
+            if (!heldSale) {
+              throw new MomoInitiationError(
+                "This held sale is no longer available for Mobile Money payment. Refresh the held-sales list before continuing.",
+                409
+              );
+            }
+          }
+
           const productIds =
             items.map(
               (item) =>
@@ -995,6 +1047,66 @@ export async function POST(
               "Unable to prepare Mobile Money payment",
               500
             );
+          }
+
+          // ======================================
+          // CONVERT RESUMED HELD SALE
+          // ======================================
+          //
+          // The real PENDING Order and PENDING
+          // OrderPayment now exist.
+          //
+          // From this point onward the payment
+          // recovery workflow is authoritative.
+          // The basket must therefore no longer
+          // remain resumable as a generic held sale.
+          //
+          // This update is inside the SAME Prisma
+          // transaction as Order/Payment creation.
+          //
+          // If another request already converted
+          // the held sale, throwing here rolls back
+          // this newly-created Order and Payment.
+          if (heldSaleId) {
+            const heldSaleConversion =
+              await tx.posHeldSale.updateMany({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                data: {
+                  status:
+                    "CONVERTED",
+
+                  convertedAt:
+                    new Date(),
+
+                  convertedOrderId:
+                    order.orderId,
+                },
+              });
+
+            if (
+              heldSaleConversion.count !==
+              1
+            ) {
+              throw new MomoInitiationError(
+                "This held sale has already entered another payment workflow. No duplicate Mobile Money order was created.",
+                409
+              );
+            }
           }
 
           return {

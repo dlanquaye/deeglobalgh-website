@@ -787,33 +787,70 @@ export async function GET(
      * TERMINAL FAILURE
      * ==========================================
      *
-     * Mark the individual payment allocation
-     * failed.
+     * A terminal Paystack failure always ends
+     * this individual MoMo allocation.
      *
-     * Do NOT mark the whole order failed here.
-     * That is important for the forthcoming
-     * split-tender workflow, where a failed
-     * MoMo allocation can be replaced without
-     * destroying other confirmed allocations.
+     * PURE MOMO:
+     * There are no other payment allocations to
+     * preserve, so the Order itself becomes FAILED.
+     *
+     * SPLIT:
+     * Confirmed Cash may already exist, so only
+     * the failed MoMo allocation is marked FAILED
+     * and the Order remains available for recovery.
      */
     if (
       isTerminalFailure(
         providerStatus
       )
     ) {
-      await prisma.orderPayment.update({
-        where: {
-          id:
-            payment.id,
-        },
+      const terminalResult =
+        await prisma.$transaction(
+          async (tx) => {
+            await tx.orderPayment.update({
+              where: {
+                id:
+                  payment.id,
+              },
 
-        data: {
-          status:
-            OrderPaymentStatus.FAILED,
+              data: {
+                status:
+                  OrderPaymentStatus.FAILED,
 
-          providerStatus,
-        },
-      });
+                providerStatus,
+              },
+            });
+
+            if (
+              payment.order
+                .paymentMethod ===
+              "MOMO"
+            ) {
+              await tx.order.update({
+                where: {
+                  id:
+                    payment.order.id,
+                },
+
+                data: {
+                  paymentStatus:
+                    "FAILED",
+                },
+              });
+
+              return {
+                orderStatus:
+                  "FAILED",
+              };
+            }
+
+            return {
+              orderStatus:
+                payment.order
+                  .paymentStatus,
+            };
+          }
+        );
 
       return NextResponse.json({
         success: true,
@@ -833,8 +870,8 @@ export async function GET(
         providerStatus,
 
         orderStatus:
-          payment.order
-            .paymentStatus,
+          terminalResult
+            .orderStatus,
 
         orderFinalized:
           false,
@@ -853,7 +890,6 @@ export async function GET(
           "The Mobile Money payment was not completed.",
       });
     }
-
     /*
      * ==========================================
      * STILL WAITING

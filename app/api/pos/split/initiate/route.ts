@@ -450,6 +450,8 @@ export async function POST(
       provider:
         rawProvider,
       cashAmount,
+      heldSaleId:
+        rawHeldSaleId,
       discount:
         rawDiscount,
     } = body;
@@ -485,6 +487,12 @@ export async function POST(
     const branchId =
       session.branchId;
 
+    const heldSaleId =
+      typeof rawHeldSaleId ===
+        "string"
+        ? rawHeldSaleId.trim()
+        : "";
+
     const providerReference =
       createPaystackReference();
 
@@ -513,6 +521,48 @@ export async function POST(
     const prepared =
       await prisma.$transaction(
         async (tx) => {
+          // ======================================
+          // OPTIONAL RESUMED HELD-SALE GUARD
+          // ======================================
+          //
+          // Normal split sales omit heldSaleId.
+          //
+          // A resumed held sale must still belong
+          // to this branch, remain RESUMED and
+          // have no previous conversion.
+          if (heldSaleId) {
+            const heldSale =
+              await tx.posHeldSale.findFirst({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                select: {
+                  id:
+                    true,
+                },
+              });
+
+            if (!heldSale) {
+              throw new SplitInitiationError(
+                "This held sale is no longer available for split payment. Refresh the held-sales list before continuing.",
+                409
+              );
+            }
+          }
+
           const productIds =
             items.map(
               (item) =>
@@ -1154,6 +1204,67 @@ export async function POST(
               "Unable to prepare split payment",
               500
             );
+          }
+
+          // ======================================
+          // CONVERT RESUMED HELD SALE
+          // ======================================
+          //
+          // At this point:
+          //
+          // - the real PENDING Order exists;
+          // - the Cash allocation is CONFIRMED;
+          // - the MoMo allocation is PENDING.
+          //
+          // Therefore the generic held-sale
+          // workflow must end here. Recovery of
+          // any later MoMo problem belongs to the
+          // protected split-payment workflow.
+          //
+          // This runs inside the SAME Prisma
+          // transaction as the Order and payment
+          // allocations. A duplicate conversion
+          // therefore rolls everything back.
+          if (heldSaleId) {
+            const heldSaleConversion =
+              await tx.posHeldSale.updateMany({
+                where: {
+                  id:
+                    heldSaleId,
+
+                  branchId,
+
+                  status:
+                    "RESUMED",
+
+                  convertedAt:
+                    null,
+
+                  convertedOrderId:
+                    null,
+                },
+
+                data: {
+                  status:
+                    "CONVERTED",
+
+                  convertedAt:
+                    new Date(),
+
+                  convertedOrderId:
+                    order.orderId,
+                },
+              });
+
+            if (
+              heldSaleConversion.count !==
+              1
+            ) {
+              throw new SplitInitiationError(
+                "This held sale has already entered another payment workflow. No duplicate split-payment order was created.",
+                409
+              );
+            }
           }
 
           return {

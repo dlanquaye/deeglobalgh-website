@@ -2550,6 +2550,67 @@ model EducationalProductMatch {
   @@index([score])
 }
 
+//
+// ======================================================
+// POS HELD / SUSPENDED SALES
+// ======================================================
+//
+// A held sale is deliberately NOT an Order.
+//
+// Holding a basket must never:
+// - record a payment;
+// - contact Paystack;
+// - reduce inventory;
+// - create a SALE StockMovement;
+// - appear as revenue.
+//
+// The authoritative product/price/stock checks still
+// happen through the normal POS checkout workflow when
+// the held basket is eventually resumed and sold.
+//
+// cartSnapshot stores the cashier basket as JSON.
+// checkoutContext stores only safe, pre-payment UI state
+// such as customer/payment/discount selections.
+//
+// A transaction with a real pending MoMo payment or
+// confirmed split Cash allocation must use the existing
+// payment-recovery workflow instead of this model.
+//
+model PosHeldSale {
+  id         String @id @default(cuid())
+  holdNumber String @unique
+
+  branchId         String
+  createdByStaffId String
+  createdByName    String?
+
+  label           String?
+  customerName    String?
+  customerPhone   String?
+  paymentMethod   String  @default("CASH")
+  momoProvider    String?
+  splitCashAmount String?
+
+  itemCount       Int
+  subtotalPesewas Int
+
+  cartSnapshot     Json
+  discountSnapshot Json?
+
+  status String @default("HELD")
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  resumedAt        DateTime?
+  cancelledAt      DateTime?
+  convertedAt      DateTime?
+  convertedOrderId String?
+
+  @@index([branchId, status, createdAt])
+  @@index([createdByStaffId])
+  @@index([status])
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
