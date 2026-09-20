@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,85 +9,89 @@ export default async function ProductPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  // âœ… Correct async params handling
   const { slug } = await params;
 
   if (!slug) {
     notFound();
   }
 
-  // âœ… Debug (keep for now)
-  const count = await prisma.product.count();
-
-  // âœ… Fetch product
   const product = await prisma.product.findFirst({
-  where: {
-    slug,
-    isActive: true,
-    websiteVisible: true,
-  },
-});
+    where: {
+      slug,
+      isActive: true,
+      websiteVisible: true,
+    },
+  });
 
-
-  // âŒ Not found â†’ 404
   if (!product) {
     notFound();
   }
 
-  // âœ… Related products
   const relatedProducts = await prisma.product.findMany({
-  where: {
-  isActive: true,
-  websiteVisible: true,
-  id: {
-    not: product.id,
-  },
-
-    // MATCH CATEGORY
-    categorySlug: product.categorySlug,
-
-    // MATCH LEVEL (if exists)
-    ...(product.levelSlugs?.length
-      ? {
-          levelSlugs: {
-            hasSome: product.levelSlugs,
-          },
-        }
-      : {}),
-  },
-
-  take: 4,
-});
+    where: {
+      isActive: true,
+      websiteVisible: true,
+      id: {
+        not: product.id,
+      },
+      categorySlug: product.categorySlug,
+      ...(product.levelSlugs?.length
+        ? {
+            levelSlugs: {
+              hasSome: product.levelSlugs,
+            },
+          }
+        : {}),
+    },
+    take: 4,
+  });
 
   const price = Number(product.retailPrice);
   const outOfStock = product.stockQty <= 0;
 
   const bundleItems = await prisma.product.findMany({
-  where: {
-  isActive: true,
-  websiteVisible: true,
-  OR: [
-      { name: { contains: "exercise", mode: "insensitive" } },
-      { name: { contains: "pen", mode: "insensitive" } },
-      { name: { contains: "set", mode: "insensitive" } },
-    ],
-  },
-  take: 3,
-});
+    where: {
+      isActive: true,
+      websiteVisible: true,
+      OR: [
+        {
+          name: {
+            contains: "exercise",
+            mode: "insensitive",
+          },
+        },
+        {
+          name: {
+            contains: "pen",
+            mode: "insensitive",
+          },
+        },
+        {
+          name: {
+            contains: "set",
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    take: 3,
+  });
+
+  const cedi = "GH\u20B5";
+  const approvedIcon = "\u2714";
+  const deliveryIcon = "\u{1F69A}";
+  const packageIcon = "\u{1F4E6}";
+  const whatsappIcon = "\u{1F4AC}";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      {/* Breadcrumb */}
       <div className="mb-6 text-sm text-gray-600">
         <Link href="/">Home</Link> /{" "}
         <Link href="/shop">Shop</Link> /{" "}
         <span>{product.name}</span>
       </div>
 
-      {/* Main */}
       <div className="grid gap-10 md:grid-cols-2">
-        
-        {/* Image */}
         <div className="rounded-2xl border bg-white p-6">
           <div className="relative h-[420px]">
             <Image
@@ -99,57 +103,68 @@ export default async function ProductPage({
           </div>
         </div>
 
-        {/* Details */}
         <div className="rounded-2xl border bg-gray-50 p-8 shadow-sm">
-          <h1 className="text-3xl font-bold">{product.name}</h1>
-          {/* STOCK STATUS */}
-{product.stockQty > 0 && product.stockQty <= 5 && (
-  <p className="mt-2 text-sm text-red-600 font-semibold">
-    Only few left in stock
-  </p>
-)}
+          <h1 className="text-3xl font-bold">
+            {product.name}
+          </h1>
 
-{product.stockQty <= 0 && (
-  <p className="mt-2 text-sm text-red-600 font-semibold">
-    Out of stock
-  </p>
-)}
+          {product.stockQty > 0 &&
+            product.stockQty <= 5 && (
+              <p className="mt-2 text-sm font-semibold text-red-600">
+                Only few left in stock
+              </p>
+            )}
 
-          {/* Author */}
+          {product.stockQty <= 0 && (
+            <p className="mt-2 text-sm font-semibold text-red-600">
+              Out of stock
+            </p>
+          )}
+
           {product.author && (
             <div className="mt-2 text-sm text-gray-600">
               Author: {product.author}
             </div>
           )}
 
-          {/* SKU */}
           {product.sku && (
             <div className="mt-3 text-sm font-semibold">
               Product Code: {product.sku}
             </div>
           )}
 
-          {/* Price */}
           <div className="mt-5 text-2xl font-bold">
-            GHâ‚µ {price.toFixed(2)}
+            {cedi} {price.toFixed(2)}
           </div>
 
-          {/* Summary */}
           {product.shortSummary && (
-            <p className="mt-4">{product.shortSummary}</p>
+            <p className="mt-4">
+              {product.shortSummary}
+            </p>
           )}
 
-{/* TRUST + DELIVERY */}
-<div className="mt-6 bg-white border rounded-xl p-4 space-y-2 text-sm">
-  <p>âœ” 100% New Curriculum (NaCCA Approved)</p>
+          <div className="mt-6 space-y-2 rounded-xl border bg-white p-4 text-sm">
+            <p>
+              {approvedIcon} 100% New Curriculum
+              (NaCCA Approved)
+            </p>
 
-  <p>ðŸšš Fast and reliable delivery in Kasoa, Accra & nationwide</p>
+            <p>
+              {deliveryIcon} Fast and reliable
+              delivery in Kasoa, Accra &amp; nationwide
+            </p>
 
-  <p>ðŸ“¦ Carefully packed to avoid damage</p>
+            <p>
+              {packageIcon} Carefully packed to
+              avoid damage
+            </p>
 
-  <p>ðŸ’¬ Order directly via WhatsApp for quick response</p>
-</div>
-          {/* Add to Cart */}
+            <p>
+              {whatsappIcon} Order directly via
+              WhatsApp for quick response
+            </p>
+          </div>
+
           <div className="mt-6">
             <AddToCartButton
               product={{
@@ -164,34 +179,31 @@ export default async function ProductPage({
             />
           </div>
 
-          {/* Continue */}
-          {/* WHATSAPP ORDER */}
-<a
-  href={`https://wa.me/233270030000?text=${encodeURIComponent(
-  `Hello, I want to order:
+          <a
+            href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              `Hello, I want to order:
 Product: ${product.name}
-Price: GHâ‚µ ${price.toFixed(2)}
+Price: ${cedi} ${price.toFixed(2)}
 Quantity: 1
 
 Please assist me with delivery.`
-)}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="mt-4 block w-full bg-yellow-500 text-black px-5 py-3 rounded-xl text-center font-bold"
->
-  Order Now via WhatsApp
-</a>
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 block w-full rounded-xl bg-yellow-500 px-5 py-3 text-center font-bold text-black"
+          >
+            Order Now via WhatsApp
+          </a>
+
           <Link
             href="/shop"
             className="mt-4 block w-full rounded-xl border px-5 py-3 text-center"
-            
           >
             Continue Shopping
           </Link>
         </div>
       </div>
 
-      {/* Description */}
       {product.fullDescription && (
         <div className="mt-14 max-w-none overflow-hidden">
           <div
@@ -201,134 +213,131 @@ Please assist me with delivery.`
             }}
           />
         </div>
-
-    
       )}
-      
-      {/* FREQUENTLY BOUGHT TOGETHER */}
-{relatedProducts.length > 0 && (
-  <div className="mt-16">
-    <h2 className="text-xl font-semibold mb-4">
-      Frequently Bought Together
-    </h2>
 
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-      {relatedProducts.map((item) => (
-        <div
-  key={item.id}
-className="border rounded-2xl p-3 md:p-4 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
->
-  {/* IMAGE */}
-  <div className="relative h-40 w-full mb-3">
-    <Image
-      src={item.imageSrc || "/products/placeholder.webp"}
-      alt={item.name}
-      fill
-      className="object-contain"
-    />
-  
-  </div>
-  
+      {relatedProducts.length > 0 && (
+        <div className="mt-16">
+          <h2 className="mb-4 text-xl font-semibold">
+            Frequently Bought Together
+          </h2>
 
-  {/* NAME */}
-<div className="text-xs md:text-sm font-semibold leading-tight line-clamp-2 min-h-[40px]">
-      {item.name}
-  </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+            {relatedProducts.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl border bg-white p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl md:p-4"
+              >
+                <div className="relative mb-3 h-40 w-full">
+                  <Image
+                    src={
+                      item.imageSrc ||
+                      "/products/placeholder.webp"
+                    }
+                    alt={item.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
 
-  {/* PRICE */}
-<div className="mt-1 text-lg font-bold text-[color:var(--brand-blue)]">
-    GHâ‚µ {Number(item.retailPrice).toFixed(2)}
-  </div>
+                <div className="line-clamp-2 min-h-[40px] text-xs font-semibold leading-tight md:text-sm">
+                  {item.name}
+                </div>
 
-  {/* LINK */}
-  <Link
-  
-  href={`/product/${item.slug}`}
-  className="mt-3 inline-block text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition"
->
-  View
-</Link>
-</div>
-      ))}
-    </div>
-  </div>
-)}
-{/* YOU MAY ALSO NEED */}
-{bundleItems.length > 0 && (
-  <div className="mt-16">
-    <h2 className="text-xl font-semibold mb-4">
-      You May Also Need
-    </h2>
+                <div className="mt-1 text-lg font-bold text-[color:var(--brand-blue)]">
+                  {cedi}{" "}
+                  {Number(item.retailPrice).toFixed(2)}
+                </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-      {bundleItems.map((item) => (
-        <div
-          key={item.id}
-          className="border rounded-xl p-4 bg-white hover:shadow-md transition"
-        >
-          <div className="relative h-40 w-full mb-2">
-            <Image
-              src={item.imageSrc || "/products/placeholder.webp"}
-              alt={item.name}
-              fill
-              className="object-contain"
-            />
+                <Link
+                  href={`/product/${item.slug}`}
+                  className="mt-3 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                >
+                  View
+                </Link>
+              </div>
+            ))}
           </div>
-
-          <div className="text-sm font-semibold line-clamp-2">
-            {item.name}
-          </div>
-
-          <div className="mt-2 text-blue-700 font-bold">
-            GHâ‚µ {Number(item.retailPrice).toFixed(2)}
-          </div>
-
-          <div className="mt-auto pt-4 flex items-center justify-between gap-2">
-  
-  <Link
-    href={`/product/${item.slug}`}
-    className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition"
-  >
-    View
-  </Link>
-
-  <AddToCartButton
-    product={{
-      id: item.id,
-      name: item.name,
-      slug: item.slug,
-      retailPrice: Number(item.retailPrice),
-      imageSrc: item.imageSrc,
-      stockQty: item.stockQty,
-    }}
-    outOfStock={item.stockQty <= 0}
-  />
-
-</div>
         </div>
-      ))}
-      
-    </div>
-  </div>
-)}
-{/* STICKY WHATSAPP BAR */}
-<div className="fixed bottom-0 left-0 w-full bg-white border-t p-3 z-50">
-  <a
-    href={`https://wa.me/233270030000?text=${encodeURIComponent(
-      `Hello, I want to order:
+      )}
+
+      {bundleItems.length > 0 && (
+        <div className="mt-16">
+          <h2 className="mb-4 text-xl font-semibold">
+            You May Also Need
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+            {bundleItems.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-xl border bg-white p-4 transition hover:shadow-md"
+              >
+                <div className="relative mb-2 h-40 w-full">
+                  <Image
+                    src={
+                      item.imageSrc ||
+                      "/products/placeholder.webp"
+                    }
+                    alt={item.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+
+                <div className="line-clamp-2 text-sm font-semibold">
+                  {item.name}
+                </div>
+
+                <div className="mt-2 font-bold text-blue-700">
+                  {cedi}{" "}
+                  {Number(item.retailPrice).toFixed(2)}
+                </div>
+
+                <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+                  <Link
+                    href={`/product/${item.slug}`}
+                    className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                  >
+                    View
+                  </Link>
+
+                  <AddToCartButton
+                    product={{
+                      id: item.id,
+                      name: item.name,
+                      slug: item.slug,
+                      retailPrice: Number(
+                        item.retailPrice
+                      ),
+                      imageSrc: item.imageSrc,
+                      stockQty: item.stockQty,
+                    }}
+                    outOfStock={item.stockQty <= 0}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-white p-3">
+        <a
+          href={`https://wa.me/233270030000?text=${encodeURIComponent(
+            `Hello, I want to order:
 Product: ${product.name}
-Price: GHâ‚µ ${price.toFixed(2)}
+Price: ${cedi} ${price.toFixed(2)}
 Quantity: 1
 
 Please assist me with delivery.`
-    )}`}
-    target="_blank"
-    rel="noopener noreferrer"
-className="block w-full bg-green-600 text-white text-center py-1.5 rounded-xl font-semibold text-sm shadow-md"  >
-    Order via WhatsApp
-  </a>
-</div>
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded-xl bg-green-600 py-1.5 text-center text-sm font-semibold text-white shadow-md"
+        >
+          Order via WhatsApp
+        </a>
+      </div>
     </div>
   );
-  
 }

@@ -6,7 +6,7 @@ import { requireAdmin } from "@/app/lib/adminAuth";
 import { PaymentStatus, InventoryMovementType } from "@prisma/client";
 
 /* ===============================
-   ðŸš¦ Valid Status Transitions
+   🚦 Valid Status Transitions
 =============================== */
 const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   [PaymentStatus.PENDING]: [
@@ -30,7 +30,7 @@ const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
 export async function POST(req: NextRequest) {
   try {
     /* ===============================
-   ðŸ”’ VERIFY ADMIN AUTH
+   🔒 VERIFY ADMIN AUTH
 =============================== */
 let session;
 
@@ -67,7 +67,7 @@ if (!body.id && !body.orderId) {
 }
 
     /* ===============================
-       ðŸ” ATOMIC TRANSACTION
+       🔐 ATOMIC TRANSACTION
     =============================== */
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
@@ -82,14 +82,14 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         ðŸ›‘ Idempotency Guard (FIXED)
+         🛑 Idempotency Guard (FIXED)
       =============================== */
       if (order.paymentStatus === nextStatus) {
-        return; // âœ… clean exit (NO response here)
+        return; // ✅ clean exit (NO response here)
       }
 
       /* ===============================
-         ðŸš¦ Validate Transition
+         🚦 Validate Transition
       =============================== */
       const allowedNext = VALID_TRANSITIONS[order.paymentStatus];
 
@@ -100,7 +100,7 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         ðŸ” Stock Rollback Logic
+         🔁 Stock Rollback Logic
       =============================== */
       if (
         nextStatus === PaymentStatus.CANCELLED &&
@@ -129,7 +129,7 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         âœ… Final Status Update
+         ✅ Final Status Update
       =============================== */
       await tx.order.update({
         where: { id: order.id },
@@ -138,12 +138,12 @@ if (!body.id && !body.orderId) {
     });
 
     /* ===============================
-       âœ… SUCCESS RESPONSE (CRITICAL FIX)
+       ✅ SUCCESS RESPONSE (CRITICAL FIX)
     =============================== */
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error("âŒ update-order-status error:", error);
+    console.error("❌ update-order-status error:", error);
 
     if (error.message === "ORDER_NOT_FOUND") {
       return NextResponse.json(

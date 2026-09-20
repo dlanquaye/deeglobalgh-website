@@ -8,7 +8,7 @@ import { PaymentStatus } from "@prisma/client";
 export async function GET() {
   try {
     /* ===============================
-       ðŸ“… TODAY RANGE
+       📅 TODAY RANGE
     =============================== */
     const now = new Date();
 
@@ -19,7 +19,7 @@ const todayEnd = new Date(now);
 todayEnd.setHours(23, 59, 59, 999);
 
     /* ===============================
-       ðŸ“Š FETCH ORDERS DIRECTLY
+       📊 FETCH ORDERS DIRECTLY
     =============================== */
     const orders = await prisma.order.findMany({
       where: {
@@ -31,7 +31,7 @@ todayEnd.setHours(23, 59, 59, 999);
     });
 
     /* ===============================
-       ðŸ“ˆ CALCULATIONS
+       📈 CALCULATIONS
     =============================== */
     const totalOrders = orders.length;
 
@@ -51,17 +51,17 @@ todayEnd.setHours(23, 59, 59, 999);
       (o) => o.paymentStatus === PaymentStatus.CANCELLED
     ).length;
 
-    const message = `ðŸ“Š DeeglobalGh Daily Report
+    const message = `📊 DeeglobalGh Daily Report
 
-ðŸ§¾ Orders: ${totalOrders}
-ðŸ’° Revenue: GHS ${totalRevenue}
-ðŸšš Delivering: ${processingCount}
-âœ… Completed: ${deliveredCount}
-âŒ Cancelled: ${cancelledCount}`;
+🧾 Orders: ${totalOrders}
+💰 Revenue: GHS ${totalRevenue}
+🚚 Delivering: ${processingCount}
+✅ Completed: ${deliveredCount}
+❌ Cancelled: ${cancelledCount}`;
 
 
     /* ===============================
-       ðŸ“² WHATSAPP LINK
+       📲 WHATSAPP LINK
     =============================== */
     const phone = "233246011773";
 
