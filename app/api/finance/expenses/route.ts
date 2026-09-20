@@ -61,36 +61,192 @@ function getBusinessDateRange(
   };
 }
 
+async function requireFinanceManager() {
+  const session =
+    (await requireAdmin()) as AdminSession;
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageFinance =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (!canManageFinance) {
+    throw new Error(
+      "FinanceManagementForbidden"
+    );
+  }
+
+  if (!session.branchId) {
+    throw new Error(
+      "BranchRequired"
+    );
+  }
+
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "BranchFinanceForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "FinanceManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage expenses.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your staff account is not assigned to a branch.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchFinanceForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage expenses for this branch.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
+
 export async function GET(
   req: Request
 ) {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
-
-    if (!session.staffId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your admin account is not linked to a staff record.",
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!session.branchId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your staff account is not assigned to a branch.",
-        },
-        { status: 400 }
-      );
-    }
+    const {
+      session,
+    } =
+      await requireFinanceManager();
 
     const {
       searchParams,
-    } = new URL(req.url);
+    } =
+      new URL(req.url);
 
     const businessDate =
       searchParams.get(
@@ -113,9 +269,11 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            "Invalid business date",
+            "Invalid business date.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -137,12 +295,13 @@ export async function GET(
       prisma.expense.findMany({
         where: {
           branchId:
-            session.branchId,
+            session.branchId!,
           ...dateFilter,
         },
 
         orderBy: {
-          createdAt: "desc",
+          createdAt:
+            "desc",
         },
 
         include: {
@@ -155,7 +314,7 @@ export async function GET(
       prisma.expense.aggregate({
         where: {
           branchId:
-            session.branchId,
+            session.branchId!,
           ...dateFilter,
         },
 
@@ -170,35 +329,28 @@ export async function GET(
       expenseTotals,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Expense loading error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (
-      message ===
-      "Unauthorized"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to fetch expenses",
+          "Failed to fetch expenses.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -207,54 +359,78 @@ export async function POST(
   req: Request
 ) {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
+    const {
+      session,
+      staff,
+    } =
+      await requireFinanceManager();
 
-    if (!session.staffId) {
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
       return NextResponse.json(
         {
           error:
-            "Your admin account is not linked to a staff record.",
+            "Invalid JSON request body.",
         },
-        { status: 401 }
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!session.branchId) {
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
       return NextResponse.json(
         {
           error:
-            "Your staff account is not assigned to a branch.",
+            "Invalid request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const body =
-      await req.json();
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const expenseType =
-      typeof body?.expenseType ===
-      "string"
-        ? body.expenseType.trim()
+      typeof record.expenseType ===
+        "string"
+        ? record.expenseType.trim()
         : "";
 
     const notes =
-      typeof body?.notes ===
-      "string"
-        ? body.notes.trim()
+      typeof record.notes ===
+        "string"
+        ? record.notes.trim()
         : "";
 
     const amount =
-      Number(body?.amount);
+      Number(
+        record.amount
+      );
 
     if (!expenseType) {
       return NextResponse.json(
         {
           error:
-            "Expense type is required",
+            "Expense type is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -267,9 +443,11 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Amount must be greater than zero",
+            "Amount must be greater than zero.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -277,9 +455,11 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Notes are required",
+            "Notes are required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -291,10 +471,10 @@ export async function POST(
           notes,
 
           branchId:
-            session.branchId,
+            session.branchId!,
 
           enteredByStaffId:
-            session.staffId,
+            staff.id,
         },
 
         include: {
@@ -308,35 +488,28 @@ export async function POST(
       expense
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Expense creation error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (
-      message ===
-      "Unauthorized"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to create expense",
+          "Failed to create expense.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

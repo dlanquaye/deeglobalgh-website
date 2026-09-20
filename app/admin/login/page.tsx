@@ -3,45 +3,76 @@
 import { useState } from "react";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] =
+    useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [pin, setPin] =
+    useState("");
+
+  const [error, setError] =
+    useState<string | null>(
+      null
+    );
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const handleSubmit = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
+
     setError(null);
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, pin }),
-      });
+      const response =
+        await fetch(
+          "/api/admin-login",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              pin,
+            }),
+          }
+        );
 
-      const data = await res.json();
-      console.log("LOGIN RESPONSE:", res.status, data);
+      const data =
+        await response.json();
 
-      if (res.ok) {
-        console.log("Redirecting to /admin/order-control");
-        window.location.href = "/admin/order-control"; // ✅ correct redirect
-      } else {
-        setError(data.error || "Login failed");
+      if (response.ok) {
+        window.location.href =
+          data.mustChangeCredential
+            ? "/admin/account"
+            : "/admin";
+
+        return;
       }
-    } catch (err) {
-      setError("Something went wrong");
+
+      setError(
+        data.error ||
+          "Login failed"
+      );
+    } catch {
+      setError(
+        "Something went wrong"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={
+          handleSubmit
+        }
         className="w-full max-w-sm rounded-2xl bg-white p-8 shadow"
       >
         <h1 className="mb-6 text-center text-xl font-bold">
@@ -52,7 +83,13 @@ export default function AdminLoginPage() {
           type="email"
           placeholder="Admin Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(
+            event
+          ) =>
+            setEmail(
+              event.target.value
+            )
+          }
           className="mb-4 w-full rounded border px-3 py-2"
           required
         />
@@ -61,21 +98,31 @@ export default function AdminLoginPage() {
           type="password"
           placeholder="Enter PIN"
           value={pin}
-          onChange={(e) => setPin(e.target.value)}
+          onChange={(
+            event
+          ) =>
+            setPin(
+              event.target.value
+            )
+          }
           className="mb-4 w-full rounded border px-3 py-2"
           required
         />
 
         {error && (
-          <p className="mb-3 text-sm text-red-600">{error}</p>
+          <p className="mb-3 text-sm text-red-600">
+            {error}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white"
+          className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Logging in…" : "Login"}
+          {loading
+            ? "Logging in..."
+            : "Login"}
         </button>
       </form>
     </main>

@@ -1,25 +1,106 @@
 ﻿"use server";
 
+import {
+  Prisma,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+
+async function requireReturnManager() {
+  const session =
+    await requireAdmin();
+
+  if (!session.staffId) {
+    throw new Error(
+      "An active linked staff account is required."
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "An active staff account is required."
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canProcessExchange =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (!canProcessExchange) {
+    throw new Error(
+      "You do not have permission to process exchanges."
+    );
+  }
+
+  return {
+    session,
+    staff,
+    isSuperAdmin,
+  };
+}
 
 export async function processExchange(
   returnId: string,
   replacementProductId: string,
   replacementQuantity = 1
 ) {
-  await requireAdmin();
+  const {
+    session,
+    isSuperAdmin,
+  } =
+    await requireReturnManager();
 
-  if (!replacementProductId) {
+  const cleanReturnId =
+    String(
+      returnId ?? ""
+    ).trim();
+
+  const cleanReplacementProductId =
+    String(
+      replacementProductId ?? ""
+    ).trim();
+
+  if (!cleanReturnId) {
+    throw new Error(
+      "Return ID is required."
+    );
+  }
+
+  if (!cleanReplacementProductId) {
     throw new Error(
       "Replacement product is required."
     );
   }
 
   if (
-    !Number.isInteger(replacementQuantity) ||
+    !Number.isInteger(
+      replacementQuantity
+    ) ||
     replacementQuantity <= 0
   ) {
     throw new Error(
@@ -27,22 +108,47 @@ export async function processExchange(
     );
   }
 
+  /*
+   * Load the return first for authorisation
+   * and business validation.
+   */
   const returnRequest =
     await prisma.returnRequest.findUnique({
       where: {
-        id: returnId,
+        id:
+          cleanReturnId,
       },
 
       include: {
         items: true,
-        order: true,
-        branch: true,
+
+        order: {
+          select: {
+            id: true,
+          },
+        },
+
+        branch: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
   if (!returnRequest) {
     throw new Error(
-      "Return not found"
+      "Return not found."
+    );
+  }
+
+  if (
+    !isSuperAdmin &&
+    returnRequest.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "You do not have permission to process exchanges for this branch."
     );
   }
 
@@ -73,12 +179,22 @@ export async function processExchange(
     );
   }
 
+  /*
+   * The hardened workflow is:
+   *
+   * PENDING
+   *   -> APPROVED
+   *   -> INSPECTED
+   *   -> EXCHANGED
+   *
+   * Exchange cannot bypass inspection.
+   */
   if (
     returnRequest.status !==
-    "APPROVED"
+    "INSPECTED"
   ) {
     throw new Error(
-      "This return must be approved before an exchange can be processed."
+      "This return must be inspected before an exchange can be processed."
     );
   }
 
@@ -87,14 +203,15 @@ export async function processExchange(
     0
   ) {
     throw new Error(
-      "No returned items found"
+      "No returned items found."
     );
   }
 
   const replacementProduct =
     await prisma.product.findUnique({
       where: {
-        id: replacementProductId,
+        id:
+          cleanReplacementProductId,
       },
 
       select: {
@@ -106,13 +223,15 @@ export async function processExchange(
 
   if (!replacementProduct) {
     throw new Error(
-      "Replacement product not found"
+      "Replacement product not found."
     );
   }
 
-  if (!replacementProduct.isActive) {
+  if (
+    !replacementProduct.isActive
+  ) {
     throw new Error(
-      "Replacement product is inactive"
+      "Replacement product is inactive."
     );
   }
 
@@ -120,7 +239,7 @@ export async function processExchange(
     returnRequest.items.some(
       (item) =>
         item.productId ===
-        replacementProductId
+        cleanReplacementProductId
     );
 
   if (returningSameProduct) {
@@ -132,17 +251,60 @@ export async function processExchange(
   await prisma.$transaction(
     async (tx) => {
       /*
+       * Atomically claim this return for
+       * exchange processing.
+       *
+       * If another request already changed
+       * its status, count will be zero and
+       * no inventory changes will occur.
+       *
+       * Because this status change is inside
+       * the same transaction, any later stock
+       * failure rolls it back automatically.
+       */
+      const claimedReturn =
+        await tx.returnRequest.updateMany({
+          where: {
+            id:
+              cleanReturnId,
+
+            type:
+              "EXCHANGE",
+
+            status:
+              "INSPECTED",
+          },
+
+          data: {
+            status:
+              "EXCHANGED",
+
+            completedAt:
+              new Date(),
+          },
+        });
+
+      if (
+        claimedReturn.count !==
+        1
+      ) {
+        throw new Error(
+          "This return is no longer available for exchange processing."
+        );
+      }
+
+      /*
        * Protect replacement stock atomically.
        *
-       * updateMany + quantity >= requested quantity
-       * prevents concurrent exchanges from driving
-       * branch inventory negative.
+       * updateMany + quantity >= requested
+       * prevents concurrent operations from
+       * driving branch inventory negative.
        */
       const replacementDecrement =
         await tx.inventory.updateMany({
           where: {
             productId:
-              replacementProductId,
+              cleanReplacementProductId,
 
             locationType:
               "BRANCH",
@@ -179,7 +341,7 @@ export async function processExchange(
             productId_locationType_locationId:
               {
                 productId:
-                  replacementProductId,
+                  cleanReplacementProductId,
 
                 locationType:
                   "BRANCH",
@@ -196,14 +358,14 @@ export async function processExchange(
 
       if (!replacementInventory) {
         throw new Error(
-          "Replacement product inventory not found"
+          "Replacement product inventory not found."
         );
       }
 
       await tx.product.update({
         where: {
           id:
-            replacementProductId,
+            cleanReplacementProductId,
         },
 
         data: {
@@ -215,7 +377,7 @@ export async function processExchange(
       await tx.inventoryMovement.create({
         data: {
           productId:
-            replacementProductId,
+            cleanReplacementProductId,
 
           quantity:
             replacementQuantity,
@@ -232,11 +394,10 @@ export async function processExchange(
       });
 
       /*
-       * Every returned line must be restored.
+       * Restore every returned line.
        *
-       * The previous implementation processed
-       * only items[0], which could leave a
-       * multi-item exchange partially restored.
+       * This preserves the existing hardened
+       * multi-item return behaviour.
        */
       for (
         const returnedItem of
@@ -257,11 +418,16 @@ export async function processExchange(
                     returnRequest.branchId,
                 },
             },
+
+            select: {
+              id: true,
+              quantity: true,
+            },
           });
 
         if (!returnedInventory) {
           throw new Error(
-            `Returned product inventory not found for product ${returnedItem.productId}`
+            `Returned product inventory not found for product ${returnedItem.productId}.`
           );
         }
 
@@ -315,24 +481,19 @@ export async function processExchange(
           },
         });
       }
+    },
+    {
+      maxWait: 10_000,
+      timeout: 30_000,
 
-      await tx.returnRequest.update({
-        where: {
-          id: returnId,
-        },
-
-        data: {
-          status:
-            "EXCHANGED",
-
-          completedAt:
-            new Date(),
-        },
-      });
+      isolationLevel:
+        Prisma
+          .TransactionIsolationLevel
+          .Serializable,
     }
   );
 
   revalidatePath(
-    `/admin/returns/${returnId}`
+    `/admin/returns/${cleanReturnId}`
   );
 }

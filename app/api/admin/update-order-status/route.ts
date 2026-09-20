@@ -2,11 +2,11 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { PaymentStatus, InventoryMovementType } from "@prisma/client";
 
 /* ===============================
-   🚦 Valid Status Transitions
+   ðŸš¦ Valid Status Transitions
 =============================== */
 const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   [PaymentStatus.PENDING]: [
@@ -30,32 +30,25 @@ const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
 export async function POST(req: NextRequest) {
   try {
     /* ===============================
-   🔒 VERIFY ADMIN AUTH
+   ðŸ”’ VERIFY ADMIN AUTH
 =============================== */
-const cookieStore = await cookies();
-const rawCookie = cookieStore.get("dg_admin")?.value;
+let session;
 
-let isAdmin = false;
-
-if (rawCookie) {
-  try {
-    const parsed = JSON.parse(decodeURIComponent(rawCookie));
-
-    if (parsed.role === "SUPER_ADMIN") {
-      isAdmin = true;
-    }
-  } catch (e) {
-    console.error("Invalid admin cookie");
-  }
-}
-
-if (!isAdmin) {
+try {
+  session = await requireAdmin();
+} catch {
   return NextResponse.json(
     { error: "Unauthorized" },
     { status: 401 }
   );
 }
 
+if (session.role !== "SUPER_ADMIN") {
+  return NextResponse.json(
+    { error: "Unauthorized" },
+    { status: 401 }
+  );
+}
 const body = await req.json();
 const nextStatus = body.status as PaymentStatus;
 
@@ -74,7 +67,7 @@ if (!body.id && !body.orderId) {
 }
 
     /* ===============================
-       🔐 ATOMIC TRANSACTION
+       ðŸ” ATOMIC TRANSACTION
     =============================== */
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
@@ -89,14 +82,14 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         🛑 Idempotency Guard (FIXED)
+         ðŸ›‘ Idempotency Guard (FIXED)
       =============================== */
       if (order.paymentStatus === nextStatus) {
-        return; // ✅ clean exit (NO response here)
+        return; // âœ… clean exit (NO response here)
       }
 
       /* ===============================
-         🚦 Validate Transition
+         ðŸš¦ Validate Transition
       =============================== */
       const allowedNext = VALID_TRANSITIONS[order.paymentStatus];
 
@@ -107,7 +100,7 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         🔁 Stock Rollback Logic
+         ðŸ” Stock Rollback Logic
       =============================== */
       if (
         nextStatus === PaymentStatus.CANCELLED &&
@@ -136,7 +129,7 @@ if (!body.id && !body.orderId) {
       }
 
       /* ===============================
-         ✅ Final Status Update
+         âœ… Final Status Update
       =============================== */
       await tx.order.update({
         where: { id: order.id },
@@ -145,12 +138,12 @@ if (!body.id && !body.orderId) {
     });
 
     /* ===============================
-       ✅ SUCCESS RESPONSE (CRITICAL FIX)
+       âœ… SUCCESS RESPONSE (CRITICAL FIX)
     =============================== */
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error("❌ update-order-status error:", error);
+    console.error("âŒ update-order-status error:", error);
 
     if (error.message === "ORDER_NOT_FOUND") {
       return NextResponse.json(

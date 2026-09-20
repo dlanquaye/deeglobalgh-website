@@ -1,14 +1,8 @@
 import Link from "next/link";
+import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-interface AdminCookieData {
-  adminId?: string;
-  role?: string;
-  staffId?: string;
-  branchId?: string;
-  staffName?: string;
-}
 
 interface ControlItem {
   title: string;
@@ -248,51 +242,56 @@ const controlSections: ControlSection[] = [
           "Review order records directly from the administration database view.",
         href: "/admin/db-orders",
       },
+      {
+        title: "Account Security",
+        description:
+          "Change your administration PIN and manage your account security.",
+        href: "/admin/account",
+      },
+      {
+        title: "Security Alerts",
+        description:
+          "Review credential changes, account activity and other security events.",
+        href: "/admin/security",
+      },
+      {
+        title: "Administration Accounts",
+        description:
+          "Create, enable, disable and reset staff administration accounts.",
+        href: "/admin/accounts",
+      },
     ],
   },
 ];
 
-function readAdminCookie(
-  rawValue: string
-): AdminCookieData | null {
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawValue
-      )
-    ) as AdminCookieData;
-  } catch {
-    return null;
-  }
-}
-
 export default async function AdminPage() {
-  const cookieStore =
-    await cookies();
+  let admin;
 
-  const adminCookie =
-    cookieStore.get(
-      "dg_admin"
-    );
-
-  if (!adminCookie) {
+  try {
+    admin =
+      await requireAdmin();
+  } catch {
     redirect(
       "/admin/login"
     );
   }
 
-  const admin =
-    readAdminCookie(
-      adminCookie.value
-    );
-
   const staffName =
-    admin?.staffName?.trim() ||
+    admin.staffName?.trim() ||
     "Administrator";
 
   const role =
-    admin?.role?.trim() ||
+    admin.role?.trim() ||
     "ADMIN";
+
+  const unreadSecurityAlerts =
+    role === "SUPER_ADMIN"
+      ? await prisma.securityEvent.count({
+          where: {
+            readAt: null,
+          },
+        })
+      : 0;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -515,11 +514,22 @@ export default async function AdminPage() {
 
                           <div>
 
-                            <h3 className="font-bold text-slate-900 group-hover:text-blue-800">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-bold text-slate-900 group-hover:text-blue-800">
+                                {
+                                  item.title
+                                }
+                              </h3>
+
                               {
-                                item.title
+                                item.title === "Security Alerts" &&
+                                unreadSecurityAlerts > 0 && (
+                                  <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
+                                    {unreadSecurityAlerts} New
+                                  </span>
+                                )
                               }
-                            </h3>
+                            </div>
 
                             <p className="mt-2 text-sm leading-5 text-slate-600">
                               {

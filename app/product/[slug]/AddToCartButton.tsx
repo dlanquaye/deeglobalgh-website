@@ -33,7 +33,6 @@ export default function AddToCartButton({
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAddToCart = () => {
-  console.log("ADD TO CART CLICKED");
 
   const success = addToCart({
     id: product.id,
@@ -44,7 +43,6 @@ export default function AddToCartButton({
     stockQty: 999, // temporary
   });
 
-  console.log("ADD RESULT:", success);
 
   if (success) {
     setAdded(true);

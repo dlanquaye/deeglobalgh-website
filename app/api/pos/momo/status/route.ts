@@ -1,19 +1,11 @@
 export const runtime = "nodejs";
 
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { OrderPaymentStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { finalizePosMomoPayment } from "@/lib/pos/finalizePosMomoPayment";
-
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
 
 type PaystackMetadata = {
   source?: unknown;
@@ -38,30 +30,6 @@ type PaystackVerifyResponse = {
     metadata?: unknown;
   };
 };
-
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore =
-    await cookies();
-
-  const rawCookie =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawCookie
-      )
-    ) as AdminSession;
-  } catch {
-    return null;
-  }
-}
 
 function getString(
   value: unknown
@@ -138,10 +106,12 @@ export async function GET(
      * AUTHENTICATION
      * ==========================================
      */
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -152,7 +122,6 @@ export async function GET(
         }
       );
     }
-
     if (!session.branchId) {
       return NextResponse.json(
         {

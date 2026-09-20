@@ -319,17 +319,38 @@ model InventoryMovement {
 }
 
 model Admin {
-  id        String       @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  email     String       @unique
+  email     String    @unique
   pinHash   String
-  role      AdminRole    @default(ADMIN)
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  pin       String?
-  staffId   String?      @unique
-  staff     Staff?       @relation(fields: [staffId], references: [id])
-  events    OrderEvent[]
+  role      AdminRole @default(ADMIN)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  // Legacy nullable field.
+  // Do not write new credentials here.
+  // Remove after the new credential system is fully verified.
+  staffId String? @unique
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+
+  // Increment whenever this account's credential changes.
+  // Signed sessions must carry the same version to remain valid.
+  credentialVersion Int @default(1)
+
+  // Records when the credential was most recently changed/reset.
+  credentialChangedAt DateTime?
+
+  // Used for Super Admin-created/reset accounts that must choose
+  // their own credential on the next authenticated visit.
+  mustChangeCredential Boolean @default(false)
+
+  events OrderEvent[]
+
+  securityEventsAsSubject SecurityEvent[] @relation("SecurityEventSubject")
+  securityEventsAsActor   SecurityEvent[] @relation("SecurityEventActor")
+
+  @@index([isActive])
+  @@index([role])
 }
 
 model OrderEvent {
@@ -341,6 +362,52 @@ model OrderEvent {
   createdAt   DateTime       @default(now())
   admin       Admin          @relation(fields: [adminId], references: [id])
   order       Order          @relation(fields: [orderId], references: [id])
+}
+
+model SecurityEvent {
+  id String @id @default(cuid())
+
+  // Account affected by the security event.
+  subjectAdminId String?
+  subjectAdmin   Admin?  @relation("SecurityEventSubject", fields: [subjectAdminId], references: [id], onDelete: SetNull)
+
+  // Immutable snapshots so the audit remains understandable
+  // even if the account name/email/role changes later.
+  subjectName  String?
+  subjectEmail String?
+  subjectRole  String?
+
+  // Account that performed the action.
+  // For self-service changes this normally equals subjectAdminId.
+  actorAdminId String?
+  actorAdmin   Admin?  @relation("SecurityEventActor", fields: [actorAdminId], references: [id], onDelete: SetNull)
+
+  actorName String?
+  actorRole String?
+
+  eventType SecurityEventType
+
+  // Network/device information captured from the request where available.
+  ipAddress     String?
+  userAgent     String? @db.Text
+  deviceSummary String?
+
+  success Boolean @default(true)
+
+  // Optional safe explanation such as "Self-service password change".
+  // Never store a password, PIN or credential hash here.
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  // Null means the Super Admin has not yet reviewed the alert.
+  readAt DateTime?
+
+  @@index([subjectAdminId])
+  @@index([actorAdminId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([readAt])
 }
 
 model Staff {
@@ -2703,6 +2770,16 @@ enum InventoryMovementType {
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
+}
+
+enum SecurityEventType {
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  ACCOUNT_CREATED
+  ACCOUNT_ENABLED
+  ACCOUNT_DISABLED
 }
 
 enum OrderEventType {

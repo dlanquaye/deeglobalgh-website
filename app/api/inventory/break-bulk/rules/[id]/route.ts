@@ -1,17 +1,9 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
-
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
 
 type RouteContext = {
   params: Promise<{
@@ -19,21 +11,136 @@ type RouteContext = {
   }>;
 };
 
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("dg_admin")?.value;
+async function requireBreakBulkManager() {
+  const session =
+    await requireAdmin();
 
-  if (!rawCookie) {
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageBreakBulk =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER" ||
+    staff.role ===
+      "WAREHOUSE_MANAGER";
+
+  if (!canManageBreakBulk) {
+    throw new Error(
+      "BreakBulkManagementForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
     return null;
   }
 
-  try {
-    return JSON.parse(
-      decodeURIComponent(rawCookie)
-    ) as AdminSession;
-  } catch {
-    return null;
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
   }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BreakBulkManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "You do not have permission to manage Break Bulk rules.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
 }
 
 export async function PATCH(
@@ -41,40 +148,36 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
-    // ==============================
-    // AUTHENTICATION
-    // ==============================
-    const session = await getAdminSession();
+    await requireBreakBulkManager();
 
-    if (!session) {
+    const {
+      id,
+    } =
+      await context.params;
+
+    const cleanId =
+      String(
+        id ?? ""
+      ).trim();
+
+    if (!cleanId) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized",
+          error:
+            "Break Bulk rule ID is required.",
         },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await context.params;
-
-    if (!id) {
-      return NextResponse.json(
         {
-          success: false,
-          error: "Break Bulk rule ID is required",
-        },
-        { status: 400 }
+          status: 400,
+        }
       );
     }
 
-    // ==============================
-    // LOAD EXISTING RULE
-    // ==============================
     const existingRule =
       await prisma.breakBulkRule.findUnique({
         where: {
-          id,
+          id:
+            cleanId,
         },
         include: {
           sourceProduct: {
@@ -84,6 +187,7 @@ export async function PATCH(
               name: true,
             },
           },
+
           destinationProduct: {
             select: {
               id: true,
@@ -91,9 +195,11 @@ export async function PATCH(
               name: true,
             },
           },
+
           _count: {
             select: {
-              conversions: true,
+              conversions:
+                true,
             },
           },
         },
@@ -103,37 +209,84 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: "Break Bulk rule not found",
+          error:
+            "Break Bulk rule not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
-    // ==============================
-    // REQUEST BODY
-    // ==============================
-    const body = await req.json();
+    let body: unknown;
 
-    const hasConversionRatio =
-      Object.prototype.hasOwnProperty.call(
-        body,
-        "conversionRatio"
-      );
-
-    const hasIsActive =
-      Object.prototype.hasOwnProperty.call(
-        body,
-        "isActive"
-      );
-
-    if (!hasConversionRatio && !hasIsActive) {
+    try {
+      body =
+        await req.json();
+    } catch {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Provide conversionRatio or isActive to update the rule",
+            "Invalid JSON request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
+
+    const hasConversionRatio =
+      Object.prototype
+        .hasOwnProperty.call(
+          record,
+          "conversionRatio"
+        );
+
+    const hasIsActive =
+      Object.prototype
+        .hasOwnProperty.call(
+          record,
+          "isActive"
+        );
+
+    if (
+      !hasConversionRatio &&
+      !hasIsActive
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Provide conversionRatio or isActive to update the rule.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
@@ -145,64 +298,98 @@ export async function PATCH(
       | boolean
       | undefined;
 
-    // ==============================
-    // VALIDATE RATIO
-    // ==============================
-    if (hasConversionRatio) {
+    if (
+      hasConversionRatio
+    ) {
       conversionRatio =
-        Number(body.conversionRatio);
+        Number(
+          record.conversionRatio
+        );
 
       if (
-        !Number.isInteger(conversionRatio) ||
-        conversionRatio <= 0
+        !Number.isInteger(
+          conversionRatio
+        ) ||
+        conversionRatio <=
+          0
       ) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "Conversion ratio must be a positive whole number",
+              "Conversion ratio must be a positive whole number.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
     }
 
-    // ==============================
-    // VALIDATE ACTIVE STATUS
-    // ==============================
     if (hasIsActive) {
       if (
-        typeof body.isActive !== "boolean"
+        typeof record.isActive !==
+        "boolean"
       ) {
         return NextResponse.json(
           {
             success: false,
             error:
-              "isActive must be true or false",
+              "isActive must be true or false.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
-      isActive = body.isActive;
+      isActive =
+        record.isActive;
     }
 
-    // ==============================
-    // UPDATE RULE
-    // ==============================
+    /*
+     * Nothing to change.
+     */
+    if (
+      conversionRatio ===
+        existingRule.conversionRatio &&
+      (
+        isActive ===
+          undefined ||
+        isActive ===
+          existingRule.isActive
+      )
+    ) {
+      return NextResponse.json({
+        success: true,
+        rule:
+          existingRule,
+      });
+    }
+
     const updatedRule =
       await prisma.breakBulkRule.update({
         where: {
-          id,
+          id:
+            cleanId,
         },
+
         data: {
-          ...(conversionRatio !== undefined
-            ? { conversionRatio }
+          ...(conversionRatio !==
+          undefined
+            ? {
+                conversionRatio,
+              }
             : {}),
-          ...(isActive !== undefined
-            ? { isActive }
+
+          ...(isActive !==
+          undefined
+            ? {
+                isActive,
+              }
             : {}),
         },
+
         include: {
           sourceProduct: {
             select: {
@@ -212,6 +399,7 @@ export async function PATCH(
               isActive: true,
             },
           },
+
           destinationProduct: {
             select: {
               id: true,
@@ -220,9 +408,11 @@ export async function PATCH(
               isActive: true,
             },
           },
+
           _count: {
             select: {
-              conversions: true,
+              conversions:
+                true,
             },
           },
         },
@@ -230,9 +420,19 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      rule: updatedRule,
+      rule:
+        updatedRule,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Break Bulk rule PATCH error:",
       error
@@ -242,9 +442,11 @@ export async function PATCH(
       {
         success: false,
         error:
-          "Unable to update Break Bulk rule",
+          "Unable to update Break Bulk rule.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

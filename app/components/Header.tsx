@@ -1,10 +1,26 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { useCart } from "@/app/context/CartContext";
 
 export default function Header() {
-  const { totalItems } = useCart();
+  const pathname =
+    usePathname();
+
+  const { totalItems } =
+    useCart();
+
+  const isAdminRoute =
+    pathname === "/admin" ||
+    pathname.startsWith(
+      "/admin/"
+    );
+
+  if (isAdminRoute) {
+    return null;
+  }
 
   return (
     <header className="border-b bg-white">
@@ -13,7 +29,10 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
 
         {/* LEFT (MAKE LOGO CLICKABLE) */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-3"
+        >
           <img
             src="/products/deeglobalgh-logo.png"
             alt="DeeglobalGh"
@@ -27,9 +46,17 @@ export default function Header() {
 
         {/* RIGHT NAV */}
         <nav className="flex items-center gap-6 text-sm font-medium">
-          <Link href="/">Home</Link>
-          <Link href="/shop">Shop</Link>
-          <Link href="/category/textbooks">Textbooks</Link>
+          <Link href="/">
+            Home
+          </Link>
+
+          <Link href="/shop">
+            Shop
+          </Link>
+
+          <Link href="/category/textbooks">
+            Textbooks
+          </Link>
 
           <Link
             href="/cart"

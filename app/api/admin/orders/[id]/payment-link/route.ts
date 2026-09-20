@@ -3,12 +3,13 @@
   NextResponse,
 } from "next/server";
 
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 import { ensureOrderPaymentToken } from "@/lib/payments/ensureOrderPaymentToken";
 import { getRequiredOrderAmountPesewas } from "@/lib/pos/orderMoney";
 
-export const runtime = "nodejs";
+export const runtime =
+  "nodejs";
 
 function getSiteUrl(
   req: NextRequest
@@ -18,8 +19,12 @@ function getSiteUrl(
 
   if (
     configuredUrl &&
-    !configuredUrl.includes("localhost") &&
-    !configuredUrl.includes("127.0.0.1")
+    !configuredUrl.includes(
+      "localhost"
+    ) &&
+    !configuredUrl.includes(
+      "127.0.0.1"
+    )
   ) {
     return configuredUrl.replace(
       /\/+$/,
@@ -37,6 +42,183 @@ function getSiteUrl(
   return req.nextUrl.origin;
 }
 
+async function requirePaymentLinkManager() {
+  const session =
+    await requireAdmin();
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id:
+          session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canCreatePaymentLink =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (
+    !canCreatePaymentLink
+  ) {
+    throw new Error(
+      "PaymentLinkForbidden"
+    );
+  }
+
+  if (!session.branchId) {
+    throw new Error(
+      "BranchRequired"
+    );
+  }
+
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "BranchManagementForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+    isSuperAdmin,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "PaymentLinkForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to create payment links.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your staff account is not assigned to a branch.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage payment links for this branch.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
+
 export async function POST(
   req: NextRequest,
   context: {
@@ -46,12 +228,19 @@ export async function POST(
   }
 ) {
   try {
-    await requireAdmin();
+    await requirePaymentLinkManager();
 
-    const { id } =
+    const {
+      id,
+    } =
       await context.params;
 
-    if (!id) {
+    const cleanId =
+      String(
+        id ?? ""
+      ).trim();
+
+    if (!cleanId) {
       return NextResponse.json(
         {
           error:
@@ -66,7 +255,8 @@ export async function POST(
     const order =
       await prisma.order.findUnique({
         where: {
-          id,
+          id:
+            cleanId,
         },
 
         select: {
@@ -92,9 +282,12 @@ export async function POST(
     }
 
     if (
-      order.paymentStatus === "PAID" ||
-      order.paymentStatus === "DELIVERING" ||
-      order.paymentStatus === "COMPLETED"
+      order.paymentStatus ===
+        "PAID" ||
+      order.paymentStatus ===
+        "DELIVERING" ||
+      order.paymentStatus ===
+        "COMPLETED"
     ) {
       return NextResponse.json(
         {
@@ -108,16 +301,18 @@ export async function POST(
     }
 
     /*
-     * A delivery fee must have been explicitly
-     * confirmed by staff before a continuation
-     * payment link can be issued.
+     * The delivery fee must have been explicitly
+     * confirmed before a continuation payment
+     * link can be issued.
      *
-     * Zero remains valid for an explicitly agreed
-     * free-delivery arrangement.
+     * Zero remains valid for an explicitly
+     * agreed free-delivery arrangement.
      */
     if (
-      order.deliveryFee === null ||
-      order.deliveryFee === undefined
+      order.deliveryFee ===
+        null ||
+      order.deliveryFee ===
+        undefined
     ) {
       return NextResponse.json(
         {
@@ -152,13 +347,20 @@ export async function POST(
       );
     }
 
+    /*
+     * ensureOrderPaymentToken() reuses the
+     * existing secure token when present rather
+     * than creating a competing payment identity.
+     */
     const paymentToken =
       await ensureOrderPaymentToken(
         order.id
       );
 
     const siteUrl =
-      getSiteUrl(req);
+      getSiteUrl(
+        req
+      );
 
     const paymentUrl =
       `${siteUrl}/pay/${paymentToken}`;
@@ -182,6 +384,15 @@ export async function POST(
       paymentUrl,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "create order payment link error:",
       error

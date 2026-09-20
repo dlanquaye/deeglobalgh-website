@@ -1,51 +1,47 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
+import {
+  LocationType,
+} from "@prisma/client";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { LocationType } from "@prisma/client";
 
+import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 import { breakBulkInventory } from "@/lib/inventory/breakBulk";
 
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
-
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("dg_admin")?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(rawCookie)
-    ) as AdminSession;
-  } catch {
-    return null;
-  }
-}
-
-function getErrorStatus(message: string) {
+function getErrorStatus(
+  message: string
+) {
   if (
-    message.includes("Insufficient stock") ||
-    message.includes("No inventory record exists")
+    message.includes(
+      "Insufficient stock"
+    ) ||
+    message.includes(
+      "No inventory record exists"
+    )
   ) {
     return 409;
   }
 
   if (
-    message.includes("required") ||
-    message.includes("invalid") ||
-    message.includes("inactive") ||
-    message.includes("must be") ||
-    message.includes("not found") ||
-    message.includes("must be different")
+    message.includes(
+      "required"
+    ) ||
+    message.includes(
+      "invalid"
+    ) ||
+    message.includes(
+      "inactive"
+    ) ||
+    message.includes(
+      "must be"
+    ) ||
+    message.includes(
+      "not found"
+    ) ||
+    message.includes(
+      "must be different"
+    )
   ) {
     return 400;
   }
@@ -53,20 +49,79 @@ function getErrorStatus(message: string) {
   return 500;
 }
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    // ==============================
-    // AUTHENTICATED ADMIN SESSION
-    // ==============================
-    const session = await getAdminSession();
+    const session =
+      await requireAdmin();
 
-    if (!session) {
+    if (!session.staffId) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized",
+          error:
+            "This account is not linked to a staff record.",
         },
-        { status: 401 }
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const staff =
+      await prisma.staff.findUnique({
+        where: {
+          id:
+            session.staffId,
+        },
+        select: {
+          id: true,
+          role: true,
+          isActive: true,
+          branchId: true,
+        },
+      });
+
+    if (
+      !staff ||
+      !staff.isActive
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "An active staff account is required.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const isSuperAdmin =
+      session.role ===
+        "SUPER_ADMIN" ||
+      staff.role ===
+        "SUPER_ADMIN";
+
+    const canBreakBulk =
+      isSuperAdmin ||
+      staff.role ===
+        "MANAGER" ||
+      staff.role ===
+        "WAREHOUSE_MANAGER";
+
+    if (!canBreakBulk) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "You do not have permission to perform Break Bulk conversions.",
+        },
+        {
+          status: 403,
+        }
       );
     }
 
@@ -74,83 +129,152 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "No branch is assigned to this account",
+          error:
+            "No branch is assigned to this account.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const actorId =
-      session.staffId ?? session.adminId;
-
-    if (!actorId) {
+    /*
+     * A normal branch manager may only
+     * perform Break Bulk against their
+     * assigned branch.
+     */
+    if (
+      !isSuperAdmin &&
+      staff.role ===
+        "MANAGER" &&
+      staff.branchId !==
+        session.branchId
+    ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "No staff or admin identity is available",
+            "You do not have permission to perform Break Bulk for this branch.",
         },
-        { status: 400 }
+        {
+          status: 403,
+        }
       );
     }
 
-    // ==============================
-    // REQUEST BODY
-    // ==============================
-    const body = await req.json();
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid JSON request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const ruleId =
-      typeof body.ruleId === "string"
-        ? body.ruleId.trim()
+      typeof record.ruleId ===
+        "string"
+        ? record.ruleId.trim()
         : "";
 
     const sourceQuantity =
-      Number(body.sourceQuantity);
+      Number(
+        record.sourceQuantity
+      );
 
     const note =
-      typeof body.note === "string"
-        ? body.note.trim()
+      typeof record.note ===
+        "string"
+        ? record.note.trim()
         : undefined;
 
     if (!ruleId) {
       return NextResponse.json(
         {
           success: false,
-          error: "Break Bulk rule is required",
+          error:
+            "Break Bulk rule is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     if (
-      !Number.isInteger(sourceQuantity) ||
+      !Number.isInteger(
+        sourceQuantity
+      ) ||
       sourceQuantity <= 0
     ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Break Bulk quantity must be a positive whole number",
+            "Break Bulk quantity must be a positive whole number.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    // ==============================
-    // EXECUTE BRANCH CONVERSION
-    // ==============================
-    const result = await breakBulkInventory({
-      ruleId,
-      locationType: LocationType.BRANCH,
-      locationId: session.branchId,
-      sourceQuantity,
-      createdByStaffId: actorId,
-      note,
-    });
+    const result =
+      await breakBulkInventory({
+        ruleId,
+
+        locationType:
+          LocationType.BRANCH,
+
+        locationId:
+          session.branchId,
+
+        sourceQuantity,
+
+        createdByStaffId:
+          staff.id,
+
+        note,
+      });
 
     return NextResponse.json(
       result,
-      { status: 200 }
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error(
@@ -163,13 +287,49 @@ export async function POST(req: Request) {
         ? error.message
         : "Break Bulk conversion failed";
 
+    if (
+      message ===
+      "Unauthorized"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Authentication required.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    if (
+      message ===
+      "CredentialChangeRequired"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Credential change required.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: message,
+        error:
+          message,
       },
       {
-        status: getErrorStatus(message),
+        status:
+          getErrorStatus(
+            message
+          ),
       }
     );
   }

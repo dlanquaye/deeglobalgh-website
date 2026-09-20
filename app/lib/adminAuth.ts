@@ -1,33 +1,162 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
+import { PrismaClient } from "@prisma/client";
 
-export async function requireAdmin() {
-  const cookieStore = await cookies(); // ✅ FIX HERE
+import {
+  type AdminSession,
+  verifyAdminSessionToken,
+} from "@/app/lib/adminSession";
 
-  const cookie = cookieStore.get("dg_admin")?.value;
+const globalForPrisma =
+  globalThis as unknown as {
+    adminAuthPrisma?: PrismaClient;
+  };
 
-  console.log("🧪 COOKIE RAW:", cookie);
+const prisma =
+  globalForPrisma.adminAuthPrisma ??
+  new PrismaClient();
 
-  if (!cookie) {
-    console.log("❌ No cookie found");
-    throw new Error("Unauthorized");
-  }
-
-  let sessionData;
-
-  try {
-    sessionData = JSON.parse(cookie);
-    console.log("🧪 PARSED SESSION:", sessionData);
-  } catch (err) {
-    console.log("❌ JSON parse failed");
-    throw new Error("Unauthorized");
-  }
-
-  if (!sessionData?.adminId) {
-  console.log("❌ Admin ID missing");
-  throw new Error("Unauthorized");
+if (
+  process.env.NODE_ENV !==
+  "production"
+) {
+  globalForPrisma.adminAuthPrisma =
+    prisma;
 }
 
-  console.log("✅ ADMIN AUTH PASSED");
+export interface TrustedAdminSession {
+  adminId: string;
+  role: string;
+  staffId: string | null;
+  branchId: string | null;
+  staffName: string | null;
+  credentialVersion: number;
+  mustChangeCredential: boolean;
+}
 
-  return sessionData;
+export interface RequireAdminOptions {
+  allowMustChangeCredential?: boolean;
+}
+
+async function validateSignedSession(
+  session: AdminSession
+): Promise<TrustedAdminSession> {
+  const admin =
+    await prisma.admin.findUnique({
+      where: {
+        id: session.adminId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        credentialVersion: true,
+        mustChangeCredential: true,
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+            branchId: true,
+          },
+        },
+      },
+    });
+
+  if (
+    !admin ||
+    !admin.isActive
+  ) {
+    throw new Error(
+      "Unauthorized"
+    );
+  }
+
+  if (
+    admin.staff &&
+    !admin.staff.isActive
+  ) {
+    throw new Error(
+      "Unauthorized"
+    );
+  }
+
+  if (
+    admin.credentialVersion !==
+    session.credentialVersion
+  ) {
+    throw new Error(
+      "Unauthorized"
+    );
+  }
+
+  return {
+    adminId:
+      admin.id,
+
+    role:
+      admin.role,
+
+    staffId:
+      admin.staff?.id ??
+      null,
+
+    branchId:
+      admin.staff?.branchId ??
+      null,
+
+    staffName:
+      admin.staff?.name ??
+      null,
+
+    credentialVersion:
+      admin.credentialVersion,
+
+    mustChangeCredential:
+      admin.mustChangeCredential,
+  };
+}
+
+export async function requireAdmin(
+  options: RequireAdminOptions = {}
+): Promise<TrustedAdminSession> {
+  const cookieStore =
+    await cookies();
+
+  const rawCookie =
+    cookieStore.get(
+      "dg_admin"
+    )?.value;
+
+  if (!rawCookie) {
+    throw new Error(
+      "Unauthorized"
+    );
+  }
+
+  const signedSession =
+    await verifyAdminSessionToken(
+      rawCookie
+    );
+
+  if (!signedSession) {
+    throw new Error(
+      "Unauthorized"
+    );
+  }
+
+  const trustedSession =
+    await validateSignedSession(
+      signedSession
+    );
+
+  if (
+    trustedSession.mustChangeCredential &&
+    !options.allowMustChangeCredential
+  ) {
+    throw new Error(
+      "CredentialChangeRequired"
+    );
+  }
+
+  return trustedSession;
 }

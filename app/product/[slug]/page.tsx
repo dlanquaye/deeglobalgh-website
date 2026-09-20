@@ -9,19 +9,17 @@ export default async function ProductPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  // ✅ Correct async params handling
+  // âœ… Correct async params handling
   const { slug } = await params;
 
   if (!slug) {
     notFound();
   }
 
-  // ✅ Debug (keep for now)
+  // âœ… Debug (keep for now)
   const count = await prisma.product.count();
-  console.log("TOTAL PRODUCTS:", count);
-  console.log("SLUG:", slug);
 
-  // ✅ Fetch product
+  // âœ… Fetch product
   const product = await prisma.product.findFirst({
   where: {
     slug,
@@ -30,14 +28,13 @@ export default async function ProductPage({
   },
 });
 
-  console.log("FOUND PRODUCT:", product);
 
-  // ❌ Not found → 404
+  // âŒ Not found â†’ 404
   if (!product) {
     notFound();
   }
 
-  // ✅ Related products
+  // âœ… Related products
   const relatedProducts = await prisma.product.findMany({
   where: {
   isActive: true,
@@ -134,7 +131,7 @@ export default async function ProductPage({
 
           {/* Price */}
           <div className="mt-5 text-2xl font-bold">
-            GH₵ {price.toFixed(2)}
+            GHâ‚µ {price.toFixed(2)}
           </div>
 
           {/* Summary */}
@@ -144,13 +141,13 @@ export default async function ProductPage({
 
 {/* TRUST + DELIVERY */}
 <div className="mt-6 bg-white border rounded-xl p-4 space-y-2 text-sm">
-  <p>✔ 100% New Curriculum (NaCCA Approved)</p>
+  <p>âœ” 100% New Curriculum (NaCCA Approved)</p>
 
-  <p>🚚 Fast and reliable delivery in Kasoa, Accra & nationwide</p>
+  <p>ðŸšš Fast and reliable delivery in Kasoa, Accra & nationwide</p>
 
-  <p>📦 Carefully packed to avoid damage</p>
+  <p>ðŸ“¦ Carefully packed to avoid damage</p>
 
-  <p>💬 Order directly via WhatsApp for quick response</p>
+  <p>ðŸ’¬ Order directly via WhatsApp for quick response</p>
 </div>
           {/* Add to Cart */}
           <div className="mt-6">
@@ -173,7 +170,7 @@ export default async function ProductPage({
   href={`https://wa.me/233270030000?text=${encodeURIComponent(
   `Hello, I want to order:
 Product: ${product.name}
-Price: GH₵ ${price.toFixed(2)}
+Price: GHâ‚µ ${price.toFixed(2)}
 Quantity: 1
 
 Please assist me with delivery.`
@@ -240,7 +237,7 @@ className="border rounded-2xl p-3 md:p-4 bg-white hover:shadow-xl hover:-transla
 
   {/* PRICE */}
 <div className="mt-1 text-lg font-bold text-[color:var(--brand-blue)]">
-    GH₵ {Number(item.retailPrice).toFixed(2)}
+    GHâ‚µ {Number(item.retailPrice).toFixed(2)}
   </div>
 
   {/* LINK */}
@@ -283,7 +280,7 @@ className="border rounded-2xl p-3 md:p-4 bg-white hover:shadow-xl hover:-transla
           </div>
 
           <div className="mt-2 text-blue-700 font-bold">
-            GH₵ {Number(item.retailPrice).toFixed(2)}
+            GHâ‚µ {Number(item.retailPrice).toFixed(2)}
           </div>
 
           <div className="mt-auto pt-4 flex items-center justify-between gap-2">
@@ -320,7 +317,7 @@ className="border rounded-2xl p-3 md:p-4 bg-white hover:shadow-xl hover:-transla
     href={`https://wa.me/233270030000?text=${encodeURIComponent(
       `Hello, I want to order:
 Product: ${product.name}
-Price: GH₵ ${price.toFixed(2)}
+Price: GHâ‚µ ${price.toFixed(2)}
 Quantity: 1
 
 Please assist me with delivery.`

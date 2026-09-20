@@ -3,10 +3,6 @@ import {
 } from "node:crypto";
 
 import {
-  cookies,
-} from "next/headers";
-
-import {
   NextResponse,
 } from "next/server";
 
@@ -14,13 +10,9 @@ import {
   prisma,
 } from "@/lib/prisma";
 
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
+import {
+  requireAdmin,
+} from "@/app/lib/adminAuth";
 
 type HeldCartItemInput = {
   id: string;
@@ -51,31 +43,6 @@ class HeldSaleError extends Error {
 
     this.status =
       status;
-  }
-}
-
-async function getAdminSession():
-  Promise<AdminSession | null> {
-  const cookieStore =
-    await cookies();
-
-  const rawCookie =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawCookie
-      )
-    ) as AdminSession;
-  } catch {
-    return null;
   }
 }
 
@@ -194,10 +161,12 @@ function normaliseText(
 
 export async function GET() {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -267,10 +236,12 @@ export async function POST(
   req: Request
 ) {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:

@@ -1,12 +1,145 @@
-﻿import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
+import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 import { ensureEstimatePublicToken } from "@/lib/estimator/ensureEstimatePublicToken";
 
 export const runtime = "nodejs";
 
 const SITE_URL =
   "https://www.shopdeeglobalgh.com";
+
+async function requireEstimatorSalesAccess() {
+  const session =
+    await requireAdmin();
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageQuotation =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER" ||
+    staff.role ===
+      "SALES";
+
+  if (!canManageQuotation) {
+    throw new Error(
+      "EstimatorSalesForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "EstimatorSalesForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "You do not have permission to create quotation links.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
 
 export async function POST(
   _request: Request,
@@ -17,36 +150,19 @@ export async function POST(
   }
 ) {
   try {
-    // ==========================================
-    // ADMIN AUTHENTICATION
-    // ==========================================
-    const cookieStore =
-      await cookies();
+    await requireEstimatorSalesAccess();
 
-    const adminCookie =
-      cookieStore.get(
-        "dg_admin"
-      );
-
-    if (!adminCookie?.value) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
-
-    // ==========================================
-    // ESTIMATE
-    // ==========================================
-    const { id } =
+    const {
+      id,
+    } =
       await context.params;
 
-    if (!id?.trim()) {
+    const cleanId =
+      String(
+        id ?? ""
+      ).trim();
+
+    if (!cleanId) {
       return NextResponse.json(
         {
           success: false,
@@ -59,12 +175,9 @@ export async function POST(
       );
     }
 
-    // ==========================================
-    // CREATE OR REUSE SECURE TOKEN
-    // ==========================================
     const token =
       await ensureEstimatePublicToken(
-        id
+        cleanId
       );
 
     const url =
@@ -76,6 +189,15 @@ export async function POST(
       url,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Quotation public-link error:",
       error

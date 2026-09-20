@@ -1,6 +1,3 @@
-import {
-  cookies,
-} from "next/headers";
 
 import {
   NextResponse,
@@ -10,13 +7,10 @@ import {
   prisma,
 } from "@/lib/prisma";
 
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
+import {
+  requireAdmin,
+} from "@/app/lib/adminAuth";
+
 
 type RouteContext = {
   params: Promise<{
@@ -24,30 +18,6 @@ type RouteContext = {
   }>;
 };
 
-async function getAdminSession():
-  Promise<AdminSession | null> {
-  const cookieStore =
-    await cookies();
-
-  const rawCookie =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawCookie
-      )
-    ) as AdminSession;
-  } catch {
-    return null;
-  }
-}
 
 // ==========================================
 // GET ONE ACTIVE / RESUMED HELD SALE
@@ -65,10 +35,12 @@ export async function GET(
   context: RouteContext
 ) {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -169,10 +141,12 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -374,10 +348,12 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:

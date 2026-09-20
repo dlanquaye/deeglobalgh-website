@@ -192,7 +192,7 @@ return {
   restockQty,
   restockCost,
     unitCost,
-    supplier: p.supplier || "unknown", // 👈 ADD THIS
+    supplier: p.supplier || "unknown", // ðŸ‘ˆ ADD THIS
 
 };
   })
@@ -205,7 +205,7 @@ return {
   
 
   return smartLowStockProducts
-    // Sort HIGH → MEDIUM → LOW
+    // Sort HIGH â†’ MEDIUM â†’ LOW
     .sort((a, b) => {
       const order: any = { HIGH: 1, MEDIUM: 2, LOW: 3 };
       return order[a.demandLevel] - order[b.demandLevel];
@@ -229,7 +229,7 @@ return {
   demandLevel: p.demandLevel,
   isLowStock: p.isLowStock,
   unitCost: p.unitCost,
-  supplier: p.supplier || "unknown", // 👈 FORCE KEEP
+  supplier: p.supplier || "unknown", // ðŸ‘ˆ FORCE KEEP
   restockQty: finalQty,
   restockCost: finalCost,
 };
@@ -237,9 +237,8 @@ return {
 
 .filter((p): p is NonNullable<typeof p> => p !== null);})();
 
-console.log("RESTOCK ITEMS:", prioritizedRestock);
 
-// ✅ GROUP RESTOCK BY SUPPLIER
+// âœ… GROUP RESTOCK BY SUPPLIER
 const restockBySupplier: Record<string, typeof prioritizedRestock> = {};
 
 prioritizedRestock.forEach((item) => {
@@ -366,7 +365,7 @@ const weekRevenue = orders
     const d = new Date(o.createdAt);
     const now = new Date();
 
-    // Start of week (Sunday → Saturday)
+    // Start of week (Sunday â†’ Saturday)
     const startOfWeek = new Date(now);
     startOfWeek.setHours(0, 0, 0, 0);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -442,7 +441,7 @@ const averageOrderValue =
   if (status === "PROCESSING") {
     return `Hello, your order (${order.orderId}) is now being prepared.
 
-🛒 Items:
+ðŸ›’ Items:
 ${itemsList}
 
 Total: GHS ${order.amount.toFixed(2)}
@@ -455,7 +454,7 @@ Thank you for choosing DeeglobalGh.`;
   if (status === "DELIVERED") {
     return `Hello, your order (${order.orderId}) has been successfully delivered.
 
-🛒 Items:
+ðŸ›’ Items:
 ${itemsList}
 
 Total: GHS ${order.amount.toFixed(2)}
@@ -763,7 +762,7 @@ Unit: GHS ${p.unitCost}
 Total: GHS ${itemTotal}`;
     });
 
-    const message = `RESTOCK ORDER – ${supplier.toUpperCase()}
+    const message = `RESTOCK ORDER â€“ ${supplier.toUpperCase()}
 
 ${lines.join("\n\n")}
 
@@ -858,7 +857,7 @@ const phone = supplierPhones[supplier] || "233246011773";
   <ul className="text-sm space-y-1">
     {topProductsToday.map((p, i) => (
       <li key={i}>
-        {i + 1}. {p.name} — {p.qty} pcs
+        {i + 1}. {p.name} â€” {p.qty} pcs
       </li>
     ))}
   </ul>
@@ -878,7 +877,7 @@ const phone = supplierPhones[supplier] || "233246011773";
           className="flex justify-between items-center"
         >
           <div>
-            {i + 1}. {p.name} — {p.qty} pcs
+            {i + 1}. {p.name} â€” {p.qty} pcs
           </div>
 
           <span
@@ -899,7 +898,7 @@ const phone = supplierPhones[supplier] || "233246011773";
 </div>
 <div className="mt-8 bg-red-100 border border-red-300 rounded-xl p-4">
   <h2 className="font-bold mb-3 text-red-800">
-    🚨 Critical Stock (Immediate Action)
+    ðŸš¨ Critical Stock (Immediate Action)
   </h2>
 
   {criticalStockProducts.length === 0 ? (
@@ -925,7 +924,7 @@ const phone = supplierPhones[supplier] || "233246011773";
 
 <div className="mt-8 bg-red-50 border border-red-200 rounded-xl p-4">
   <h2 className="font-bold mb-3 text-red-700">
-    🔥 Restock Priority (Smart Alert)
+    ðŸ”¥ Restock Priority (Smart Alert)
   </h2>
 
   {smartLowStockProducts.length === 0 ? (
@@ -959,7 +958,7 @@ const phone = supplierPhones[supplier] || "233246011773";
             <div className="flex items-center gap-2">
   <div className="text-right">
   <div className="text-green-700 font-semibold">
-    → Restock +{p.restockQty}
+    â†’ Restock +{p.restockQty}
   </div>
 
   <div className="text-green-700">
@@ -967,12 +966,12 @@ const phone = supplierPhones[supplier] || "233246011773";
   </div>
 
   <div className="text-xs text-gray-500">
-    ({p.restockQty} × {p.unitCost || 0})
+    ({p.restockQty} Ã— {p.unitCost || 0})
   </div>
 
   {p.unitCost === 0 && (
     <div className="text-xs text-red-500 font-semibold">
-      ⚠ Missing cost price
+      âš  Missing cost price
     </div>
   )}
 </div>
@@ -988,7 +987,7 @@ const phone = supplierPhones[supplier] || "233246011773";
 
 <div className="mt-8 bg-red-50 border border-red-200 rounded-xl p-4">
   <h2 className="font-bold mb-3 text-red-600">
-    ⚠️ Low Stock Alert
+    âš ï¸ Low Stock Alert
   </h2>
 
 {lowStockProductsFromDB.length === 0 ? (
@@ -1063,7 +1062,7 @@ const phone = supplierPhones[supplier] || "233246011773";
       </div>
 
       {loading ? (
-        <p>Loading orders…</p>
+        <p>Loading ordersâ€¦</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border bg-white">
           <table className="min-w-full text-sm">
@@ -1148,7 +1147,7 @@ const phone = supplierPhones[supplier] || "233246011773";
       new Date(o.createdAt).toDateString() ===
       new Date().toDateString();
 
-    if (isToday) return "bg-purple-20"; // 👈 TODAY highlight
+    if (isToday) return "bg-purple-20"; // ðŸ‘ˆ TODAY highlight
 
     if (o.paymentStatus === "PAID") return "bg-yellow-50";
     if (o.paymentStatus === "DELIVERING") return "bg-blue-50";
@@ -1288,13 +1287,13 @@ const phone = supplierPhones[supplier] || "233246011773";
   onClick={() => setSelectedOrder(o)}
   className="block mb-2 text-sm text-indigo-600 underline"
 >
-  👁 View Details
+  ðŸ‘ View Details
 </button>
                       <a
   href={`tel:${o.phone}`}
   className="block mb-2 text-blue-600 underline text-sm"
 >
-  📞 Call Customer
+  ðŸ“ž Call Customer
   
 </a>
 
@@ -1306,7 +1305,7 @@ const phone = supplierPhones[supplier] || "233246011773";
   rel="noopener noreferrer"
   className="block mb-2 text-green-600 underline text-sm"
 >
-  💬 WhatsApp Customer
+  ðŸ’¬ WhatsApp Customer
 </a>
                       {o.paymentStatus === "PAID" && (
                         <button
@@ -1326,7 +1325,7 @@ const phone = supplierPhones[supplier] || "233246011773";
     }
     className="block mb-2 text-purple-700 underline text-sm"
   >
-    ↩ Create Return
+    â†© Create Return
   </button>
 )}
 
@@ -1389,7 +1388,7 @@ const phone = supplierPhones[supplier] || "233246011773";
         <ul className="space-y-1 text-sm">
           {selectedOrder.orderItems.map((item, index) => (
   <li key={index}>
-    {item.product?.name || "Product"} — Qty: {item.quantity}
+    {item.product?.name || "Product"} â€” Qty: {item.quantity}
   </li>
 ))}
         </ul>
@@ -1461,7 +1460,7 @@ onClick={() => {
   }
 }}  className="mt-4 w-full bg-blue-600 text-white py-2 rounded"
 >
-  🖨 Print Packing Slip
+  ðŸ–¨ Print Packing Slip
 </button>
     </div>
   </div>

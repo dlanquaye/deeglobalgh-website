@@ -1,4 +1,4 @@
-﻿import {
+import {
   NextRequest,
   NextResponse,
 } from "next/server";
@@ -382,24 +382,7 @@ export async function POST(
           "POS MoMo payment requires attention:",
           result
         );
-      } else {
-        console.log(
-          "POS MoMo payment processed:",
-          {
-            orderId:
-              result.orderId,
-
-            paymentId:
-              result.paymentId,
-
-            orderFinalized:
-              result.orderFinalized,
-
-            alreadyFinalized:
-              result.alreadyFinalized,
-          }
-        );
-      }
+}
 
       return NextResponse.json({
         received: true,

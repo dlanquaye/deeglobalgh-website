@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { randomBytes } from "node:crypto";
 
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import {
@@ -12,6 +11,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/app/lib/adminAuth";
 
 import {
   getLegacyOrderAmount,
@@ -35,14 +35,6 @@ import type {
   DiscountActorInput,
   DiscountProductInput,
 } from "@/lib/pos/discounts";
-
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
 
 type CheckoutItem = {
   id: string;
@@ -82,30 +74,6 @@ class SplitInitiationError extends Error {
 
     this.status =
       status;
-  }
-}
-
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore =
-    await cookies();
-
-  const rawCookie =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawCookie
-      )
-    ) as AdminSession;
-  } catch {
-    return null;
   }
 }
 
@@ -376,10 +344,12 @@ export async function POST(
     // ==========================================
     // SESSION
     // ==========================================
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -390,7 +360,6 @@ export async function POST(
         }
       );
     }
-
     if (!session.branchId) {
       return NextResponse.json(
         {

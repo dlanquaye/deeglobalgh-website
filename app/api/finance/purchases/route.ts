@@ -11,45 +11,202 @@ type AdminSession = {
   staffName?: string | null;
 };
 
+async function requireFinanceManager() {
+  const session =
+    (await requireAdmin()) as AdminSession;
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageFinance =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (!canManageFinance) {
+    throw new Error(
+      "FinanceManagementForbidden"
+    );
+  }
+
+  if (!session.branchId) {
+    throw new Error(
+      "BranchRequired"
+    );
+  }
+
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "BranchFinanceForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "FinanceManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage purchases.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your staff account is not assigned to a branch.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchFinanceForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage purchases for this branch.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
+
 export async function GET() {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
-
-    if (!session.staffId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your admin account is not linked to a staff record.",
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!session.branchId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your staff account is not assigned to a branch.",
-        },
-        { status: 400 }
-      );
-    }
+    const {
+      session,
+    } =
+      await requireFinanceManager();
 
     const purchases =
       await prisma.purchase.findMany({
         where: {
           branchId:
-            session.branchId,
+            session.branchId!,
         },
 
         orderBy: {
-          createdAt: "desc",
+          createdAt:
+            "desc",
         },
 
         include: {
           branch: true,
-          enteredByStaff: true,
+          enteredByStaff:
+            true,
         },
       });
 
@@ -57,34 +214,28 @@ export async function GET() {
       purchases
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Purchase loading error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (
-      message ===
-      "Unauthorized"
-    ) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to fetch purchases",
+          "Failed to fetch purchases.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -93,62 +244,86 @@ export async function POST(
   req: Request
 ) {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
+    const {
+      session,
+      staff,
+    } =
+      await requireFinanceManager();
 
-    if (!session.staffId) {
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
       return NextResponse.json(
         {
           error:
-            "Your admin account is not linked to a staff record.",
+            "Invalid JSON request body.",
         },
-        { status: 401 }
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!session.branchId) {
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
       return NextResponse.json(
         {
           error:
-            "Your staff account is not assigned to a branch.",
+            "Invalid request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const body =
-      await req.json();
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const supplierName =
-      typeof body?.supplierName ===
-      "string"
-        ? body.supplierName.trim()
+      typeof record.supplierName ===
+        "string"
+        ? record.supplierName.trim()
         : "";
 
     const amount =
-      Number(body?.amount);
+      Number(
+        record.amount
+      );
 
     const referenceNumber =
-      typeof body?.referenceNumber ===
+      typeof record.referenceNumber ===
         "string" &&
-      body.referenceNumber.trim()
-        ? body.referenceNumber.trim()
+      record.referenceNumber.trim()
+        ? record.referenceNumber.trim()
         : null;
 
     const notes =
-      typeof body?.notes ===
+      typeof record.notes ===
         "string" &&
-      body.notes.trim()
-        ? body.notes.trim()
+      record.notes.trim()
+        ? record.notes.trim()
         : null;
 
     if (!supplierName) {
       return NextResponse.json(
         {
           error:
-            "Supplier name is required",
+            "Supplier name is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -161,9 +336,11 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Amount must be greater than zero",
+            "Amount must be greater than zero.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -176,15 +353,16 @@ export async function POST(
           notes,
 
           branchId:
-            session.branchId,
+            session.branchId!,
 
           enteredByStaffId:
-            session.staffId,
+            staff.id,
         },
 
         include: {
           branch: true,
-          enteredByStaff: true,
+          enteredByStaff:
+            true,
         },
       });
 
@@ -192,34 +370,28 @@ export async function POST(
       purchase
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Purchase creation error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (
-      message ===
-      "Unauthorized"
-    ) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to create purchase",
+          "Failed to create purchase.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

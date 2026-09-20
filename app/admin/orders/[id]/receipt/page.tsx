@@ -1,5 +1,5 @@
+﻿import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 import {
   notFound,
   redirect,
@@ -24,15 +24,9 @@ export default async function OrderReceiptPage(
   const { source } =
     await props.searchParams;
 
-  const cookieStore =
-    await cookies();
-
-  const session =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!session) {
+  try {
+    await requireAdmin();
+  } catch {
     redirect(
       "/admin/login"
     );

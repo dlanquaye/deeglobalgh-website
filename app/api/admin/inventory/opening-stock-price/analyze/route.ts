@@ -1,11 +1,11 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
 import { LocationType } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 
 type AdminSession = {
   adminId?: string;
@@ -15,7 +15,8 @@ type AdminSession = {
   staffName?: string | null;
 };
 
-type SpreadsheetRow = Record<string, unknown>;
+type SpreadsheetRow =
+  Record<string, unknown>;
 
 type NormalisedImportItem = {
   rowNumber: number;
@@ -25,12 +26,12 @@ type NormalisedImportItem = {
   productName: string;
 
   current: {
-  costPrice: number | null;
-  retailPrice: number | null;
-  wholesalePrice: number | null;
-  distributorPrice: number | null;
-  stockQty: number;
-};
+    costPrice: number | null;
+    retailPrice: number | null;
+    wholesalePrice: number | null;
+    distributorPrice: number | null;
+    stockQty: number;
+  };
 
   target: {
     costPrice?: number;
@@ -44,7 +45,9 @@ type NormalisedImportItem = {
 
   changes: string[];
 
-  action: "UPDATE" | "NO_CHANGE";
+  action:
+    | "UPDATE"
+    | "NO_CHANGE";
 };
 
 const REQUIRED_COLUMNS = [
@@ -60,16 +63,23 @@ const SUPPORTED_COLUMNS = [
   "Opening Stock",
 ] as const;
 
-function isBlank(value: unknown) {
+function isBlank(
+  value: unknown
+) {
   return (
     value === undefined ||
     value === null ||
-    String(value).trim() === ""
+    String(value).trim() ===
+      ""
   );
 }
 
-function normaliseSku(value: unknown) {
-  return String(value ?? "")
+function normaliseSku(
+  value: unknown
+) {
+  return String(
+    value ?? ""
+  )
     .trim()
     .toLowerCase();
 }
@@ -90,19 +100,24 @@ function parseOptionalPrice(
     return {};
   }
 
-  const parsed = Number(value);
+  const parsed =
+    Number(value);
 
   if (
-    !Number.isFinite(parsed) ||
+    !Number.isFinite(
+      parsed
+    ) ||
     parsed < 0
   ) {
     return {
-      error: `${label} must be a valid number greater than or equal to 0`,
+      error:
+        `${label} must be a valid number greater than or equal to 0`,
     };
   }
 
   return {
-    value: parsed,
+    value:
+      parsed,
   };
 }
 
@@ -121,10 +136,13 @@ function parseOptionalOpeningStock(
     return {};
   }
 
-  const parsed = Number(value);
+  const parsed =
+    Number(value);
 
   if (
-    !Number.isInteger(parsed) ||
+    !Number.isInteger(
+      parsed
+    ) ||
     parsed < 0
   ) {
     return {
@@ -134,7 +152,8 @@ function parseOptionalOpeningStock(
   }
 
   return {
-    value: parsed,
+    value:
+      parsed,
   };
 }
 
@@ -142,11 +161,79 @@ export async function POST(
   req: NextRequest
 ) {
   try {
-    // ==============================
-    // AUTHENTICATION / BRANCH
-    // ==============================
+    /*
+     * AUTHENTICATION / ROLE / BRANCH
+     */
     const session =
       (await requireAdmin()) as AdminSession;
+
+    if (!session.staffId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "This account is not linked to a staff record",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const staff =
+      await prisma.staff.findUnique({
+        where: {
+          id:
+            session.staffId,
+        },
+        select: {
+          id: true,
+          role: true,
+          isActive: true,
+        },
+      });
+
+    if (
+      !staff ||
+      !staff.isActive
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Active staff account required",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const isSuperAdmin =
+      session.role ===
+      "SUPER_ADMIN";
+
+    const canManageOpeningStockAndPrices =
+      isSuperAdmin ||
+      staff.role ===
+        "SUPER_ADMIN" ||
+      staff.role ===
+        "MANAGER";
+
+    if (
+      !canManageOpeningStockAndPrices
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "You do not have permission to analyse opening stock and prices",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
 
     if (!session.branchId) {
       return NextResponse.json(
@@ -155,26 +242,33 @@ export async function POST(
           error:
             "No branch is assigned to this account",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    // ==============================
-    // FILE
-    // ==============================
+    /*
+     * FILE
+     */
     const formData =
       await req.formData();
 
     const file =
-      formData.get("file") as File | null;
+      formData.get(
+        "file"
+      ) as File | null;
 
     if (!file) {
       return NextResponse.json(
         {
           success: false,
-          error: "No file uploaded",
+          error:
+            "No file uploaded",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -182,9 +276,15 @@ export async function POST(
       file.name.toLowerCase();
 
     if (
-      !fileName.endsWith(".xlsx") &&
-      !fileName.endsWith(".xls") &&
-      !fileName.endsWith(".csv")
+      !fileName.endsWith(
+        ".xlsx"
+      ) &&
+      !fileName.endsWith(
+        ".xls"
+      ) &&
+      !fileName.endsWith(
+        ".csv"
+      )
     ) {
       return NextResponse.json(
         {
@@ -192,20 +292,25 @@ export async function POST(
           error:
             "File must be an Excel or CSV file",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const buffer = Buffer.from(
-      await file.arrayBuffer()
-    );
+    const buffer =
+      Buffer.from(
+        await file.arrayBuffer()
+      );
 
-    const workbook = XLSX.read(
-      buffer,
-      {
-        type: "buffer",
-      }
-    );
+    const workbook =
+      XLSX.read(
+        buffer,
+        {
+          type:
+            "buffer",
+        }
+      );
 
     const firstSheetName =
       workbook.SheetNames[0];
@@ -217,79 +322,113 @@ export async function POST(
           error:
             "The spreadsheet contains no worksheets",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const worksheet =
-      workbook.Sheets[firstSheetName];
+      workbook.Sheets[
+        firstSheetName
+      ];
 
-    // ==============================
-    // HEADERS
-    // ==============================
+    /*
+     * HEADERS
+     */
     const matrix =
-      XLSX.utils.sheet_to_json<unknown[]>(
-        worksheet,
-        {
-          header: 1,
-          defval: "",
-        }
-      );
+      XLSX.utils
+        .sheet_to_json<
+          unknown[]
+        >(
+          worksheet,
+          {
+            header: 1,
+            defval: "",
+          }
+        );
 
-    const headers = (
-      matrix[0] ?? []
-    ).map((value) =>
-      String(value ?? "").trim()
-    );
+    const headers =
+      (
+        matrix[0] ??
+        []
+      ).map(
+        (value) =>
+          String(
+            value ?? ""
+          ).trim()
+      );
 
     const missingRequiredColumns =
       REQUIRED_COLUMNS.filter(
         (column) =>
-          !headers.includes(column)
+          !headers.includes(
+            column
+          )
       );
 
     if (
-      missingRequiredColumns.length > 0
+      missingRequiredColumns.length >
+      0
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: `Missing required column(s): ${missingRequiredColumns.join(
-            ", "
-          )}`,
+          error:
+            `Missing required column(s): ${missingRequiredColumns.join(
+              ", "
+            )}`,
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const rows =
-      XLSX.utils.sheet_to_json<SpreadsheetRow>(
-        worksheet,
-        {
-          defval: "",
-        }
-      );
+      XLSX.utils
+        .sheet_to_json<
+          SpreadsheetRow
+        >(
+          worksheet,
+          {
+            defval: "",
+          }
+        );
 
-    if (rows.length === 0) {
+    if (
+      rows.length ===
+      0
+    ) {
       return NextResponse.json(
         {
           success: false,
           error:
             "The spreadsheet contains no data rows",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    // ==============================
-    // DUPLICATE SKU CHECK
-    // ==============================
+    /*
+     * DUPLICATE SKU CHECK
+     */
     const skuCounts =
-      new Map<string, number>();
+      new Map<
+        string,
+        number
+      >();
 
-    for (const row of rows) {
+    for (
+      const row
+      of rows
+    ) {
       const sku =
-        normaliseSku(row["SKU"]);
+        normaliseSku(
+          row["SKU"]
+        );
 
       if (!sku) {
         continue;
@@ -297,31 +436,41 @@ export async function POST(
 
       skuCounts.set(
         sku,
-        (skuCounts.get(sku) ?? 0) + 1
+        (
+          skuCounts.get(
+            sku
+          ) ?? 0
+        ) + 1
       );
     }
 
     const duplicateSkus =
-      [...skuCounts.entries()]
+      [
+        ...skuCounts.entries(),
+      ]
         .filter(
-          ([, count]) => count > 1
+          ([, count]) =>
+            count > 1
         )
-        .map(([sku]) => sku);
+        .map(
+          ([sku]) =>
+            sku
+        );
 
-    // ==============================
-    // LOAD PRODUCT MASTER
-    // ==============================
+    /*
+     * LOAD PRODUCT MASTER
+     */
     const products =
       await prisma.product.findMany({
         select: {
           id: true,
           sku: true,
           name: true,
-
           costPrice: true,
           retailPrice: true,
           wholesalePrice: true,
-          distributorPrice: true,
+          distributorPrice:
+            true,
         },
       });
 
@@ -329,28 +478,38 @@ export async function POST(
       new Map(
         products
           .filter(
-            (product) => product.sku
+            (product) =>
+              product.sku
           )
-          .map((product) => [
-            product.sku!
-              .trim()
-              .toLowerCase(),
-            product,
-          ])
+          .map(
+            (product) => [
+              product.sku!
+                .trim()
+                .toLowerCase(),
+              product,
+            ]
+          )
       );
 
-    // ==============================
-    // MATCH PRODUCT IDS
-    // ==============================
+    /*
+     * MATCH PRODUCT IDS
+     */
     const matchedProductIds =
       new Set<string>();
 
-    for (const row of rows) {
+    for (
+      const row
+      of rows
+    ) {
       const sku =
-        normaliseSku(row["SKU"]);
+        normaliseSku(
+          row["SKU"]
+        );
 
       const product =
-        productBySku.get(sku);
+        productBySku.get(
+          sku
+        );
 
       if (product) {
         matchedProductIds.add(
@@ -359,11 +518,12 @@ export async function POST(
       }
     }
 
-    // ==============================
-    // LOAD BRANCH INVENTORY
-    // ==============================
+    /*
+     * LOAD BRANCH INVENTORY
+     */
     const inventoryRows =
-      matchedProductIds.size > 0
+      matchedProductIds.size >
+      0
         ? await prisma.inventory.findMany({
             where: {
               productId: {
@@ -393,23 +553,29 @@ export async function POST(
         )
       );
 
-    // ==============================
-    // ANALYSE ROWS
-    // ==============================
-    const errors: string[] = [];
-    const warnings: string[] = [];
+    /*
+     * ANALYSE ROWS
+     */
+    const errors:
+      string[] = [];
+
+    const warnings:
+      string[] = [];
 
     const invalidRowNumbers =
       new Set<number>();
 
     const preview:
-      NormalisedImportItem[] = [];
+      NormalisedImportItem[] =
+      [];
 
     const syncItems:
-      NormalisedImportItem[] = [];
+      NormalisedImportItem[] =
+      [];
 
     if (
-      duplicateSkus.length > 0
+      duplicateSkus.length >
+      0
     ) {
       errors.push(
         `Duplicate SKU(s) found: ${duplicateSkus.join(
@@ -419,24 +585,27 @@ export async function POST(
     }
 
     rows.forEach(
-      (row, index) => {
+      (
+        row,
+        index
+      ) => {
         const rowNumber =
           index + 2;
 
         const rawSku =
           String(
-            row["SKU"] ?? ""
+            row["SKU"] ??
+            ""
           ).trim();
 
         const sku =
-          normaliseSku(rawSku);
+          normaliseSku(
+            rawSku
+          );
 
         const rowErrors:
           string[] = [];
 
-        // --------------------------
-        // SKU
-        // --------------------------
         if (!sku) {
           rowErrors.push(
             "SKU is required"
@@ -445,7 +614,9 @@ export async function POST(
 
         if (
           sku &&
-          duplicateSkus.includes(sku)
+          duplicateSkus.includes(
+            sku
+          )
         ) {
           rowErrors.push(
             "Duplicate SKU in spreadsheet"
@@ -454,7 +625,9 @@ export async function POST(
 
         const product =
           sku
-            ? productBySku.get(sku)
+            ? productBySku.get(
+                sku
+              )
             : undefined;
 
         if (
@@ -466,24 +639,27 @@ export async function POST(
           );
         }
 
-        // --------------------------
-        // PRICE VALUES
-        // --------------------------
         const costPrice =
           parseOptionalPrice(
-            row["Cost Price"],
+            row[
+              "Cost Price"
+            ],
             "Cost Price"
           );
 
         const retailPrice =
           parseOptionalPrice(
-            row["Retail Price"],
+            row[
+              "Retail Price"
+            ],
             "Retail Price"
           );
 
         const wholesalePrice =
           parseOptionalPrice(
-            row["Wholesale Price"],
+            row[
+              "Wholesale Price"
+            ],
             "Wholesale Price"
           );
 
@@ -497,33 +673,39 @@ export async function POST(
 
         const openingStock =
           parseOptionalOpeningStock(
-            row["Opening Stock"]
+            row[
+              "Opening Stock"
+            ]
           );
 
-        for (const result of [
-          costPrice,
-          retailPrice,
-          wholesalePrice,
-          distributorPrice,
-          openingStock,
-        ]) {
-          if (result.error) {
+        for (
+          const result
+          of [
+            costPrice,
+            retailPrice,
+            wholesalePrice,
+            distributorPrice,
+            openingStock,
+          ]
+        ) {
+          if (
+            result.error
+          ) {
             rowErrors.push(
               result.error
             );
           }
         }
 
-        // --------------------------
-        // INVENTORY EXISTENCE
-        // --------------------------
         if (product) {
           const hasInventory =
             inventoryByProductId.has(
               product.id
             );
 
-          if (!hasInventory) {
+          if (
+            !hasInventory
+          ) {
             rowErrors.push(
               `Branch inventory record not found for ${product.name}`
             );
@@ -531,14 +713,16 @@ export async function POST(
         }
 
         if (
-          rowErrors.length > 0
+          rowErrors.length >
+          0
         ) {
           invalidRowNumbers.add(
             rowNumber
           );
 
           for (
-            const rowError of rowErrors
+            const rowError
+            of rowErrors
           ) {
             errors.push(
               `Row ${rowNumber}: ${rowError}`
@@ -557,8 +741,8 @@ export async function POST(
             product.id
           ) ?? 0;
 
-        const changes: string[] =
-          [];
+        const changes:
+          string[] = [];
 
         if (
           costPrice.value !==
@@ -567,7 +751,7 @@ export async function POST(
             product.costPrice
         ) {
           changes.push(
-            `Cost Price: ${product.costPrice} → ${costPrice.value}`
+            `Cost Price: ${product.costPrice} -> ${costPrice.value}`
           );
         }
 
@@ -578,7 +762,7 @@ export async function POST(
             product.retailPrice
         ) {
           changes.push(
-            `Retail Price: ${product.retailPrice} → ${retailPrice.value}`
+            `Retail Price: ${product.retailPrice} -> ${retailPrice.value}`
           );
         }
 
@@ -589,7 +773,7 @@ export async function POST(
             product.wholesalePrice
         ) {
           changes.push(
-            `Wholesale Price: ${product.wholesalePrice} → ${wholesalePrice.value}`
+            `Wholesale Price: ${product.wholesalePrice} -> ${wholesalePrice.value}`
           );
         }
 
@@ -600,7 +784,7 @@ export async function POST(
             product.distributorPrice
         ) {
           changes.push(
-            `Distributor Price: ${product.distributorPrice} → ${distributorPrice.value}`
+            `Distributor Price: ${product.distributorPrice} -> ${distributorPrice.value}`
           );
         }
 
@@ -616,9 +800,12 @@ export async function POST(
             openingStock.value -
             currentStock;
 
-          if (stockDelta !== 0) {
+          if (
+            stockDelta !==
+            0
+          ) {
             changes.push(
-              `Branch Stock: ${currentStock} → ${openingStock.value} (${stockDelta > 0 ? "+" : ""}${stockDelta})`
+              `Branch Stock: ${currentStock} -> ${openingStock.value} (${stockDelta > 0 ? "+" : ""}${stockDelta})`
             );
           }
         }
@@ -707,34 +894,42 @@ export async function POST(
             changes,
 
             action:
-              changes.length > 0
+              changes.length >
+              0
                 ? "UPDATE"
                 : "NO_CHANGE",
           };
 
-        preview.push(item);
+        preview.push(
+          item
+        );
 
         if (
-          item.action === "UPDATE"
+          item.action ===
+          "UPDATE"
         ) {
-          syncItems.push(item);
+          syncItems.push(
+            item
+          );
         }
       }
     );
 
-    // ==============================
-    // SUMMARY
-    // ==============================
+    /*
+     * SUMMARY
+     */
     const invalidRows =
       invalidRowNumbers.size;
 
     const validRows =
-      rows.length - invalidRows;
+      rows.length -
+      invalidRows;
 
     const updateRows =
       preview.filter(
         (item) =>
-          item.action === "UPDATE"
+          item.action ===
+          "UPDATE"
       ).length;
 
     const noChangeRows =
@@ -745,22 +940,23 @@ export async function POST(
       ).length;
 
     const priceChangeRows =
-      preview.filter((item) =>
-        item.changes.some(
-          (change) =>
-            change.startsWith(
-              "Cost Price:"
-            ) ||
-            change.startsWith(
-              "Retail Price:"
-            ) ||
-            change.startsWith(
-              "Wholesale Price:"
-            ) ||
-            change.startsWith(
-              "Distributor Price:"
-            )
-        )
+      preview.filter(
+        (item) =>
+          item.changes.some(
+            (change) =>
+              change.startsWith(
+                "Cost Price:"
+              ) ||
+              change.startsWith(
+                "Retail Price:"
+              ) ||
+              change.startsWith(
+                "Wholesale Price:"
+              ) ||
+              change.startsWith(
+                "Distributor Price:"
+              )
+          )
       ).length;
 
     const stockChangeRows =
@@ -768,7 +964,8 @@ export async function POST(
         (item) =>
           item.stockDelta !==
             undefined &&
-          item.stockDelta !== 0
+          item.stockDelta !==
+            0
       ).length;
 
     if (
@@ -776,7 +973,8 @@ export async function POST(
         (header) =>
           header &&
           !SUPPORTED_COLUMNS.includes(
-            header as (typeof SUPPORTED_COLUMNS)[number]
+            header as
+              (typeof SUPPORTED_COLUMNS)[number]
           )
       )
     ) {
@@ -786,18 +984,23 @@ export async function POST(
     }
 
     const isValid =
-      errors.length === 0;
+      errors.length ===
+      0;
 
     return NextResponse.json({
       success: true,
 
       analysis: {
-        status: isValid
-          ? "VALIDATED"
-          : "VALIDATION_FAILED",
+        status:
+          isValid
+            ? "VALIDATED"
+            : "VALIDATION_FAILED",
 
-        fileName: file.name,
-        fileSize: file.size,
+        fileName:
+          file.name,
+
+        fileSize:
+          file.size,
 
         branchId:
           session.branchId,
@@ -840,14 +1043,34 @@ export async function POST(
         : "Unable to analyse Opening Stock & Price file";
 
     if (
-      message === "Unauthorized"
+      message ===
+      "Unauthorized"
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized",
+          error:
+            "Authentication required",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
+      );
+    }
+
+    if (
+      message ===
+      "CredentialChangeRequired"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Credential change required",
+        },
+        {
+          status: 403,
+        }
       );
     }
 
@@ -857,7 +1080,9 @@ export async function POST(
         error:
           "Unable to analyse Opening Stock & Price file",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

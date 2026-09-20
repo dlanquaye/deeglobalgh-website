@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import type { SyncItem } from "@/lib/product-sync/types";
 
@@ -91,7 +93,74 @@ function commercialIdentityMatches(
 }
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
+  try {
+    const session =
+      await requireAdmin();
+
+    if (!session.staffId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "This account is not linked to a staff record.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const staff =
+      await prisma.staff.findUnique({
+        where: {
+          id: session.staffId,
+        },
+        select: {
+          id: true,
+          role: true,
+          isActive: true,
+        },
+      });
+
+    if (
+      !staff ||
+      !staff.isActive
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Active staff account required.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const isSuperAdmin =
+      session.role ===
+      "SUPER_ADMIN";
+
+    const canManageCatalogue =
+      isSuperAdmin ||
+      staff.role ===
+        "MANAGER";
+
+    if (!canManageCatalogue) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "You do not have permission to analyse catalogue imports.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    const formData = await req.formData();
 
   const file = formData.get("file") as File | null;
   const importType = formData.get("importType");
@@ -836,70 +905,7 @@ export async function POST(req: NextRequest) {
         item.action ===
         "UPDATE"
     );
-
-  console.log({
-    fileName:
-      file.name,
-
-    fileSize:
-      file.size,
-
-    importType,
-  });
-
-  console.log({
-    existing:
-      actualExistingProducts.length,
-
-    newProducts:
-      actualNewProducts.length,
-
-    newProductList:
-      mappedPreview
-        .filter(
-          (item) =>
-            item.action ===
-            "INSERT"
-        )
-        .map(
-          (item) => ({
-            sku:
-              item.sku,
-
-            name:
-              item.name,
-
-            publisher:
-              item.publisher,
-
-            author:
-              item.author,
-
-            matchType:
-              item.matchType,
-          })
-        ),
-  });
-
-  console.log({
-    syncItems:
-      syncItems.length,
-
-    updates:
-      actualExistingProducts.length,
-
-    inserts:
-      actualNewProducts.length,
-
-    reviews:
-      syncItems.filter(
-        (item) =>
-          item.action ===
-          "REVIEW"
-      ).length,
-  });
-
-  return NextResponse.json({
+return NextResponse.json({
     success: true,
 
     analysis: {
@@ -930,4 +936,55 @@ export async function POST(req: NextRequest) {
       ...analysis,
     },
   });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "Unauthorized"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Authentication required.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message ===
+        "CredentialChangeRequired"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Credential change required.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    console.error(
+      "Catalogue analysis failed:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Unable to analyse catalogue.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }

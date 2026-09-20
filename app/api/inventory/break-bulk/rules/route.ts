@@ -1,90 +1,197 @@
-export const runtime = "nodejs";
+﻿export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
+import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
+async function requireBreakBulkManager() {
+  const session =
+    await requireAdmin();
 
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore = await cookies();
-  const rawCookie = cookieStore.get("dg_admin")?.value;
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
 
-  if (!rawCookie) {
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageBreakBulk =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER" ||
+    staff.role ===
+      "WAREHOUSE_MANAGER";
+
+  if (!canManageBreakBulk) {
+    throw new Error(
+      "BreakBulkManagementForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
     return null;
   }
 
-  try {
-    return JSON.parse(
-      decodeURIComponent(rawCookie)
-    ) as AdminSession;
-  } catch {
-    return null;
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
   }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BreakBulkManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "You do not have permission to manage Break Bulk rules.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
 }
 
 export async function GET() {
   try {
-    const session = await getAdminSession();
+    await requireBreakBulkManager();
 
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
-    const rules = await prisma.breakBulkRule.findMany({
-      include: {
-        sourceProduct: {
-          select: {
-            id: true,
-            sku: true,
-            name: true,
-            isActive: true,
-            stockQty: true,
+    const rules =
+      await prisma.breakBulkRule.findMany({
+        include: {
+          sourceProduct: {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              isActive: true,
+              stockQty: true,
+            },
+          },
+          destinationProduct: {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              isActive: true,
+              stockQty: true,
+            },
+          },
+          _count: {
+            select: {
+              conversions: true,
+            },
           },
         },
-        destinationProduct: {
-          select: {
-            id: true,
-            sku: true,
-            name: true,
-            isActive: true,
-            stockQty: true,
+        orderBy: [
+          {
+            isActive: "desc",
           },
-        },
-        _count: {
-          select: {
-            conversions: true,
+          {
+            createdAt: "desc",
           },
-        },
-      },
-      orderBy: [
-        {
-          isActive: "desc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
-    });
+        ],
+      });
 
     return NextResponse.json({
       success: true,
       rules,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Break Bulk rules GET error:",
       error
@@ -93,49 +200,91 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: "Unable to load Break Bulk rules",
+        error:
+          "Unable to load Break Bulk rules.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    const session = await getAdminSession();
+    await requireBreakBulkManager();
 
-    if (!session) {
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized",
+          error:
+            "Invalid JSON request body.",
         },
-        { status: 401 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const body = await req.json();
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const sourceProductId =
-      typeof body.sourceProductId === "string"
-        ? body.sourceProductId.trim()
+      typeof record.sourceProductId ===
+        "string"
+        ? record.sourceProductId.trim()
         : "";
 
     const destinationProductId =
-      typeof body.destinationProductId === "string"
-        ? body.destinationProductId.trim()
+      typeof record.destinationProductId ===
+        "string"
+        ? record.destinationProductId.trim()
         : "";
 
     const conversionRatio =
-      Number(body.conversionRatio);
+      Number(
+        record.conversionRatio
+      );
 
     if (!sourceProductId) {
       return NextResponse.json(
         {
           success: false,
-          error: "Source product is required",
+          error:
+            "Source product is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -143,73 +292,91 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Destination product is required",
+          error:
+            "Destination product is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     if (
-      sourceProductId === destinationProductId
+      sourceProductId ===
+      destinationProductId
     ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Source and destination products must be different",
+            "Source and destination products must be different.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     if (
-      !Number.isInteger(conversionRatio) ||
+      !Number.isInteger(
+        conversionRatio
+      ) ||
       conversionRatio <= 0
     ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Conversion ratio must be a positive whole number",
+            "Conversion ratio must be a positive whole number.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        id: {
-          in: [
-            sourceProductId,
-            destinationProductId,
-          ],
+    const products =
+      await prisma.product.findMany({
+        where: {
+          id: {
+            in: [
+              sourceProductId,
+              destinationProductId,
+            ],
+          },
         },
-      },
-      select: {
-        id: true,
-        sku: true,
-        name: true,
-        isActive: true,
-      },
-    });
+        select: {
+          id: true,
+          sku: true,
+          name: true,
+          isActive: true,
+        },
+      });
 
-    const sourceProduct = products.find(
-      (product) =>
-        product.id === sourceProductId
-    );
+    const sourceProduct =
+      products.find(
+        (product) =>
+          product.id ===
+          sourceProductId
+      );
 
-    const destinationProduct = products.find(
-      (product) =>
-        product.id === destinationProductId
-    );
+    const destinationProduct =
+      products.find(
+        (product) =>
+          product.id ===
+          destinationProductId
+      );
 
     if (!sourceProduct) {
       return NextResponse.json(
         {
           success: false,
-          error: "Source product not found",
+          error:
+            "Source product not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -217,9 +384,12 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Destination product not found",
+          error:
+            "Destination product not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -228,30 +398,37 @@ export async function POST(req: Request) {
         {
           success: false,
           error:
-            "Source product must be active",
+            "Source product must be active.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!destinationProduct.isActive) {
+    if (
+      !destinationProduct.isActive
+    ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Destination product must be active",
+            "Destination product must be active.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const existingRule =
       await prisma.breakBulkRule.findUnique({
         where: {
-          sourceProductId_destinationProductId: {
-            sourceProductId,
-            destinationProductId,
-          },
+          sourceProductId_destinationProductId:
+            {
+              sourceProductId,
+              destinationProductId,
+            },
         },
       });
 
@@ -260,9 +437,11 @@ export async function POST(req: Request) {
         {
           success: false,
           error:
-            "A Break Bulk rule already exists for these products",
+            "A Break Bulk rule already exists for these products.",
         },
-        { status: 409 }
+        {
+          status: 409,
+        }
       );
     }
 
@@ -297,9 +476,20 @@ export async function POST(req: Request) {
         success: true,
         rule,
       },
-      { status: 201 }
+      {
+        status: 201,
+      }
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Break Bulk rules POST error:",
       error
@@ -308,9 +498,12 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Unable to create Break Bulk rule",
+        error:
+          "Unable to create Break Bulk rule.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

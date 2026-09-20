@@ -1,52 +1,123 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+import { verifyAdminSessionToken } from "@/app/lib/adminSession";
 
-  const isAdminUI = pathname.startsWith("/admin");
-  const isAdminAPI = pathname.startsWith("/api/admin");
+export async function proxy(
+  req: NextRequest
+) {
+  const { pathname } =
+    req.nextUrl;
 
-  // Allow non-admin routes
-  if (!isAdminUI && !isAdminAPI) {
-    return NextResponse.next();
-  }
+  const isAdminUI =
+    pathname.startsWith(
+      "/admin"
+    );
 
-  // Allow login routes
+  const isAdminAPI =
+    pathname.startsWith(
+      "/api/admin"
+    );
+
   if (
-    pathname === "/admin/login" ||
-    pathname === "/api/admin-login"
+    !isAdminUI &&
+    !isAdminAPI
   ) {
     return NextResponse.next();
   }
 
-  const sessionCookie = req.cookies.get("dg_admin");
-
-  // No cookie → unauthorized
-  if (!sessionCookie) {
-    return handleUnauthorized(req, isAdminAPI);
+  if (
+    pathname ===
+      "/admin/login" ||
+    pathname ===
+      "/api/admin-login"
+  ) {
+    return NextResponse.next();
   }
 
-  let sessionData: {
-  adminId: string;
-  role: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-} | null = null;
+  const sessionCookie =
+    req.cookies.get(
+      "dg_admin"
+    );
 
-  try {
-    sessionData = JSON.parse(sessionCookie.value);
-  } catch {
-    return handleUnauthorized(req, isAdminAPI);
+  if (
+    !sessionCookie?.value
+  ) {
+    return handleUnauthorized(
+      req,
+      isAdminAPI
+    );
   }
 
-  // No valid session ID → unauthorized
-  if (!sessionData?.adminId) {
-  return handleUnauthorized(req, isAdminAPI);
-}
+  const session =
+    await verifyAdminSessionToken(
+      sessionCookie.value
+    );
 
-  // ✅ IMPORTANT: NO Prisma here (Edge safe)
+  if (
+    !session ||
+    !session.adminId
+  ) {
+    return handleUnauthorized(
+      req,
+      isAdminAPI
+    );
+  }
+
+  const isCredentialChangePage =
+    pathname ===
+    "/admin/account";
+
+  const isCredentialChangeApi =
+    pathname ===
+    "/api/admin/account/change-credential";
+
+  if (
+    session.mustChangeCredential
+  ) {
+    if (
+      isCredentialChangePage ||
+      isCredentialChangeApi
+    ) {
+      return NextResponse.next();
+    }
+
+    if (isAdminAPI) {
+      return NextResponse.json(
+        {
+          error:
+            "Credential change required",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    return NextResponse.redirect(
+      new URL(
+        "/admin/account",
+        req.url
+      )
+    );
+  }
+
+  /*
+   * Proxy verifies the signed token and
+   * enforces the signed forced-change flag.
+   *
+   * No Prisma/database access belongs here.
+   *
+   * requireAdmin() performs the authoritative
+   * database checks later, including:
+   *
+   * - Admin still exists
+   * - Admin is active
+   * - linked Staff is active
+   * - credentialVersion still matches
+   * - mustChangeCredential still matches DB state
+   * - current trusted role/staff/branch values
+   */
   return NextResponse.next();
 }
 
@@ -56,16 +127,27 @@ function handleUnauthorized(
 ) {
   if (isAdminAPI) {
     return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
+      {
+        error:
+          "Unauthorized",
+      },
+      {
+        status: 401,
+      }
     );
   }
 
   return NextResponse.redirect(
-    new URL("/admin/login", req.url)
+    new URL(
+      "/admin/login",
+      req.url
+    )
   );
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+  ],
 };

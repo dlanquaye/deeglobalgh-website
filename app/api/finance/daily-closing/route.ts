@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
@@ -209,7 +209,50 @@ async function getSession() {
   if (!session.staffId) {
     throw new DailyClosingError(
       "Your admin account is not linked to a staff record.",
-      401
+      403
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new DailyClosingError(
+      "An active staff account is required.",
+      403
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageDailyClosing =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (
+    !canManageDailyClosing
+  ) {
+    throw new DailyClosingError(
+      "You do not have permission to manage Daily Closing.",
+      403
     );
   }
 
@@ -220,14 +263,29 @@ async function getSession() {
     );
   }
 
+  /*
+   * A normal manager may only work
+   * against their own assigned branch.
+   */
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new DailyClosingError(
+      "You do not have permission to manage Daily Closing for this branch.",
+      403
+    );
+  }
+
   return {
     staffId:
-      session.staffId,
+      staff.id,
+
     branchId:
       session.branchId,
   };
 }
-
 export async function GET() {
   try {
     const session =

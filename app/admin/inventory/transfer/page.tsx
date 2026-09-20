@@ -28,8 +28,7 @@ export default function TransferStockPage() {
       const res = await fetch(`/api/pos/search?q=${value}`);
       const data = await res.json();
 
-      console.log("SEARCH DATA:", data);
-      
+
       setResults(Array.isArray(data) ? data : []);
     } catch {
       setResults([]);

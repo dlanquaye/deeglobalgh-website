@@ -11,45 +11,207 @@ type AdminSession = {
   staffName?: string | null;
 };
 
+async function requireFinanceManager() {
+  const session =
+    (await requireAdmin()) as AdminSession;
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageFinance =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (!canManageFinance) {
+    throw new Error(
+      "FinanceManagementForbidden"
+    );
+  }
+
+  if (!session.branchId) {
+    throw new Error(
+      "BranchRequired"
+    );
+  }
+
+  /*
+   * Normal managers may only work
+   * against their own assigned branch.
+   */
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "BranchFinanceForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+    isSuperAdmin,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "FinanceManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage bank deposits.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your staff account is not assigned to a branch.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchFinanceForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage bank deposits for this branch.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
+
 export async function GET() {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
-
-    if (!session.staffId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your admin account is not linked to a staff record.",
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!session.branchId) {
-      return NextResponse.json(
-        {
-          error:
-            "Your staff account is not assigned to a branch.",
-        },
-        { status: 400 }
-      );
-    }
+    const {
+      session,
+    } =
+      await requireFinanceManager();
 
     const deposits =
       await prisma.bankDeposit.findMany({
         where: {
           branchId:
-            session.branchId,
+            session.branchId!,
         },
 
         orderBy: {
-          createdAt: "desc",
+          createdAt:
+            "desc",
         },
 
         include: {
           branch: true,
-          enteredByStaff: true,
+          enteredByStaff:
+            true,
         },
       });
 
@@ -57,31 +219,28 @@ export async function GET() {
       deposits
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Bank deposit loading error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (message === "Unauthorized") {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to fetch bank deposits",
+          "Failed to fetch bank deposits.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -90,81 +249,109 @@ export async function POST(
   req: Request
 ) {
   try {
-    const session =
-      (await requireAdmin()) as AdminSession;
+    const {
+      session,
+      staff,
+    } =
+      await requireFinanceManager();
 
-    if (!session.staffId) {
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
       return NextResponse.json(
         {
           error:
-            "Your admin account is not linked to a staff record.",
+            "Invalid JSON request body.",
         },
-        { status: 401 }
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!session.branchId) {
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
       return NextResponse.json(
         {
           error:
-            "Your staff account is not assigned to a branch.",
+            "Invalid request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const body =
-      await req.json();
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const bankName =
-      typeof body?.bankName ===
-      "string"
-        ? body.bankName.trim()
+      typeof record.bankName ===
+        "string"
+        ? record.bankName.trim()
         : "";
 
     const amount =
-      Number(body?.amount);
+      Number(
+        record.amount
+      );
 
     const referenceNumber =
-      typeof body?.referenceNumber ===
+      typeof record.referenceNumber ===
         "string" &&
-      body.referenceNumber.trim()
-        ? body.referenceNumber.trim()
+      record.referenceNumber.trim()
+        ? record.referenceNumber.trim()
         : null;
 
     const depositMethod =
-      typeof body?.depositMethod ===
-      "string"
-        ? body.depositMethod.trim()
+      typeof record.depositMethod ===
+        "string"
+        ? record.depositMethod.trim()
         : "";
 
     const notes =
-      typeof body?.notes ===
+      typeof record.notes ===
         "string" &&
-      body.notes.trim()
-        ? body.notes.trim()
+      record.notes.trim()
+        ? record.notes.trim()
         : null;
 
     if (!bankName) {
       return NextResponse.json(
         {
           error:
-            "Bank name is required",
+            "Bank name is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     if (
-      !Number.isFinite(amount) ||
+      !Number.isFinite(
+        amount
+      ) ||
       amount <= 0
     ) {
       return NextResponse.json(
         {
           error:
-            "Amount must be greater than zero",
+            "Amount must be greater than zero.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -172,9 +359,11 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Deposit method is required",
+            "Deposit method is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -188,15 +377,16 @@ export async function POST(
           notes,
 
           branchId:
-            session.branchId,
+            session.branchId!,
 
           enteredByStaffId:
-            session.staffId,
+            staff.id,
         },
 
         include: {
           branch: true,
-          enteredByStaff: true,
+          enteredByStaff:
+            true,
         },
       });
 
@@ -204,31 +394,28 @@ export async function POST(
       deposit
     );
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "Bank deposit creation error:",
       error
     );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "";
-
-    if (message === "Unauthorized") {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
     return NextResponse.json(
       {
         error:
-          "Failed to create bank deposit",
+          "Failed to create bank deposit.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

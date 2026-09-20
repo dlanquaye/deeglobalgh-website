@@ -11,13 +11,11 @@ export default function ToggleActiveButton({ id, isActive }: Props) {
   const router = useRouter();
 
   async function handleToggle() {
-    console.log("Toggle clicked for:", id);
 
     const res = await fetch(`/api/admin/products/${id}`, {
       method: "DELETE",
     });
 
-    console.log("Response status:", res.status);
 
     router.refresh();
   }

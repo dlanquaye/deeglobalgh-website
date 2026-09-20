@@ -7,8 +7,8 @@ import {
   PaymentStatus,
 } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/app/lib/adminAuth";
+import { prisma } from "@/lib/prisma";
 
 export const runtime =
   "nodejs";
@@ -21,34 +21,250 @@ function toPesewas(
   );
 }
 
+async function requireOrderManager() {
+  const session =
+    await requireAdmin();
+
+  if (!session.staffId) {
+    throw new Error(
+      "StaffAccountRequired"
+    );
+  }
+
+  const staff =
+    await prisma.staff.findUnique({
+      where: {
+        id:
+          session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+        branchId: true,
+      },
+    });
+
+  if (
+    !staff ||
+    !staff.isActive
+  ) {
+    throw new Error(
+      "InactiveStaff"
+    );
+  }
+
+  const isSuperAdmin =
+    session.role ===
+      "SUPER_ADMIN" ||
+    staff.role ===
+      "SUPER_ADMIN";
+
+  const canManageOrderMeta =
+    isSuperAdmin ||
+    staff.role ===
+      "MANAGER";
+
+  if (!canManageOrderMeta) {
+    throw new Error(
+      "OrderManagementForbidden"
+    );
+  }
+
+  if (!session.branchId) {
+    throw new Error(
+      "BranchRequired"
+    );
+  }
+
+  /*
+   * The authenticated branch carried by the
+   * signed session must agree with the linked
+   * Staff record for normal managers.
+   *
+   * We intentionally do not compare Order.locationId
+   * here yet because legacy/web orders can use
+   * non-Branch identifiers such as shop-kasoa.
+   */
+  if (
+    !isSuperAdmin &&
+    staff.branchId !==
+      session.branchId
+  ) {
+    throw new Error(
+      "BranchManagementForbidden"
+    );
+  }
+
+  return {
+    session,
+    staff,
+    isSuperAdmin,
+  };
+}
+
+function authErrorResponse(
+  error: unknown
+) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message ===
+    "Unauthorized"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "CredentialChangeRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Credential change required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+      "StaffAccountRequired" ||
+    error.message ===
+      "InactiveStaff"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "An active linked staff account is required.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "OrderManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to modify order metadata.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchRequired"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Your staff account is not assigned to a branch.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (
+    error.message ===
+    "BranchManagementForbidden"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to manage orders for this branch.",
+      },
+      {
+        status: 403,
+      }
+    );
+  }
+
+  return null;
+}
+
 export async function POST(
   req: NextRequest
 ) {
   try {
-    /*
-     * ==========================================
-     * ADMIN AUTH
-     * ==========================================
-     */
-    await requireAdmin();
+    await requireOrderManager();
 
-    const body =
-      await req.json();
+    let body: unknown;
+
+    try {
+      body =
+        await req.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid JSON request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      typeof body !==
+        "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const record =
+      body as Record<
+        string,
+        unknown
+      >;
 
     const orderId =
-      typeof body.orderId ===
-      "string"
-        ? body.orderId.trim()
-        : typeof body.reference ===
+      typeof record.orderId ===
+        "string"
+        ? record.orderId.trim()
+        : typeof record.reference ===
             "string"
-          ? body.reference.trim()
+          ? record.reference.trim()
           : "";
 
     if (!orderId) {
       return NextResponse.json(
         {
           error:
-            "Missing order identifier",
+            "Missing order identifier.",
         },
         {
           status: 400,
@@ -80,7 +296,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Order not found",
+            "Order not found.",
         },
         {
           status: 404,
@@ -107,9 +323,30 @@ export async function POST(
 
     const hasDeliveryFee =
       Object.prototype.hasOwnProperty.call(
-        body,
+        record,
         "deliveryFee"
       );
+
+    const hasAdminNotes =
+      Object.prototype.hasOwnProperty.call(
+        record,
+        "adminNotes"
+      );
+
+    if (
+      !hasDeliveryFee &&
+      !hasAdminNotes
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Provide deliveryFee or adminNotes to update the order.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     if (
       isFinanciallyLocked &&
@@ -118,7 +355,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Delivery fee cannot be modified after payment is confirmed",
+            "Delivery fee cannot be modified after payment is confirmed.",
         },
         {
           status: 403,
@@ -146,12 +383,29 @@ export async function POST(
      * Admin notes remain editable regardless
      * of payment state.
      */
-    if (
-      typeof body.adminNotes ===
-      "string"
-    ) {
+    if (hasAdminNotes) {
+      if (
+        record.adminNotes !==
+          null &&
+        typeof record.adminNotes !==
+          "string"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Admin notes must be text.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
       const notes =
-        body.adminNotes.trim();
+        typeof record.adminNotes ===
+          "string"
+          ? record.adminNotes.trim()
+          : "";
 
       updateData.adminNotes =
         notes || null;
@@ -167,7 +421,7 @@ export async function POST(
       hasDeliveryFee
     ) {
       const deliveryFee =
-        body.deliveryFee;
+        record.deliveryFee;
 
       if (
         typeof deliveryFee !==
@@ -180,7 +434,7 @@ export async function POST(
         return NextResponse.json(
           {
             error:
-              "Delivery fee must be zero or a positive amount",
+              "Delivery fee must be zero or a positive amount.",
           },
           {
             status: 400,
@@ -190,7 +444,7 @@ export async function POST(
 
       /*
        * Stored OrderItem totals are authoritative
-       * for the merchandise value of this already
+       * for merchandise value of this already
        * created pending order.
        */
       const merchandisePesewas =
@@ -211,7 +465,7 @@ export async function POST(
               itemTotal < 0
             ) {
               throw new Error(
-                "Order contains an invalid item total"
+                "Order contains an invalid item total."
               );
             }
 
@@ -235,13 +489,15 @@ export async function POST(
         deliveryFeePesewas;
 
       if (
-        totalAmountPesewas <=
-        0
+        !Number.isSafeInteger(
+          totalAmountPesewas
+        ) ||
+        totalAmountPesewas <= 0
       ) {
         return NextResponse.json(
           {
             error:
-              "Order total must be greater than zero",
+              "Order total must be greater than zero.",
           },
           {
             status: 400,
@@ -288,10 +544,20 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+
       order:
         updatedOrder,
     });
   } catch (error) {
+    const authResponse =
+      authErrorResponse(
+        error
+      );
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     console.error(
       "update-order-meta error:",
       error
@@ -300,10 +566,9 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          error instanceof
-            Error
+          error instanceof Error
             ? error.message
-            : "Failed to update order meta",
+            : "Failed to update order meta.",
       },
       {
         status: 500,

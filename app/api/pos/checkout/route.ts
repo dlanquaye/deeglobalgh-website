@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { LocationType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -32,14 +31,8 @@ import type {
 
 import { applyStockMovement } from "@/lib/stock";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
+import { requireAdmin } from "@/app/lib/adminAuth";
 
-type AdminSession = {
-  adminId?: string;
-  role?: string;
-  staffId?: string | null;
-  branchId?: string | null;
-  staffName?: string | null;
-};
 
 type CheckoutItem = {
   id: string;
@@ -59,29 +52,6 @@ class CheckoutError extends Error {
   }
 }
 
-async function getAdminSession(): Promise<AdminSession | null> {
-  const cookieStore =
-    await cookies();
-
-  const rawCookie =
-    cookieStore.get(
-      "dg_admin"
-    )?.value;
-
-  if (!rawCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        rawCookie
-      )
-    ) as AdminSession;
-  } catch {
-    return null;
-  }
-}
 
 function normaliseItems(
   items: unknown
@@ -211,10 +181,12 @@ export async function POST(
   req: Request
 ) {
   try {
-    const session =
-      await getAdminSession();
+    let session;
 
-    if (!session) {
+    try {
+      session =
+        await requireAdmin();
+    } catch {
       return NextResponse.json(
         {
           error:

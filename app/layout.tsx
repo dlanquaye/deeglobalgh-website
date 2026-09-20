@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 import Header from "./components/Header";
 import { CartProvider } from "./context/CartContext";
@@ -19,19 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-50 text-gray-900">
-
         <CartProvider>
-
-          {/* HEADER */}
           <Header />
 
-          {/* PAGE CONTENT WRAPPER */}
-          <main className="min-h-screen">
-            {children}
-          </main>
-
+          {children}
         </CartProvider>
-
       </body>
     </html>
   );
