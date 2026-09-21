@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCart } from "@/app/context/CartContext";
+import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 type HomeProduct = {
   id: string;
@@ -110,12 +111,18 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 
   {/* PRIMARY CTA */}
   <Link
-    href="https://wa.me/233270030000"
-    target="_blank"
-    className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold shadow-lg"
-  >
-    Order via WhatsApp
-  </Link>
+  href="https://wa.me/233270030000"
+  target="_blank"
+  onClick={() =>
+    trackWhatsAppClick(
+      "homepage_hero",
+      "https://wa.me/233270030000"
+    )
+  }
+  className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold shadow-lg"
+>
+  Order via WhatsApp
+</Link>
 
   {/* SECONDARY */}
   <Link
