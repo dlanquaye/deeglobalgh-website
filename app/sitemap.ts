@@ -1,7 +1,7 @@
 ﻿import type { MetadataRoute } from "next";
 import { products } from "./lib/products";
 
-const SITE_URL = "https://shopdeeglobalgh.com";
+const SITE_URL = "https://www.shopdeeglobalgh.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/stationery-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/exam-materials-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/school-list-items-kasoa`, lastModified: new Date() },
+    { url: `${SITE_URL}/boarding-school-essentials-kasoa`, lastModified: new Date() },
 
     // Exercise Books & A4 commercial SEO
     {

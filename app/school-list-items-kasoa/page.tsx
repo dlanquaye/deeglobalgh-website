@@ -119,6 +119,13 @@ export default function SchoolListPage() {
             Exam Materials
           </Link>
 
+          <Link
+  href="/boarding-school-essentials-kasoa"
+  className="border px-4 py-2 rounded-xl"
+>
+  Boarding School Essentials
+</Link>
+
         </div>
       </div>
 
