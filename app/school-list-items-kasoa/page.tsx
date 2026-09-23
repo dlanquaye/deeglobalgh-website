@@ -101,6 +101,13 @@ export default function SchoolListPage() {
 
       {/* INTERNAL LINKS */}
       <div className="mt-10">
+
+        <Link
+  href="/school-reopening-essentials-kasoa"
+  className="border px-4 py-2 rounded-xl"
+>
+  School Reopening Essentials
+</Link>
         <h2 className="text-xl font-bold mb-4">
           Shop by Category
         </h2>
