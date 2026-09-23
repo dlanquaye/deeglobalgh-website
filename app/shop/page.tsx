@@ -3,6 +3,14 @@ import Link from "next/link";
 import ShopClient from "./ShopClient";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Shop Textbooks, Stationery & School Essentials | DeeGlobalGH",
+  description:
+    "Shop textbooks, stationery, exam materials and school essentials from DeeGlobalGH in Kasoa, Ghana.",
+  alternates: {
+    canonical: "https://www.shopdeeglobalgh.com/shop",
+  },
+};
 
 export default async function ShopPage({
   searchParams,
