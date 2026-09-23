@@ -17,7 +17,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/boarding-school-essentials-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/shs-prospectus-shopping-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/ges-harmonised-shs-prospectus-2026-2027`, lastModified: new Date() },
-    
+    { url: `${SITE_URL}/shs-commonly-forgotten-items-checklist`, lastModified: new Date() },
+
     // Exercise Books & A4 commercial SEO
     {
       url: `${SITE_URL}/exercise-books-a4-paper-kasoa`,

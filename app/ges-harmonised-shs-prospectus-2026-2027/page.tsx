@@ -246,6 +246,13 @@ export default function GesHarmonisedProspectusPage() {
         </h2>
 
         <div className="flex flex-wrap gap-3">
+
+            <Link
+  href="/shs-commonly-forgotten-items-checklist"
+  className="border px-4 py-2 rounded-xl"
+>
+  Commonly Forgotten SHS Items
+</Link>
           <Link
             href="/shs-prospectus-shopping-kasoa"
             className="border px-4 py-2 rounded-xl"
