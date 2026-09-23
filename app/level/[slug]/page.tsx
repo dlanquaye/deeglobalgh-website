@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+
+const SITE_URL = "https://www.shopdeeglobalgh.com";
 
 type Product = {
   id: string;
@@ -20,13 +23,27 @@ function prettifySlug(slug: string) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({
+  params,
+}: Props): Promise<Metadata> {
   const { slug } = await params;
   const pretty = prettifySlug(slug);
 
+  const title = `${pretty} Textbooks & Stationery | DeeGlobalGH`;
+  const description = `Shop ${pretty} textbooks, stationery and school supplies from DeeGlobalGH in Kasoa, Ghana. Browse available learning materials and order for collection or delivery.`;
+  const canonicalUrl = `${SITE_URL}/level/${slug}`;
+
   return {
-    title: `${pretty} Textbooks & Stationery | DeeglobalGh`,
-    description: `Shop ${pretty} textbooks and school supplies in Ghana. Fast delivery available in Kasoa and beyond.`,
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+    },
   };
 }
 
@@ -39,12 +56,12 @@ export default async function LevelPage({ params }: Props) {
   try {
     products = await prisma.product.findMany({
       where: {
-  isActive: true,
-  websiteVisible: true,
-  levelSlugs: {
-    has: slug,
-  },
-},
+        isActive: true,
+        websiteVisible: true,
+        levelSlugs: {
+          has: slug,
+        },
+      },
       take: 40,
       orderBy: {
         createdAt: "desc",
@@ -64,11 +81,18 @@ export default async function LevelPage({ params }: Props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-bold">
-        {pretty} Textbooks
+        {pretty} Textbooks & School Supplies
       </h1>
 
+      <p className="mb-3 text-gray-600">
+        Browse textbooks, stationery and learning materials for {pretty} from
+        DeeGlobalGH in Kasoa.
+      </p>
+
       <p className="mb-6 text-gray-600">
-        Shop textbooks and school supplies for {pretty} in Ghana.
+        Product availability may vary, so you can check the current selection
+        below or contact us if you have a specific school list or book
+        requirement.
       </p>
 
       <div className="mb-8 flex flex-wrap gap-3">
@@ -77,6 +101,13 @@ export default async function LevelPage({ params }: Props) {
           className="rounded-xl bg-blue-900 px-4 py-2 font-semibold text-white hover:bg-blue-800"
         >
           Shop All Products
+        </Link>
+
+        <Link
+          href="/school-list-items-kasoa"
+          className="rounded-xl border px-4 py-2 font-semibold"
+        >
+          School List Shopping
         </Link>
 
         <a
