@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/exam-materials-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/school-list-items-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/boarding-school-essentials-kasoa`, lastModified: new Date() },
+    { url: `${SITE_URL}/shs-prospectus-shopping-kasoa`, lastModified: new Date() },
 
     // Exercise Books & A4 commercial SEO
     {

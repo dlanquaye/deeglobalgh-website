@@ -51,6 +51,13 @@ export default function BoardingSchoolEssentialsKasoaPage() {
         </Link>
 
         <Link
+  href="/shs-prospectus-shopping-kasoa"
+  className="bg-amber-600 text-white px-6 py-3 rounded-xl font-bold"
+>
+  SHS Prospectus Shopping
+</Link>
+
+        <Link
           href="/shop"
           className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold"
         >
