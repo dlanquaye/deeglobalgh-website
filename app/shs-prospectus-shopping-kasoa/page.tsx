@@ -164,6 +164,13 @@ export default function ShsProspectusShoppingKasoaPage() {
         </h2>
 
         <div className="flex flex-wrap gap-3">
+            <Link
+  href="/ges-harmonised-shs-prospectus-2026-2027"
+  className="border px-4 py-2 rounded-xl"
+>
+  2026/2027 GES Prospectus Checklist
+</Link>
+
           <Link
             href="/boarding-school-essentials-kasoa"
             className="border px-4 py-2 rounded-xl"
