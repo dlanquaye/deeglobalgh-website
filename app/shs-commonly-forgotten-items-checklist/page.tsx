@@ -127,6 +127,8 @@ export default function ShsForgottenItemsChecklistPage() {
               <li>Notebook for personal notes</li>
               <li>Spare exercise books</li>
               <li>Permanent marker for labelling</li>
+              <li>Standard Graph Book</li>
+<li>Official Ruled Lines</li>
             </ul>
           </div>
         </div>
