@@ -44,6 +44,13 @@ export default function BoardingSchoolEssentialsKasoaPage() {
         </a>
 
         <Link
+  href="/boarding-school-trunks-chop-boxes-suitcases-kasoa"
+  className="border px-4 py-2 rounded-xl"
+>
+  Suitcases, Trunks & Chop Boxes
+</Link>
+
+        <Link
           href="/school-list-items-kasoa"
           className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold"
         >
