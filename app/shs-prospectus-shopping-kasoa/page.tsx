@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 export const metadata = {
   title: "SHS Prospectus Shopping in Kasoa | School List Help Ghana",
@@ -33,14 +34,13 @@ export default function ShsProspectusShoppingKasoaPage() {
 
       {/* CTA */}
       <div className="flex gap-3 mb-10 flex-wrap">
-        <a
-          href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20checking%20an%20SHS%20prospectus%20or%20school%20list."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
-        >
-          Send Your SHS Prospectus
-        </a>
+        <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20checking%20an%20SHS%20prospectus%20or%20school%20list."
+  linkLocation="shs_prospectus_shopping"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
+>
+  Send Your SHS Prospectus
+</TrackedWhatsAppLink>
 
         <Link
           href="/boarding-school-essentials-kasoa"
