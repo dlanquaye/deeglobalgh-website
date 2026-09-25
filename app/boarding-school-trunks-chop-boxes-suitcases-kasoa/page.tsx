@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 export const metadata = {
   title: "Suitcases, Trunks & Chop Boxes in Kasoa | Boarding School Ghana",
@@ -32,14 +33,13 @@ export default function BoardingStorageKasoaPage() {
         </p>
 
         <div className="flex flex-wrap gap-3">
-          <a
-            href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20want%20to%20check%20available%20suitcases%2C%20trunks%20and%20chop%20boxes%20for%20boarding%20school."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
-          >
-            Check Available Options
-          </a>
+          <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20want%20to%20check%20available%20suitcases%2C%20trunks%20and%20chop%20boxes%20for%20boarding%20school."
+  linkLocation="boarding_trunks_suitcases"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
+>
+  Check Available Options
+</TrackedWhatsAppLink>
 
           <Link
             href="/boarding-school-essentials-kasoa"
