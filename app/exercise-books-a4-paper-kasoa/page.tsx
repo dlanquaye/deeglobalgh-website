@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 import ProductCard from "@/app/components/ProductCard";
 import { prisma } from "@/lib/prisma";
@@ -81,23 +82,21 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
-            <a
-              href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20would%20like%20to%20order%20exercise%20books%20or%20A4%20paper."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black hover:bg-yellow-300"
-            >
-              Order on WhatsApp
-            </a>
+            <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20would%20like%20to%20order%20exercise%20books%20or%20A4%20paper."
+  linkLocation="exercise_books_a4_order"
+  className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black hover:bg-yellow-300"
+>
+  Order on WhatsApp
+</TrackedWhatsAppLink>
 
-            <a
-              href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20please%20send%20me%20your%20current%20wholesale%20or%20bulk%20price%20for%20exercise%20books%20and%20A4%20paper."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-white px-6 py-3 font-bold text-white hover:bg-white hover:text-blue-900"
-            >
-              Request Wholesale Price
-            </a>
+            <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20please%20send%20me%20your%20current%20wholesale%20or%20bulk%20price%20for%20exercise%20books%20and%20A4%20paper."
+  linkLocation="exercise_books_a4_wholesale_price"
+  className="rounded-xl border border-white px-6 py-3 font-bold text-white hover:bg-white hover:text-blue-900"
+>
+  Request Wholesale Price
+</TrackedWhatsAppLink>
           </div>
         </div>
       </section>
@@ -255,14 +254,13 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
             appropriate quotation based on current stock and pricing.
           </p>
 
-          <a
-            href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20need%20a%20wholesale%20quotation%20for%20exercise%20books%20or%20A4%20paper."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-block rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
-          >
-            Get a Bulk / Wholesale Quote
-          </a>
+          <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20need%20a%20wholesale%20quotation%20for%20exercise%20books%20or%20A4%20paper."
+  linkLocation="exercise_books_a4_wholesale_quote"
+  className="mt-6 inline-block rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
+>
+  Get a Bulk / Wholesale Quote
+</TrackedWhatsAppLink>
         </div>
       </section>
 
