@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 export const metadata = {
   title: "School Reopening Essentials in Kasoa | Back to School Ghana",
@@ -32,14 +33,13 @@ export default function SchoolReopeningEssentialsKasoaPage() {
         </p>
 
         <div className="flex flex-wrap gap-3">
-          <a
-            href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20need%20help%20with%20school%20reopening%20shopping."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
-          >
-            Send Your School List
-          </a>
+          <TrackedWhatsAppLink
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20need%20help%20with%20school%20reopening%20shopping."
+  linkLocation="school_reopening_essentials"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
+>
+  Send Your School List
+</TrackedWhatsAppLink>
 
           <Link
             href="/shop"
