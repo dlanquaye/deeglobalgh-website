@@ -10,6 +10,7 @@ export const metadata = {
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import ProductCard from "@/app/components/ProductCard";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 export const dynamic = "force-dynamic";
 
@@ -130,13 +131,13 @@ export default async function TextbooksKasoaPage({
           Shop All Textbooks
         </Link>
 
-        <a
-          href="https://wa.me/233270030000"
-          target="_blank"
-          className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
-        >
-          Order on WhatsApp
-        </a>
+        <TrackedWhatsAppLink
+  href="https://wa.me/233270030000"
+  linkLocation="textbooks_in_kasoa"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
+>
+  Order on WhatsApp
+</TrackedWhatsAppLink>
       </div>
 
       {/* ================= SEARCH ================= */}
