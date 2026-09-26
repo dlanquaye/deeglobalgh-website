@@ -1,12 +1,13 @@
-"use client";
+﻿"use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 type TrackedWhatsAppLinkProps = {
   href: string;
   linkLocation: string;
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
   productName?: string;
 };
@@ -15,6 +16,7 @@ export default function TrackedWhatsAppLink({
   href,
   linkLocation,
   className,
+  style,
   children,
   productName,
 }: TrackedWhatsAppLinkProps) {
@@ -24,6 +26,7 @@ export default function TrackedWhatsAppLink({
       target="_blank"
       rel="noopener noreferrer"
       className={className}
+      style={style}
       onClick={() =>
         trackWhatsAppClick(
           linkLocation,

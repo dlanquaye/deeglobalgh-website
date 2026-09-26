@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
@@ -1046,12 +1047,11 @@ export default async function DigitalReceiptPage(
                     "10px",
                 }}
               >
-                <a
+                <TrackedWhatsAppLink
                   href={
                     WHATSAPP_URL
                   }
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  linkLocation="digital_receipt_customer_care"
                   style={{
                     display:
                       "inline-block",
@@ -1070,7 +1070,7 @@ export default async function DigitalReceiptPage(
                   }}
                 >
                   WhatsApp: 027 003 0000
-                </a>
+                </TrackedWhatsAppLink>
 
                 <a
                   href={
