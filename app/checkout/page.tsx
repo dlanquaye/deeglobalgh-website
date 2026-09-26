@@ -1,4 +1,5 @@
 ﻿"use client";
+import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 import {
   useEffect,
@@ -666,10 +667,15 @@ export default function CheckoutPage() {
           message
         );
 
-      window.open(
-        `https://wa.me/233270030000?text=${encoded}`,
-        "_blank"
-      );
+      trackWhatsAppClick(
+  "checkout_whatsapp_order",
+  "whatsapp"
+);
+
+window.open(
+  `https://wa.me/233270030000?text=${encoded}`,
+  "_blank"
+);
     } catch (
       error
     ) {
