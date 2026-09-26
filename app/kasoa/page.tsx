@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 export default function KasoaPage() {
   return (
@@ -24,13 +25,13 @@ export default function KasoaPage() {
           Shop All Products
         </Link>
 
-        <a
-          href="https://wa.me/233270030000"
-          target="_blank"
-          className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold"
-        >
-          Order on WhatsApp
-        </a>
+        <TrackedWhatsAppLink
+  href="https://wa.me/233270030000"
+  linkLocation="kasoa_landing_page"
+  className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold"
+>
+  Order on WhatsApp
+</TrackedWhatsAppLink>
       </div>
 
       {/* WHAT YOU CAN BUY */}
