@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";import Image from "next/image";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
+import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 /* -------------------------------------------
    TYPES
@@ -177,8 +178,15 @@ return (
   {/* WHATSAPP FIRST */}
   <button
   onClick={(e) => {
-    e.stopPropagation();
-    window.open(
+  e.stopPropagation();
+
+  trackWhatsAppClick(
+    "product_card",
+    "whatsapp",
+    product.name
+  );
+
+  window.open(
       `https://wa.me/233270030000?text=${encodeURIComponent(
         `Hello, I want to order:
 Product: ${product.name}
