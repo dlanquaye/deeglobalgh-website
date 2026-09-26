@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 const SNAPSHOT_KEY = "dg_paystack_order_snapshot_v1";
 
@@ -100,14 +101,21 @@ export default function PaystackSuccessClient({
       </p>
 
       {whatsAppUrl && (
-        <a
-          href={whatsAppUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:opacity-90"
-        >
-          Chat on WhatsApp
-        </a>
+  <a
+    href={whatsAppUrl}
+    target="_blank"
+    rel="noreferrer"
+    onClick={() =>
+      trackWhatsAppClick(
+        "paystack_success_confirmation",
+        "whatsapp"
+      )
+    }
+    className="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:opacity-90"
+  >
+    Chat on WhatsApp
+  </a>
+
       )}
     </div>
   );
