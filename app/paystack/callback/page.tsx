@@ -1,4 +1,5 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import PaystackSuccessClient from "./PaystackSuccessClient";
 import PaystackFailureClient from "./PaystackFailureClient";
 import OrderSummaryClient from "./OrderSummaryClient";
@@ -49,13 +50,13 @@ export default async function PaystackCallbackPage({
     <main className="mx-auto max-w-2xl p-6">
       {status === "success" ? (
         <>
-          {/* ✅ SINGLE SOURCE OF SUCCESS UX */}
+          {/* âœ… SINGLE SOURCE OF SUCCESS UX */}
           <PaystackSuccessClient
             reference={reference}
             status={status}
           />
 
-          {/* ✅ ORDER SUMMARY (READ-ONLY) */}
+          {/* âœ… ORDER SUMMARY (READ-ONLY) */}
           <OrderSummaryClient />
 
           <div className="mt-6">
@@ -69,7 +70,7 @@ export default async function PaystackCallbackPage({
         </>
       ) : (
         <>
-          {/* ❌ FAILURE / CANCELLED / UNKNOWN */}
+          {/* âŒ FAILURE / CANCELLED / UNKNOWN */}
           <PaystackFailureClient
             reference={reference}
             status={status}
@@ -93,12 +94,13 @@ export default async function PaystackCallbackPage({
               Back to Home
             </Link>
 
-            <Link
+            <TrackedWhatsAppLink
               href="https://wa.me/233270030000"
+              linkLocation="paystack_callback_failure"
               className="rounded bg-green-600 px-4 py-2 text-white"
             >
               Contact WhatsApp
-            </Link>
+            </TrackedWhatsAppLink>
           </div>
         </>
       )}
