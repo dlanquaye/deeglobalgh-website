@@ -153,12 +153,19 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
     </p>
 
     <a
-      href="https://wa.me/233270030000"
-      target="_blank"
-      className="bg-white text-green-700 px-4 py-2 rounded-xl font-bold"
-    >
-      Order Now
-    </a>
+  href="https://wa.me/233270030000"
+  target="_blank"
+  rel="noopener noreferrer"
+  onClick={() =>
+    trackWhatsAppClick(
+      "homepage_delivery_strip",
+      "whatsapp"
+    )
+  }
+  className="bg-white text-green-700 px-4 py-2 rounded-xl font-bold"
+>
+  Order Now
+</a>
 
   </div>
 </section>
@@ -325,22 +332,27 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
       </Link>
 
       <button
-        onClick={() =>
-          window.open(
-            `https://wa.me/233270030000?text=${encodeURIComponent(
-              `Hello, I want to order:
+  onClick={() => {
+    trackWhatsAppClick(
+      "homepage_product_card",
+      "whatsapp",
+      p.name
+    );
+
+    window.open(
+      `https://wa.me/233270030000?text=${encodeURIComponent(
+        `Hello, I want to order:
 Product: ${p.name}
 Price: GH₵ ${p.retailPrice}
 Quantity: 1`
-            )}`,
-            "_blank"
-          )
-        }
-        className="text-xs font-semibold bg-green-600 text-white px-3 py-1 rounded-full"
-      >
-        WhatsApp
-      </button>
-
+      )}`,
+      "_blank"
+    );
+  }}
+  className="text-xs font-semibold bg-green-600 text-white px-3 py-1 rounded-full"
+>
+  WhatsApp
+</button>
     </div>
   </div>
 ))}
