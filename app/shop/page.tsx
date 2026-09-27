@@ -100,7 +100,7 @@ export default async function ShopPage({
 
           <div className="mt-4 flex flex-wrap gap-3">
             <TrackedWhatsAppLink
-              href="https://wa.me/233270030000"
+              href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20school%20supplies%20from%20your%20online%20shop.%20Please%20assist%20me."
               linkLocation="shop_page_hero"
               className="rounded-xl bg-yellow-400 px-5 py-2 font-semibold text-black"
             >
