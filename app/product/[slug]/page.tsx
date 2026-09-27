@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
@@ -83,6 +83,18 @@ export default async function ProductPage({
   const deliveryIcon = "\u{1F69A}";
   const packageIcon = "\u{1F4E6}";
   const whatsappIcon = "\u{1F4AC}";
+
+  const productWhatsAppMessage = `Hello DeeGlobalGH, I want to order:
+Product: ${product.name}
+Price: ${cedi} ${price.toFixed(2)}
+Quantity: 1
+
+Please assist me with delivery.`;
+
+  const productWhatsAppUrl =
+    `https://wa.me/233270030000?text=${encodeURIComponent(
+      productWhatsAppMessage
+    )}`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -181,14 +193,7 @@ export default async function ProductPage({
           </div>
 
           <TrackedWhatsAppLink
-            href={`https://wa.me/233270030000?text=${encodeURIComponent(
-              `Hello, I want to order:
-Product: ${product.name}
-Price: ${cedi} ${price.toFixed(2)}
-Quantity: 1
-
-Please assist me with delivery.`
-            )}`}
+            href={productWhatsAppUrl}
             linkLocation="product_page_order"
             productName={product.name}
             className="mt-4 block w-full rounded-xl bg-yellow-500 px-5 py-3 text-center font-bold text-black"
@@ -324,14 +329,7 @@ Please assist me with delivery.`
 
       <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-white p-3">
         <TrackedWhatsAppLink
-          href={`https://wa.me/233270030000?text=${encodeURIComponent(
-            `Hello, I want to order:
-Product: ${product.name}
-Price: ${cedi} ${price.toFixed(2)}
-Quantity: 1
-
-Please assist me with delivery.`
-          )}`}
+          href={productWhatsAppUrl}
           linkLocation="product_page_mobile_sticky"
           productName={product.name}
           className="block w-full rounded-xl bg-green-600 py-1.5 text-center text-sm font-semibold text-white shadow-md"
