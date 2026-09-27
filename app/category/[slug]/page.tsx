@@ -110,7 +110,9 @@ export default async function CategoryPage({
             </Link>
 
             <TrackedWhatsAppLink
-              href="https://wa.me/233270030000"
+              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+                `Hello DeeGlobalGH, I would like to enquire about ${prettifySlug(slug)}. Please assist me.`
+              )}`}
               linkLocation="category_page_hero"
               productName={slug}
               className="rounded-xl bg-yellow-400 px-5 py-2 font-semibold text-black"
@@ -146,7 +148,7 @@ export default async function CategoryPage({
                 className="group rounded-2xl border border-green-200 bg-gradient-to-r from-green-100 to-green-50 p-5 transition hover:shadow-md"
               >
                 <p className="font-semibold group-hover:text-green-700">
-                  Basic 1–3
+                  Basic 1â€“3
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Early learning essentials
@@ -158,7 +160,7 @@ export default async function CategoryPage({
                 className="group rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-100 to-blue-50 p-5 transition hover:shadow-md"
               >
                 <p className="font-semibold group-hover:text-blue-700">
-                  Basic 4–6
+                  Basic 4â€“6
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Upper primary textbooks
@@ -181,7 +183,7 @@ export default async function CategoryPage({
                   JHS Combined
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Basic 7–9 combined
+                  Basic 7â€“9 combined
                 </p>
               </a>
 
@@ -201,7 +203,7 @@ export default async function CategoryPage({
                   SHS Combined
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  SHS 1–3 combined
+                  SHS 1â€“3 combined
                 </p>
               </a>
 
