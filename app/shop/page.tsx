@@ -1,5 +1,6 @@
-import { prisma } from "../../lib/prisma";
+﻿import { prisma } from "../../lib/prisma";
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import ShopClient from "./ShopClient";
 
 export const dynamic = "force-dynamic";
@@ -98,14 +99,13 @@ export default async function ShopPage({
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <a
+            <TrackedWhatsAppLink
               href="https://wa.me/233270030000"
-              target="_blank"
-              rel="noopener noreferrer"
+              linkLocation="shop_page_hero"
               className="rounded-xl bg-yellow-400 px-5 py-2 font-semibold text-black"
             >
               Order Now via WhatsApp
-            </a>
+            </TrackedWhatsAppLink>
 
             <Link
               href="/school-list-items-kasoa"
