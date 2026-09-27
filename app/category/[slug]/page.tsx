@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
@@ -146,7 +146,7 @@ export default async function CategoryPage({
                 className="group rounded-2xl border border-green-200 bg-gradient-to-r from-green-100 to-green-50 p-5 transition hover:shadow-md"
               >
                 <p className="font-semibold group-hover:text-green-700">
-                  Basic 1â€“3
+                  Basic 1–3
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Early learning essentials
@@ -158,7 +158,7 @@ export default async function CategoryPage({
                 className="group rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-100 to-blue-50 p-5 transition hover:shadow-md"
               >
                 <p className="font-semibold group-hover:text-blue-700">
-                  Basic 4â€“6
+                  Basic 4–6
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Upper primary textbooks
@@ -181,7 +181,7 @@ export default async function CategoryPage({
                   JHS Combined
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Basic 7â€“9 combined
+                  Basic 7–9 combined
                 </p>
               </a>
 
@@ -201,7 +201,7 @@ export default async function CategoryPage({
                   SHS Combined
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  SHS 1â€“3 combined
+                  SHS 1–3 combined
                 </p>
               </a>
 

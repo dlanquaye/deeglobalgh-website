@@ -91,12 +91,12 @@ export default async function TextbooksKasoaPage({
 
       {/* ================= SEO HEADER ================= */}
       <h1 className="text-3xl font-bold text-blue-900 mb-4">
-        Textbooks in Kasoa – Buy School Books Near You
+        Textbooks in Kasoa â€“ Buy School Books Near You
       </h1>
 
       <p className="text-gray-600 max-w-2xl mb-4">
         Looking for textbooks in Kasoa? DeeglobalGh provides approved textbooks
-        for Pre-School, Basic 1–6, JHS, and SHS students. Order online and get
+        for Pre-School, Basic 1â€“6, JHS, and SHS students. Order online and get
         fast delivery in Kasoa.
       </p>
 
@@ -132,7 +132,7 @@ export default async function TextbooksKasoaPage({
         </Link>
 
         <TrackedWhatsAppLink
-  href="https://wa.me/233270030000"
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20textbooks.%20Please%20assist%20me."
   linkLocation="textbooks_in_kasoa"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >
