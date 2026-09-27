@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Image from "next/image";
+import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 /* =========================
    Types
@@ -32,15 +33,15 @@ const services: Service[] = [
   {
     id: "interpretation",
     slug: "chinese-english-interpretation-translation-ghana",
-    title: "Chinese–English Interpretation/Translation & Business Liaison",
-    titleZh: "中英口译/翻译与商务协调服务",
+    title: "Chineseâ€“English Interpretation/Translation & Business Liaison",
+    titleZh: "ä¸­è‹±å£è¯‘/ç¿»è¯‘ä¸Žå•†åŠ¡åè°ƒæœåŠ¡",
     summary:
-      "This service provides professional Chinese–English interpretation and translation, combined with business liaison support.",
+      "This service provides professional Chineseâ€“English interpretation and translation, combined with business liaison support.",
     who:
       "This service is for businesses, individuals, traders, schools, and organisations working with Chinese partners or clients.",
     includes: [
       "Consecutive and on-site interpretation",
-      "Document translation (Chinese ↔ English)",
+      "Document translation (Chinese â†” English)",
       "Business meeting and negotiation support",
       "Communication coordination between parties",
     ],
@@ -51,7 +52,7 @@ const services: Service[] = [
     id: "chinese-training",
     slug: "chinese-language-training-kids-adults-ghana",
     title: "Chinese Language Training (Kids & Adults)",
-    titleZh: "中文培训（少儿与成人）",
+    titleZh: "ä¸­æ–‡åŸ¹è®­ï¼ˆå°‘å„¿ä¸Žæˆäººï¼‰",
     summary:
       "This service offers structured Chinese language training for children and adults.",
     who:
@@ -69,7 +70,7 @@ const services: Service[] = [
     id: "business-chinese",
     slug: "business-chinese-language-training-ghana",
     title: "Business Chinese Language Training",
-    titleZh: "商务中文培训",
+    titleZh: "å•†åŠ¡ä¸­æ–‡åŸ¹è®­",
     summary:
       "This service focuses on practical Chinese used in business environments.",
     who:
@@ -87,7 +88,7 @@ const services: Service[] = [
     id: "english-training",
     slug: "english-training-for-chinese-speakers-ghana",
     title: "English Language Training for Chinese Speakers",
-    titleZh: "英语培训（中文使用者）",
+    titleZh: "è‹±è¯­åŸ¹è®­ï¼ˆä¸­æ–‡ä½¿ç”¨è€…ï¼‰",
     summary:
       "This service helps Chinese speakers learn English clearly and confidently.",
     who:
@@ -120,6 +121,14 @@ function trackClick(
       service_slug: serviceSlug,
       contact_channel: channel,
     });
+  }
+
+  if (channel === "whatsapp") {
+    trackWhatsAppClick(
+      "services_page_contact",
+      "whatsapp",
+      serviceTitle
+    );
   }
 }
 
@@ -183,7 +192,7 @@ export default function ServicesPage() {
 
           <p className="mt-4 text-center text-sm text-gray-500">
             This service is offered in Ghana and supports individuals, families,
-            and organisations seeking reliable Chinese–English communication,
+            and organisations seeking reliable Chineseâ€“English communication,
             language training, and cross-cultural support.
           </p>
 
