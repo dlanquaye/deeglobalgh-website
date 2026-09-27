@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
 import { prisma } from "@/lib/prisma";
 
@@ -245,7 +246,7 @@ export default async function PublicQuotationPage({
                     "13px",
                 }}
               >
-                Educational Books • School Supplies • Exam Essentials
+                Educational Books â€¢ School Supplies â€¢ Exam Essentials
               </div>
             </div>
 
@@ -864,10 +865,9 @@ export default async function PublicQuotationPage({
               Download Word
             </a>
 
-            <a
+            <TrackedWhatsAppLink
               href={`https://wa.me/233270030000?text=${whatsappMessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              linkLocation="public_quotation_contact"
               style={{
                 display:
                   "inline-block",
@@ -886,7 +886,7 @@ export default async function PublicQuotationPage({
               }}
             >
               Contact on WhatsApp
-            </a>
+            </TrackedWhatsAppLink>
           </div>
         </div>
 
