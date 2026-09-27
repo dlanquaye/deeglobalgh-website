@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
@@ -110,14 +111,14 @@ export default async function LevelPage({ params }: Props) {
           School List Shopping
         </Link>
 
-        <a
+        <TrackedWhatsAppLink
           href="https://wa.me/233270030000"
-          target="_blank"
-          rel="noopener noreferrer"
+          linkLocation="level_page_hero"
+          productName={pretty}
           className="rounded-xl bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400"
         >
           Order on WhatsApp
-        </a>
+        </TrackedWhatsAppLink>
       </div>
 
       {products.length === 0 ? (
@@ -135,7 +136,7 @@ export default async function LevelPage({ params }: Props) {
               <div className="text-sm font-semibold">{product.name}</div>
 
               <div className="mt-1 font-bold text-blue-900">
-                GH₵ {product.retailPrice.toFixed(2)}
+                GHâ‚µ {product.retailPrice.toFixed(2)}
               </div>
             </Link>
           ))}
