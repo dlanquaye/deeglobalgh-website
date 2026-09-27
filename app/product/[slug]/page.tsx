@@ -1,6 +1,7 @@
 ﻿import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import Image from "next/image";
 import AddToCartButton from "./AddToCartButton";
 
@@ -179,7 +180,7 @@ export default async function ProductPage({
             />
           </div>
 
-          <a
+          <TrackedWhatsAppLink
             href={`https://wa.me/233270030000?text=${encodeURIComponent(
               `Hello, I want to order:
 Product: ${product.name}
@@ -188,12 +189,12 @@ Quantity: 1
 
 Please assist me with delivery.`
             )}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            linkLocation="product_page_order"
+            productName={product.name}
             className="mt-4 block w-full rounded-xl bg-yellow-500 px-5 py-3 text-center font-bold text-black"
           >
             Order Now via WhatsApp
-          </a>
+          </TrackedWhatsAppLink>
 
           <Link
             href="/shop"
@@ -322,7 +323,7 @@ Please assist me with delivery.`
       )}
 
       <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-white p-3">
-        <a
+        <TrackedWhatsAppLink
           href={`https://wa.me/233270030000?text=${encodeURIComponent(
             `Hello, I want to order:
 Product: ${product.name}
@@ -331,12 +332,12 @@ Quantity: 1
 
 Please assist me with delivery.`
           )}`}
-          target="_blank"
-          rel="noopener noreferrer"
+          linkLocation="product_page_mobile_sticky"
+          productName={product.name}
           className="block w-full rounded-xl bg-green-600 py-1.5 text-center text-sm font-semibold text-white shadow-md"
         >
           Order via WhatsApp
-        </a>
+        </TrackedWhatsAppLink>
       </div>
     </div>
   );
