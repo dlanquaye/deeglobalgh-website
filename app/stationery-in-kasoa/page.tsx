@@ -135,7 +135,7 @@ export default async function StationeryKasoaPage({
         </Link>
 
         <TrackedWhatsAppLink
-  href="https://wa.me/233270030000"
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20stationery%20and%20school%20supplies.%20Please%20assist%20me."
   linkLocation="stationery_in_kasoa"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >
