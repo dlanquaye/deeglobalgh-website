@@ -91,12 +91,12 @@ export default async function TextbooksKasoaPage({
 
       {/* ================= SEO HEADER ================= */}
       <h1 className="text-3xl font-bold text-blue-900 mb-4">
-        Textbooks in Kasoa â€“ Buy School Books Near You
+        Textbooks in Kasoa – Buy School Books Near You
       </h1>
 
       <p className="text-gray-600 max-w-2xl mb-4">
         Looking for textbooks in Kasoa? DeeglobalGh provides approved textbooks
-        for Pre-School, Basic 1â€“6, JHS, and SHS students. Order online and get
+        for Pre-School, Basic 1–6, JHS, and SHS students. Order online and get
         fast delivery in Kasoa.
       </p>
 
