@@ -1,4 +1,4 @@
-﻿type GtagWindow = Window & {
+type GtagWindow = Window & {
   gtag?: (
     command: string,
     eventName: string,
@@ -21,5 +21,21 @@ export function trackWhatsAppClick(
     page_path: window.location.pathname,
     destination,
     ...(productName ? { product_name: productName } : {}),
+  });
+}
+
+export function trackDirectionsClick(
+  linkLocation: string,
+  destination: string
+) {
+  if (typeof window === "undefined") return;
+
+  const gtag = (window as GtagWindow).gtag;
+  if (!gtag) return;
+
+  gtag("event", "directions_click", {
+    link_location: linkLocation,
+    page_path: window.location.pathname,
+    destination,
   });
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useCart } from "@/app/context/CartContext";
+import { trackDirectionsClick } from "@/app/lib/analytics";
 
 const GOOGLE_MAPS_URL = "https://maps.app.goo.gl/SBPXu3sPzMGngRaq8";
 
@@ -62,6 +63,7 @@ export default function Header() {
 
           <a
             href={GOOGLE_MAPS_URL}
+            onClick={() => trackDirectionsClick("header", GOOGLE_MAPS_URL)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-blue-700 hover:underline"
