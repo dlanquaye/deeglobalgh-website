@@ -54,7 +54,7 @@ export default function SchoolListPage() {
 </Link>
 
       {/* SCHOOL LEVELS */}
-      <h2 className="text-xl font-bold mb-4">
+      <h2 className="mt-8 text-xl font-bold mb-4">
         School Items by Level
       </h2>
 
@@ -108,7 +108,7 @@ export default function SchoolListPage() {
 >
   School Reopening Essentials
 </Link>
-        <h2 className="text-xl font-bold mb-4">
+        <h2 className="mt-8 text-xl font-bold mb-4">
           Shop by Category
         </h2>
 
