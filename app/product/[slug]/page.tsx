@@ -96,8 +96,54 @@ Please assist me with delivery.`;
       productWhatsAppMessage
     )}`;
 
+  const siteUrl = "https://www.shopdeeglobalgh.com";
+  const productUrl = `${siteUrl}/product/${product.slug}`;
+  const productImageUrl = product.imageSrc.startsWith("http")
+    ? product.imageSrc
+    : `${siteUrl}${product.imageSrc.startsWith("/") ? "" : "/"}${product.imageSrc}`;
+
+  const productDescription =
+    product.fullDescription ||
+    product.shortSummary ||
+    product.metaDescription ||
+    product.name;
+
+  const plainTextDescription = productDescription
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: [productImageUrl],
+    description: plainTextDescription,
+    sku: product.sku,
+    brand: {
+      "@type": "Brand",
+      name: product.brand,
+    },
+    offers: {
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: "GHS",
+      price: price.toFixed(2),
+      availability: outOfStock
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="mb-6 text-sm text-gray-600">
         <Link href="/">Home</Link> /{" "}
         <Link href="/shop">Shop</Link> /{" "}
