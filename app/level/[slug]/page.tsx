@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
@@ -112,7 +112,7 @@ export default async function LevelPage({ params }: Props) {
         </Link>
 
         <TrackedWhatsAppLink
-          href="https://wa.me/233270030000"
+          href={`https://wa.me/233270030000?text=${encodeURIComponent(`Hello DeeGlobalGH, I would like to enquire about textbooks and school supplies for ${pretty}. Please assist me.`)}`}
           linkLocation="level_page_hero"
           productName={pretty}
           className="rounded-xl bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400"
@@ -136,7 +136,7 @@ export default async function LevelPage({ params }: Props) {
               <div className="text-sm font-semibold">{product.name}</div>
 
               <div className="mt-1 font-bold text-blue-900">
-                GHâ‚µ {product.retailPrice.toFixed(2)}
+                GH₵ {product.retailPrice.toFixed(2)}
               </div>
             </Link>
           ))}
