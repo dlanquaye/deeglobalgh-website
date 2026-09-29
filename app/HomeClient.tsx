@@ -111,7 +111,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 
   {/* PRIMARY CTA */}
   <Link
-  href="https://wa.me/233270030000"
+  href={`https://wa.me/233270030000?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to enquire about school supplies, textbooks and stationery. Please assist me.")}`}
   target="_blank"
   onClick={() =>
     trackWhatsAppClick(
@@ -153,7 +153,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
     </p>
 
     <a
-  href="https://wa.me/233270030000"
+  href={`https://wa.me/233270030000?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to place an order and enquire about delivery. Please assist me.")}`}
   target="_blank"
   rel="noopener noreferrer"
   onClick={() =>
