@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/cart"],
       },
     ],
-    sitemap: "https://shopdeeglobalgh.com/sitemap.xml",
+    sitemap: "https://www.shopdeeglobalgh.com/sitemap.xml",
   };
 }

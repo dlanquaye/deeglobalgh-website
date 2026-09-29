@@ -4,7 +4,7 @@ import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 
-const SITE_URL = "https://shopdeeglobalgh.com";
+const SITE_URL = "https://www.shopdeeglobalgh.com";
 
 function prettifySlug(slug: string) {
   return slug

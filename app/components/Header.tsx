@@ -1,9 +1,11 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useCart } from "@/app/context/CartContext";
+
+const GOOGLE_MAPS_URL = "https://maps.app.goo.gl/SBPXu3sPzMGngRaq8";
 
 export default function Header() {
   const pathname =
@@ -26,7 +28,7 @@ export default function Header() {
     <header className="border-b bg-white">
 
       {/* TOP ROW */}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 
         {/* LEFT (MAKE LOGO CLICKABLE) */}
         <Link
@@ -35,7 +37,7 @@ export default function Header() {
         >
           <img
             src="/products/deeglobalgh-logo.png"
-            alt="DeeglobalGh"
+            alt="DeeGlobalGH"
             className="w-10 h-10 object-contain"
           />
 
@@ -45,7 +47,7 @@ export default function Header() {
         </Link>
 
         {/* RIGHT NAV */}
-        <nav className="flex items-center gap-6 text-sm font-medium">
+        <nav className="flex items-center gap-3 sm:gap-5 text-sm font-medium flex-wrap">
           <Link href="/">
             Home
           </Link>
@@ -57,6 +59,17 @@ export default function Header() {
           <Link href="/category/textbooks">
             Textbooks
           </Link>
+
+          <a
+            href={GOOGLE_MAPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-blue-700 hover:underline"
+            aria-label="Get directions to DeeGlobalGH on Google Maps"
+          >
+            <span aria-hidden="true">📍</span>
+            Directions
+          </a>
 
           <Link
             href="/cart"
