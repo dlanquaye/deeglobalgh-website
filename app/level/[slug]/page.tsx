@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
 
@@ -10,6 +11,7 @@ type Product = {
   name: string;
   slug: string;
   retailPrice: number;
+  imageSrc: string | null;
 };
 
 type Props = {
@@ -72,6 +74,7 @@ export default async function LevelPage({ params }: Props) {
         name: true,
         slug: true,
         retailPrice: true,
+        imageSrc: true,
       },
     });
   } catch (error) {
@@ -133,6 +136,16 @@ export default async function LevelPage({ params }: Props) {
               href={`/product/${product.slug}`}
               className="rounded-xl border p-3 transition hover:bg-gray-50"
             >
+              <div className="relative mb-3 flex h-44 items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-3">
+                <Image
+                  src={product.imageSrc || "/products/placeholder.webp"}
+                  alt={product.name}
+                  width={400}
+                  height={400}
+                  className="h-full w-auto object-contain"
+                />
+              </div>
+
               <div className="text-sm font-semibold">{product.name}</div>
 
               <div className="mt-1 font-bold text-blue-900">
