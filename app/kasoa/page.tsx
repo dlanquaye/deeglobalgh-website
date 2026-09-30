@@ -11,7 +11,7 @@ export default function KasoaPage() {
       </h1>
 
       <p className="text-gray-600 max-w-2xl">
-        DeeglobalGh helps parents, students, and schools buy textbooks,
+        DeeGlobalGH helps parents, students, and schools buy textbooks,
         stationery, exam materials, and school essentials in Kasoa.
         We deliver fast and make ordering easy.
       </p>

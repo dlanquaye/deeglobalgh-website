@@ -1,7 +1,7 @@
 /* ================= SEO METADATA ================= */
 export const metadata = {
   title:
-    "Stationery in Kasoa | Buy School Supplies in Kasoa | DeeglobalGh",
+    "Stationery in Kasoa | Buy School Supplies in Kasoa | DeeGlobalGH",
   description:
     "Buy stationery in Kasoa including pens, pencils, rulers, calculators, and school essentials. Fast delivery available in Kasoa.",
   alternates: {
@@ -99,7 +99,7 @@ export default async function StationeryKasoaPage({
       </h1>
 
       <p className="text-gray-600 max-w-2xl mb-4">
-        Looking for stationery in Kasoa? DeeglobalGh provides school supplies
+        Looking for stationery in Kasoa? DeeGlobalGH provides school supplies
         for Pre-School, Basic, JHS, and SHS students. Order online and get fast
         delivery in Kasoa.
       </p>
@@ -224,7 +224,7 @@ export default async function StationeryKasoaPage({
 
         <p className="text-gray-600 mb-3">
           Parents and students in Kasoa can easily buy stationery online from
-          DeeglobalGh. We provide reliable delivery and a wide range of school
+          DeeGlobalGH. We provide reliable delivery and a wide range of school
           supplies.
         </p>
 

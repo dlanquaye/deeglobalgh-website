@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title:
-    "Exercise Books & A4 Paper in Kasoa | Retail & Wholesale | DeeglobalGH",
+    "Exercise Books & A4 Paper in Kasoa | Retail & Wholesale | DeeGlobalGH",
   description:
     "Buy Note 1 exercise books and Deli MateCopy A4 paper in Kasoa. Retail and wholesale supply for parents, students, schools, offices, retailers and institutions across Ghana.",
   alternates: {
@@ -71,7 +71,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
 
           <p className="mt-5 max-w-3xl text-base leading-7 text-blue-100 md:text-lg">
             Buy Note 1 exercise books and Deli MateCopy A4 paper from
-            DeeglobalGH. We supply individual customers as well as schools,
+            DeeGlobalGH. We supply individual customers as well as schools,
             offices, retailers and institutions that need larger quantities.
           </p>
 
@@ -83,7 +83,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
 
           <div className="mt-7 flex flex-wrap gap-3">
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20would%20like%20to%20order%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20order%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_order"
   className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black hover:bg-yellow-300"
 >
@@ -91,7 +91,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
 </TrackedWhatsAppLink>
 
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20please%20send%20me%20your%20current%20wholesale%20or%20bulk%20price%20for%20exercise%20books%20and%20A4%20paper."
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20please%20send%20me%20your%20current%20wholesale%20or%20bulk%20price%20for%20exercise%20books%20and%20A4%20paper."
   linkLocation="exercise_books_a4_wholesale_price"
   className="rounded-xl border border-white px-6 py-3 font-bold text-white hover:bg-white hover:text-blue-900"
 >
@@ -202,7 +202,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
             </p>
 
             <p className="mt-3 max-w-3xl leading-7 text-gray-600">
-              Buy a ream for everyday use or contact DeeglobalGH for bulk and
+              Buy a ream for everyday use or contact DeeGlobalGH for bulk and
               wholesale supply when ordering for offices, institutions,
               retailers or other high-volume requirements.
             </p>
@@ -243,7 +243,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
           </h2>
 
           <p className="mt-4 max-w-3xl leading-7 text-gray-600">
-            DeeglobalGH supplies both retail and wholesale customers. Schools,
+            DeeGlobalGH supplies both retail and wholesale customers. Schools,
             offices, shops, resellers and institutions that require larger
             quantities can contact us for current bulk pricing and
             availability.
@@ -255,7 +255,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
           </p>
 
           <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20need%20a%20wholesale%20quotation%20for%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20need%20a%20wholesale%20quotation%20for%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_wholesale_quote"
   className="mt-6 inline-block rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
 >
@@ -272,7 +272,7 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
           </h2>
 
           <p className="mt-4 leading-7 text-gray-600">
-            DeeglobalGH supplies educational materials, stationery and school
+            DeeGlobalGH supplies educational materials, stationery and school
             essentials in Kasoa. Customers can order Note 1 exercise books,
             Deli MateCopy A4 paper, textbooks and other school supplies from
             one place.

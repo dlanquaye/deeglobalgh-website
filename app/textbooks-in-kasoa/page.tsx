@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Textbooks in Kasoa | Buy School Books in Kasoa - DeeglobalGh",
+  title: "Textbooks in Kasoa | Buy School Books in Kasoa - DeeGlobalGH",
   description:
     "Buy textbooks in Kasoa for Basic, JHS, and SHS. Fast delivery available. Order school books online in Kasoa today.",
   alternates: {
@@ -95,7 +95,7 @@ export default async function TextbooksKasoaPage({
       </h1>
 
       <p className="text-gray-600 max-w-2xl mb-4">
-        Looking for textbooks in Kasoa? DeeglobalGh provides approved textbooks
+        Looking for textbooks in Kasoa? DeeGlobalGH provides approved textbooks
         for Pre-School, Basic 1–6, JHS, and SHS students. Order online and get
         fast delivery in Kasoa.
       </p>
@@ -221,7 +221,7 @@ export default async function TextbooksKasoaPage({
 
         <p className="text-gray-600 mb-3">
           Parents and students in Kasoa can easily order textbooks online from
-          DeeglobalGh. We offer fast delivery and a wide range of textbooks for
+          DeeGlobalGH. We offer fast delivery and a wide range of textbooks for
           all levels.
         </p>
 

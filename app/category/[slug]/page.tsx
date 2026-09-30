@@ -20,13 +20,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const pretty = prettifySlug(slug);
 
-  const title = `${pretty} | DeeglobalGh`;
+  const title = `${pretty} | DeeGlobalGH`;
 
-  let description = `Shop ${pretty} in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
+  let description = `Shop ${pretty} in Ghana. Order from DeeGlobalGH for fast delivery in Kasoa and beyond.`;
 
   if (slug === "story-books") {
     description =
-      "Buy story books for kids and students in Ghana. Shop African story books, literature books, and reading books with fast delivery from DeeglobalGh.";
+      "Buy story books for kids and students in Ghana. Shop African story books, literature books, and reading books with fast delivery from DeeGlobalGH.";
   }
 
   const canonicalUrl = `${SITE_URL}/category/${slug}`;
@@ -203,7 +203,7 @@ export default async function CategoryPage({
                   SHS Combined
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  SHS 1â€“3 combined
+                  SHS 1–3 combined
                 </p>
               </a>
 

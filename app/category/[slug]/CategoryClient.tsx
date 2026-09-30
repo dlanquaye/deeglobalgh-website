@@ -48,7 +48,7 @@ export default function CategoryClient({
       {slug === "story-books" && (
   <p className="mt-3 text-gray-600 max-w-2xl">
     Buy story books for kids and students in Ghana. Explore African story books,
-    literature books, and reading books for all levels. DeeglobalGh stocks quality
+    literature books, and reading books for all levels. DeeGlobalGH stocks quality
     story books with fast delivery across Kasoa and Ghana.
   </p>
 )}

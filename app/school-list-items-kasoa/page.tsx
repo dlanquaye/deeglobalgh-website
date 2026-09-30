@@ -21,7 +21,7 @@ export default function SchoolListPage() {
 
       {/* INTRO */}
       <p className="text-gray-600 mb-6">
-        Looking for complete school list items in Kasoa? DeeglobalGh helps parents,
+        Looking for complete school list items in Kasoa? DeeGlobalGH helps parents,
         students, and schools get textbooks, stationery, and essentials in one place.
         We offer fast delivery and easy ordering through WhatsApp.
       </p>
@@ -139,7 +139,7 @@ export default function SchoolListPage() {
       {/* TRUST */}
       <div className="mt-10">
         <h2 className="text-xl font-bold mb-4">
-          Why Choose DeeglobalGh
+          Why Choose DeeGlobalGH
         </h2>
 
         <ul className="text-gray-600 space-y-2">

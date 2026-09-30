@@ -1,6 +1,6 @@
 export const metadata = {
   title:
-    "Exam Materials in Kasoa | BECE & WASSCE Supplies | DeeglobalGh",
+    "Exam Materials in Kasoa | BECE & WASSCE Supplies | DeeGlobalGH",
   description:
     "Buy exam materials in Kasoa including maths sets, scientific calculators, past questions, and exam essentials for BECE and WASSCE.",
   alternates: {

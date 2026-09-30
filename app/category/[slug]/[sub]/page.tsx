@@ -21,8 +21,8 @@ export async function generateMetadata({
   const prettyMain = prettifySlug(slug);
   const prettySub = prettifySlug(sub);
 
-  const title = `${prettySub} ${prettyMain} | DeeglobalGh`;
-  const description = `Shop ${prettySub} ${prettyMain} in Ghana. Order from DeeglobalGh for fast delivery in Kasoa and beyond.`;
+  const title = `${prettySub} ${prettyMain} | DeeGlobalGH`;
+  const description = `Shop ${prettySub} ${prettyMain} in Ghana. Order from DeeGlobalGH for fast delivery in Kasoa and beyond.`;
 
   const canonicalUrl = `${SITE_URL}/category/${slug}/${sub}`;
 

@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 
@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title:
     "Where to Buy Exercise Books & A4 Paper in Kasoa | Retail & Wholesale",
   description:
-    "Looking for exercise books or A4 paper in Kasoa? DeeglobalGH supplies Note 1 exercise books and Deli MateCopy A4 paper to retail and wholesale customers, schools, offices, retailers and institutions.",
+    "Looking for exercise books or A4 paper in Kasoa? DeeGlobalGH supplies Note 1 exercise books and Deli MateCopy A4 paper to retail and wholesale customers, schools, offices, retailers and institutions.",
   alternates: {
     canonical:
       "https://www.shopdeeglobalgh.com/guides/where-to-buy-exercise-books-a4-paper-kasoa",
@@ -41,7 +41,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           <p className="mt-5 text-lg leading-8 text-gray-600">
             Parents, students, schools, offices, retailers and institutions
             often need a reliable place to buy exercise books and A4 paper in
-            Kasoa. DeeglobalGH supplies these everyday school and office
+            Kasoa. DeeGlobalGH supplies these everyday school and office
             essentials to both retail and wholesale customers.
           </p>
 
@@ -54,7 +54,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
             </Link>
 
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20I%20would%20like%20a%20quote%20for%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20a%20quote%20for%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_guide_quote"
   className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
 >
@@ -78,7 +78,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </p>
 
           <p className="mt-4 leading-8 text-gray-700">
-            DeeglobalGH serves both types of customers. Retail buyers can order
+            DeeGlobalGH serves both types of customers. Retail buyers can order
             convenient quantities for immediate use, while wholesale and bulk
             customers can request current pricing based on the products and
             quantities they need.
@@ -98,7 +98,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </p>
 
           <p className="mt-4 leading-8 text-gray-700">
-            DeeglobalGH currently offers Note 1 exercise books in both 40-leaf
+            DeeGlobalGH currently offers Note 1 exercise books in both 40-leaf
             and 60-leaf options, including full packs and half packs. This
             allows parents and individual customers to choose a practical
             quantity while also making it easier for schools and bulk buyers to
@@ -147,7 +147,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </p>
 
           <p className="mt-4 leading-8 text-gray-700">
-            For these orders, DeeglobalGH provides bulk and wholesale supply.
+            For these orders, DeeGlobalGH provides bulk and wholesale supply.
             Customers can tell us the type of exercise book and quantity
             required, and we can provide a current quotation based on
             availability and order size.
@@ -174,7 +174,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </p>
 
           <p className="mt-4 leading-8 text-gray-700">
-            DeeglobalGH supplies Deli MateCopy A4 multipurpose paper in 80gsm.
+            DeeGlobalGH supplies Deli MateCopy A4 multipurpose paper in 80gsm.
             It is available as a 500-sheet ream and as a carton containing five
             reams, giving customers the option to buy according to their
             requirements.
@@ -212,7 +212,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           <p className="mt-4 leading-8 text-gray-700">
             Organisations that use A4 paper regularly can purchase in larger
             quantities instead of buying individual reams repeatedly.
-            DeeglobalGH accepts enquiries from schools, offices, businesses,
+            DeeGlobalGH accepts enquiries from schools, offices, businesses,
             retailers, resellers and institutions looking for bulk A4 paper
             supply.
           </p>
@@ -227,7 +227,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
         {/* WHO WE SERVE */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold text-gray-900">
-            Who Can Buy from DeeglobalGH?
+            Who Can Buy from DeeGlobalGH?
           </h2>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -276,12 +276,12 @@ export default function ExerciseBooksA4PaperGuidePage() {
         {/* OTHER SCHOOL SUPPLIES */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold text-gray-900">
-            More School Supplies from DeeglobalGH
+            More School Supplies from DeeGlobalGH
           </h2>
 
           <p className="mt-4 leading-8 text-gray-700">
             Exercise books and A4 paper are only part of the school supplies
-            available from DeeglobalGH. Customers can also shop for textbooks,
+            available from DeeGlobalGH. Customers can also shop for textbooks,
             stationery, examination materials and other school-list
             essentials.
           </p>
@@ -324,7 +324,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </h2>
 
           <p className="mt-4 leading-8 text-gray-700">
-            DeeglobalGH serves customers in Kasoa and can also arrange delivery
+            DeeGlobalGH serves customers in Kasoa and can also arrange delivery
             for customers outside Kasoa. This makes it possible for schools,
             businesses and other buyers to enquire about larger orders even
             when they are not located close to the shop.
@@ -342,7 +342,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </h2>
 
           <p className="mt-4 max-w-2xl leading-7 text-blue-100">
-            Shop available products online or contact DeeglobalGH with the
+            Shop available products online or contact DeeGlobalGH with the
             quantity you need. We serve individual retail customers as well as
             schools, offices, retailers, resellers and institutional buyers.
           </p>
@@ -356,7 +356,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
             </Link>
 
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeglobalGH%2C%20please%20send%20me%20a%20retail%20or%20wholesale%20quote%20for%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20please%20send%20me%20a%20retail%20or%20wholesale%20quote%20for%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_guide_retail_wholesale"
   className="rounded-xl border border-white px-6 py-3 font-bold text-white hover:bg-white hover:text-blue-900"
 >
