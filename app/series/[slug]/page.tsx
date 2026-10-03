@@ -5,7 +5,7 @@ import TrackedLink from "@/app/components/TrackedLink";
 import TrackedProductLink from "@/app/components/TrackedProductLink";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
-import { getPublicSeries } from "@/lib/series";
+import { getPublicSeries, PUBLIC_SERIES } from "@/lib/series";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
 
@@ -255,6 +255,49 @@ export default async function SeriesPage({ params }: Props) {
             })}
           </div>
         )}
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-10">
+        <div className="rounded-2xl border bg-white p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">
+                Browse Other Textbook Series
+              </h2>
+
+              <p className="mt-2 max-w-3xl text-sm text-gray-600">
+                Explore other textbook Series available from DeeGlobalGH.
+              </p>
+            </div>
+
+            <TrackedLink
+              href="/series"
+              linkLocation="series_cross_navigation"
+              contentType="textbook_series_hub"
+              contentName={series.name}
+              className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold text-blue-900 hover:bg-gray-50"
+            >
+              View All Textbook Series
+            </TrackedLink>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {PUBLIC_SERIES.filter(
+              (otherSeries) => otherSeries.slug !== series.slug
+            ).map((otherSeries) => (
+              <TrackedLink
+                key={otherSeries.slug}
+                href={`/series/${otherSeries.slug}`}
+                linkLocation="series_cross_navigation"
+                contentType="textbook_series"
+                contentName={otherSeries.name}
+                className="rounded-xl border bg-gray-50 px-4 py-3 font-semibold text-[color:var(--brand-blue)] transition hover:bg-gray-100"
+              >
+                {otherSeries.name}
+              </TrackedLink>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">

@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: new Date() },
     { url: `${SITE_URL}/shop`, lastModified: new Date() },
+    { url: `${SITE_URL}/series`, lastModified: new Date() },
 
     // Local SEO pages
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
