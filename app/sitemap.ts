@@ -1,5 +1,6 @@
 ﻿import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_SERIES } from "@/lib/series";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
 
@@ -52,6 +53,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const seriesPages: MetadataRoute.Sitemap = PUBLIC_SERIES.map((series) => ({
+    url: `${SITE_URL}/series/${series.slug}`,
+    lastModified: new Date(),
+  }));
+
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -70,5 +76,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
-  return [...staticPages, ...productPages];
+  return [...staticPages, ...seriesPages, ...productPages];
 }
