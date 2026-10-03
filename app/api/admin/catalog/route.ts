@@ -1,8 +1,9 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+import { canonicalizeBrand } from "@/lib/product-sync/normalizer";
 import type { SyncItem } from "@/lib/product-sync/types";
 
 function optionalText(value: unknown): string | undefined {
@@ -317,9 +318,9 @@ export async function POST(req: NextRequest) {
         ).trim();
 
       const incomingBrand =
-        String(
-          row["Brand"] ?? ""
-        ).trim();
+        canonicalizeBrand(
+          row["Brand"]
+        );
 
       const incomingPublisher =
         optionalText(
@@ -505,9 +506,9 @@ export async function POST(req: NextRequest) {
               .filter(Boolean),
 
           brand:
-            String(
-              row["Brand"] ?? ""
-            ).trim(),
+            canonicalizeBrand(
+              row["Brand"]
+            ),
 
           publisher:
             optionalText(
