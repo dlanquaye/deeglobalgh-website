@@ -104,7 +104,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 </p>
 
 <p className="mt-2 text-sm text-white/80 font-medium">
-  ✔ NaCCA Approved • ✔ Fast Delivery • ✔ WhatsApp Ordering Available
+  ✔ NaCCA-Approved Textbooks • ✔ Fast Delivery • ✔ WhatsApp Ordering Available
 </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -213,9 +213,9 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
       {/* ================= TRUST ================= */}
       <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-3 gap-6">
         <div className="rounded-xl border p-5 bg-white shadow-sm">
-          <h3 className="font-semibold">NaCCA Approved</h3>
+          <h3 className="font-semibold">NaCCA-Approved & Curriculum-Aligned Textbooks</h3>
           <p className="text-gray-600 mt-2">
-            All textbooks follow Ghana’s new curriculum standards.
+            Shop textbooks for Ghanaian schools, including Standards-Based Curriculum (SBC) books for KG and Primary, Common Core Programme (CCP) books for JHS, and books for the new Secondary Education Curriculum.
           </p>
         </div>
 

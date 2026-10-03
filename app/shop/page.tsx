@@ -120,9 +120,9 @@ export default async function ShopPage({
       {/* TRUST STRIP */}
       <section className="mx-auto mt-2 grid max-w-6xl grid-cols-1 gap-4 px-4 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-4 text-sm">
-          <strong>NaCCA Approved</strong>
+          <strong>NaCCA-Approved &amp; Curriculum-Aligned Textbooks</strong>
           <p className="text-gray-600">
-            All textbooks follow Ghana&apos;s current curriculum.
+            Shop SBC textbooks for KG and Primary, CCP textbooks for JHS, and books for the new Secondary Education Curriculum.
           </p>
         </div>
 

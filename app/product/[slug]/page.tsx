@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -5,6 +6,89 @@ import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import Image from "next/image";
 import AddToCartButton from "./AddToCartButton";
 
+const SITE_URL = "https://www.shopdeeglobalgh.com";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  const product = await prisma.product.findFirst({
+    where: {
+      slug,
+      isActive: true,
+      websiteVisible: true,
+    },
+    select: {
+      name: true,
+      slug: true,
+      imageSrc: true,
+      metaTitle: true,
+      metaDescription: true,
+      socialTitle: true,
+      socialDescription: true,
+      shortSummary: true,
+    },
+  });
+
+  if (!product) {
+    return {
+      title: "Product Not Found | DeeGlobalGH",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title =
+    product.metaTitle?.trim() ||
+    `${product.name} | Buy in Ghana | DeeGlobalGH`;
+
+  const description =
+    product.metaDescription?.trim() ||
+    product.shortSummary?.trim() ||
+    `Shop ${product.name} from DeeGlobalGH in Kasoa, Ghana.`;
+
+  const socialTitle =
+    product.socialTitle?.trim() ||
+    product.metaTitle?.trim() ||
+    title;
+
+  const socialDescription =
+    product.socialDescription?.trim() ||
+    product.metaDescription?.trim() ||
+    product.shortSummary?.trim() ||
+    description;
+
+  const canonical = `/product/${product.slug}`;
+
+  const imageUrl = product.imageSrc.startsWith("http")
+    ? product.imageSrc
+    : `${SITE_URL}${product.imageSrc.startsWith("/") ? "" : "/"}${product.imageSrc}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      type: "website",
+      url: canonical,
+      title: socialTitle,
+      description: socialDescription,
+      images: [
+        {
+          url: imageUrl,
+          alt: product.name,
+        },
+      ],
+    },
+  };
+}
 export default async function ProductPage({
   params,
 }: {
@@ -203,10 +287,11 @@ Please assist me with delivery.`;
           )}
 
           <div className="mt-6 space-y-2 rounded-xl border bg-white p-4 text-sm">
-            <p>
-              {approvedIcon} 100% New Curriculum
-              (NaCCA Approved)
-            </p>
+            {product.categorySlug === "textbooks" && (
+              <p>
+                {approvedIcon} NaCCA-Approved • Curriculum-Aligned Textbook
+              </p>
+            )}
 
             <p>
               {deliveryIcon} Fast and reliable

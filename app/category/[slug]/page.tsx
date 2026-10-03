@@ -20,10 +20,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const pretty = prettifySlug(slug);
 
-  const title = `${pretty} | DeeGlobalGH`;
+  const title = slug === "textbooks" ? "NaCCA-Approved Textbooks in Ghana | DeeGlobalGH" : `${pretty} | DeeGlobalGH`;
 
   let description = `Shop ${pretty} in Ghana. Order from DeeGlobalGH for fast delivery in Kasoa and beyond.`;
 
+  if (slug === "textbooks") {
+    description =
+      "Shop NaCCA-approved textbooks for Ghanaian schools, including Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum books. Order from DeeGlobalGH in Kasoa.";
+  }
   if (slug === "story-books") {
     description =
       "Buy story books for kids and students in Ghana. Shop African story books, literature books, and reading books with fast delivery from DeeGlobalGH.";
@@ -96,9 +100,9 @@ export default async function CategoryPage({
           </h1>
 
           <p className="mt-2 max-w-2xl text-white/90">
-            Shop NaCCA-approved textbooks, learning aids, exam materials,
-            boarding essentials, and complete school supplies. Fast delivery
-            across Ghana.
+            {slug === "textbooks"
+              ? "Shop NaCCA-approved textbooks for Ghanaian schools, including curriculum-aligned books for KG, Primary, JHS and SHS. Fast delivery across Ghana."
+              : `Shop ${prettifySlug(slug)} and school essentials from DeeGlobalGH in Kasoa. Fast delivery across Ghana.`}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
@@ -250,9 +254,13 @@ export default async function CategoryPage({
       {/* TRUST */}
       <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-10 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-4">
-          <h3 className="font-semibold">NaCCA Approved</h3>
+          <h3 className="font-semibold">
+            {slug === "textbooks" ? "NaCCA-Approved Textbooks" : "School Essentials"}
+          </h3>
           <p className="text-sm text-gray-600">
-            Our curriculum textbooks are selected for Ghanaian schools.
+            {slug === "textbooks"
+              ? "Curriculum-aligned textbooks selected for Ghanaian schools."
+              : "Practical school supplies for students, parents and schools."}
           </p>
         </div>
 
