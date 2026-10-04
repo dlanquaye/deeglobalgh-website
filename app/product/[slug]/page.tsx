@@ -241,6 +241,7 @@ Please assist me with delivery.`;
               src={product.imageSrc || "/products/placeholder.webp"}
               alt={product.imageAlt || product.name}
               fill
+              sizes="(max-width: 767px) 100vw, 50vw"
               className="object-contain"
             />
           </div>
@@ -372,6 +373,7 @@ Please assist me with delivery.`;
                     }
                     alt={item.name}
                     fill
+                    sizes="(max-width: 767px) 50vw, 33vw"
                     className="object-contain"
                   />
                 </div>
@@ -417,6 +419,7 @@ Please assist me with delivery.`;
                     }
                     alt={item.name}
                     fill
+                    sizes="(max-width: 767px) 50vw, 33vw"
                     className="object-contain"
                   />
                 </div>

@@ -309,7 +309,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
   >
     <Link href={`/product/${p.slug}`}>
       <div className="relative h-48">
-        <Image src={p.imageSrc} alt={p.name} fill className="object-contain" />
+        <Image src={p.imageSrc} alt={p.name} fill sizes="260px" className="object-contain" />
       </div>
 
       <div className="mt-2 text-sm font-semibold line-clamp-2 min-h-[40px]">
