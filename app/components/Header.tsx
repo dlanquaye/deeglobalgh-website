@@ -61,6 +61,10 @@ export default function Header() {
             Textbooks
           </Link>
 
+          <Link href="/subjects">
+            Subjects
+          </Link>
+
           <a
             href={GOOGLE_MAPS_URL}
             onClick={() => trackDirectionsClick("header", GOOGLE_MAPS_URL)}
