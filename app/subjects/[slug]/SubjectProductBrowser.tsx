@@ -32,7 +32,12 @@ type SeriesOption = {
 };
 
 const LEVEL_OPTIONS: LevelOption[] = [
-  { slug: "pre-school", label: "Pre-School" },
+  { slug: "creche", label: "Creche" },
+  { slug: "nursery-1", label: "Nursery 1" },
+  { slug: "nursery-2", label: "Nursery 2" },
+  { slug: "kg-1", label: "KG 1" },
+  { slug: "kg-2", label: "KG 2" },
+  { slug: "pre-school", label: "Pre-School – Combined" },
   { slug: "basic-1", label: "Basic 1" },
   { slug: "basic-2", label: "Basic 2" },
   { slug: "basic-3", label: "Basic 3" },

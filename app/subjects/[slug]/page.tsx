@@ -32,6 +32,36 @@ type SubjectProduct = {
   brand: string | null;
 };
 
+function enrichLegacyPreSchoolLevels(product: SubjectProduct): SubjectProduct {
+  if (!product.levelSlugs.includes("pre-school")) {
+    return product;
+  }
+
+  const normalizedName = product.name.toLowerCase();
+
+  const inferredLevel =
+    /\bkg\s*1\b/.test(normalizedName)
+      ? "kg-1"
+      : /\bkg\s*2\b/.test(normalizedName)
+        ? "kg-2"
+        : /\bnursery\s*1\b/.test(normalizedName)
+          ? "nursery-1"
+          : /\bnursery\s*2\b/.test(normalizedName)
+            ? "nursery-2"
+            : /\bcreche\b/.test(normalizedName)
+              ? "creche"
+              : null;
+
+  if (!inferredLevel || product.levelSlugs.includes(inferredLevel)) {
+    return product;
+  }
+
+  return {
+    ...product,
+    levelSlugs: [...product.levelSlugs, inferredLevel],
+  };
+}
+
 function getStandaloneSubject(slug: string) {
   const subject = getPublicSubject(slug);
 
@@ -124,12 +154,20 @@ export default async function SubjectPage({ params }: Props) {
         brand: true,
       },
     });
+    products = textbookCandidates
+      .map(enrichLegacyPreSchoolLevels)
+      .filter((product) => {
+        const match = matchProductSubject(product);
 
-    products = textbookCandidates.filter((product) => {
-      const match = matchProductSubject(product);
+        if (!match) {
+          return false;
+        }
 
-      return match?.subject.slug === subject.slug;
-    });
+        return (
+          match.subject.slug === subject.slug ||
+          subject.relatedSubjects?.includes(match.subject.slug) === true
+        );
+      });
   } catch (error) {
     console.error(`Database error (${subject.name} subject page):`, error);
     products = [];

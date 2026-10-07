@@ -355,7 +355,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Social Studies Textbooks",
     intro:
       "Explore available Social Studies textbooks and related learning materials.",
-    standalonePage: false,
+    standalonePage: true,
   },
   {
     slug: "career-technology",
@@ -369,7 +369,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Career Technology Textbooks",
     intro:
       "Explore available Career Technology textbooks and related learning materials for JHS learners.",
-    standalonePage: false,
+    standalonePage: true,
   },
   {
     slug: "economics",
@@ -383,7 +383,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Economics Textbooks",
     intro:
       "Explore available Economics textbooks and related learning materials for SHS learners.",
-    standalonePage: false,
+    standalonePage: true,
   },
   {
     slug: "literature",
