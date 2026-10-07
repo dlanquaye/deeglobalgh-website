@@ -1,6 +1,7 @@
 ﻿import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_SERIES } from "@/lib/series";
+import { getStandaloneSubjects } from "@/lib/subjects";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
 
@@ -11,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/`, lastModified: new Date() },
     { url: `${SITE_URL}/shop`, lastModified: new Date() },
     { url: `${SITE_URL}/series`, lastModified: new Date() },
+    { url: `${SITE_URL}/subjects`, lastModified: new Date() },
 
     // Local SEO pages
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
@@ -59,6 +61,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
+  const subjectPages: MetadataRoute.Sitemap = getStandaloneSubjects().map(
+    (subject) => ({
+      url: `${SITE_URL}/subjects/${subject.slug}`,
+      lastModified: new Date(),
+    })
+  );
+
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -77,5 +86,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
-  return [...staticPages, ...seriesPages, ...productPages];
+  return [
+    ...staticPages,
+    ...seriesPages,
+    ...subjectPages,
+    ...productPages,
+  ];
 }
