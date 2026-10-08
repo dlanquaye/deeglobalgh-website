@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata: Metadata = {
   title:
@@ -365,6 +366,8 @@ export default function ExerciseBooksA4PaperGuidePage() {
           </div>
         </section>
       </article>
+
+      <PageJumpNav />
     </main>
   );
 }

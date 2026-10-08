@@ -1,7 +1,7 @@
 "use client";
 
 import ProductCard from "@/app/components/ProductCard";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const levels = [
@@ -22,50 +22,36 @@ const categories = [
   { name: "School Supplies", slug: "school-supplies" },
 ];
 
-export default function ShopClient({ products }: any) {
+type ShopClientProps = {
+  products: any[];
+};
+
+export default function ShopClient({ products }: ShopClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialLevel = searchParams.get("level");
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(initialLevel);
-
-  const initialCategory = searchParams.get("category");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
+  const selectedLevel = searchParams.get("level");
+  const selectedCategory = searchParams.get("category");
 
   const [recentProducts, setRecentProducts] = useState<any[]>([]);
 
-  const filteredProducts = products
-  .filter((p: any) => {
-    const matchLevel =
-      !selectedLevel ||
-      (Array.isArray(p.levelSlugs) &&
-        p.levelSlugs.includes(selectedLevel));
+  useEffect(() => {
+    const stored = localStorage.getItem("recentlyViewed");
 
-    const matchCategory =
-      !selectedCategory ||
-      p.categorySlug === selectedCategory;
+    if (!stored) {
+      return;
+    }
 
-    return matchLevel && matchCategory;
-  })
-  .sort((a: any, b: any) => {
-  const getScore = (p: any) => {
-    let score = 0;
+    try {
+      const parsed = JSON.parse(stored);
 
-    // PRIORITY 1: Textbooks
-    if (p.name?.toLowerCase().includes("textbook")) score += 5;
-
-    // PRIORITY 2: Lower classes (higher demand)
-    if (p.levelSlugs?.includes("basic-1")) score += 3;
-    if (p.levelSlugs?.includes("basic-2")) score += 2;
-
-    // PRIORITY 3: Has image (better visual product)
-    if (p.imageSrc) score += 1;
-
-    return score;
-  };
-
-  return getScore(b) - getScore(a);
-});
+      if (Array.isArray(parsed)) {
+        setRecentProducts(parsed.slice(0, 4));
+      }
+    } catch {
+      setRecentProducts([]);
+    }
+  }, []);
 
   const formatLevelName = (slug: string) => {
     return slug
@@ -78,45 +64,69 @@ export default function ShopClient({ products }: any) {
       .join(" ");
   };
 
-  useEffect(() => {
-  const stored = localStorage.getItem("recentlyViewed");
-  if (stored) {
-    setRecentProducts(JSON.parse(stored));
-  }
-}, []);
+  const changeFilter = (
+    key: "level" | "category",
+    value: string
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
 
-  const topPicks = filteredProducts.slice(0, 4);
-  const remainingProducts = filteredProducts.slice(4);
+    params.set(key, value);
+
+    // Any filter change starts again from the first results page.
+    params.delete("page");
+
+    router.push(`/shop?${params.toString()}`, {
+      scroll: false,
+    });
+  };
+
+  const clearFilters = () => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.delete("level");
+    params.delete("category");
+    params.delete("page");
+
+    const query = params.toString();
+
+    router.push(query ? `/shop?${query}` : "/shop", {
+      scroll: false,
+    });
+  };
+
+  /*
+   * The server already performs search, level and category filtering.
+   * Do not filter the supplied result set again here. This is important
+   * for server-side pagination because each page must represent the exact
+   * database result set returned by the server.
+   */
+  const topPicks = products.slice(0, 4);
+  const remainingProducts = products.slice(4);
+
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold">Shop</h1>
-      <div className="mt-3 text-sm text-gray-700 font-medium">
-  🚚 Fast delivery across Kasoa, Accra & Ghana • Chat us on WhatsApp to order instantly
-</div>
+
+      <div className="mt-3 text-sm font-medium text-gray-700">
+        Fast delivery across Kasoa, Accra &amp; Ghana &bull; Chat us on
+        WhatsApp to order instantly
+      </div>
 
       {/* LEVEL FILTER */}
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="mt-4 flex flex-wrap gap-2">
         {levels.map((level) => {
           const isActive = selectedLevel === level.slug;
 
           return (
             <button
               key={level.slug}
-              onClick={() => {
-                setSelectedLevel(level.slug);
-
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("level", level.slug);
-
-                router.push(`/shop?${params.toString()}`, { scroll: false });
-              }}
-              className={`px-4 py-2 rounded-full border transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                }
-              `}
+              type="button"
+              onClick={() => changeFilter("level", level.slug)}
+              className={`rounded-full border px-4 py-2 transition-all duration-200 ${
+                isActive
+                  ? "border-blue-600 bg-blue-600 text-white shadow-md"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              }`}
             >
               {level.name}
             </button>
@@ -124,113 +134,121 @@ export default function ShopClient({ products }: any) {
         })}
       </div>
 
-      {/* CATEGORY FILTER (CORRECT POSITION) */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        {categories.map((cat) => {
-          const isActive = selectedCategory === cat.slug;
+      {/* CATEGORY FILTER */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {categories.map((category) => {
+          const isActive = selectedCategory === category.slug;
 
           return (
             <button
-              key={cat.slug}
-              onClick={() => {
-                setSelectedCategory(cat.slug);
-
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("category", cat.slug);
-
-                router.push(`/shop?${params.toString()}`, { scroll: false });
-              }}
-              className={`px-4 py-2 rounded-full border transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-green-600 text-white border-green-600 shadow-md"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                }
-              `}
+              key={category.slug}
+              type="button"
+              onClick={() => changeFilter("category", category.slug)}
+              className={`rounded-full border px-4 py-2 transition-all duration-200 ${
+                isActive
+                  ? "border-green-600 bg-green-600 text-white shadow-md"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              }`}
             >
-              {cat.name}
+              {category.name}
             </button>
           );
         })}
       </div>
 
-      {/* CLEAR FILTER */}
+      {/* CLEAR FILTERS */}
       {(selectedLevel || selectedCategory) && (
-  <button
-    onClick={() => {
-      setSelectedLevel(null);
-      setSelectedCategory(null);
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="mt-2 text-sm text-red-600 underline"
+        >
+          Clear Filters
+        </button>
+      )}
 
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("level");
-      params.delete("category");
-
-      router.push(`/shop?${params.toString()}`, { scroll: false });
-    }}
-    className="text-sm text-red-600 underline mt-2"
-  >
-    Clear Filters
-  </button>
-)}
-          
-     
-
-      {/* ACTIVE LABEL */}
+      {/* ACTIVE FILTER LABEL */}
       {(selectedLevel || selectedCategory) && (
-  <p className="text-sm text-gray-600 mt-2">
-    Showing:{" "}
-    <span className="font-semibold">
-      {selectedLevel ? formatLevelName(selectedLevel) : ""}
-      {selectedLevel && selectedCategory && " • "}
-      {selectedCategory
-        ? categories.find(c => c.slug === selectedCategory)?.name
-        : ""}
-    </span>
-  </p>
-)}
-{recentProducts.length > 0 && (
-  <div className="mt-6">
-    <h2 className="text-lg font-semibold mb-3">
-      Continue Browsing
-    </h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Showing:{" "}
+          <span className="font-semibold">
+            {selectedLevel ? formatLevelName(selectedLevel) : ""}
+            {selectedLevel && selectedCategory && " • "}
+            {selectedCategory
+              ? categories.find(
+                  (category) => category.slug === selectedCategory
+                )?.name
+              : ""}
+          </span>
+        </p>
+      )}
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {recentProducts.map((product: any) => (
-        <ProductCard key={`recent-${product.id}`} product={product} />
-      ))}
-    </div>
-  </div>
-)}
-      {/* PRODUCTS */}
-    
-  <>
-    {/* TOP PICKS */}
-    {topPicks.length > 0 && (
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-3">
-          Top Picks for You
-        </h2>
+      {/* RECENTLY VIEWED */}
+      {recentProducts.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-3 text-lg font-semibold">
+            Continue Browsing
+          </h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {topPicks.map((product: any) => (
-            <ProductCard key={`top-${product.id}`} product={product} />
-          ))}
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {recentProducts.map((product: any) => (
+              <ProductCard
+                key={`recent-${product.id}`}
+                product={product}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <h2 className="text-lg font-semibold mt-4 mb-3">
-  All Products
-</h2>
+      {/* CURRENT RESULT PAGE */}
+      {products.length > 0 ? (
+        <>
+          {topPicks.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-3 text-lg font-semibold">
+                Top Picks for You
+              </h2>
 
-    {/* ALL PRODUCTS */}
-    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-      {remainingProducts.map((product: any) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </div>
-  </>
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                {topPicks.map((product: any) => (
+                  <ProductCard
+                    key={`top-${product.id}`}
+                    product={product}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
+          {remainingProducts.length > 0 && (
+            <>
+              <h2 className="mb-3 mt-6 text-lg font-semibold">
+                More Products
+              </h2>
+
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                {remainingProducts.map((product: any) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="mt-8 rounded-xl border bg-white p-6 text-center">
+          <h2 className="font-semibold text-gray-900">
+            No matching products found
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Try another search, level or category.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

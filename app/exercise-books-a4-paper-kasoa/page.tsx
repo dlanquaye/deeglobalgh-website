@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
-
 import ProductCard from "@/app/components/ProductCard";
+import PageJumpNav from "@/app/components/PageJumpNav";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -308,6 +308,8 @@ export default async function ExerciseBooksA4PaperKasoaPage() {
           </div>
         </div>
       </section>
+
+      <PageJumpNav />
     </main>
   );
 }

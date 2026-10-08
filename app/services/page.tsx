@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { trackWhatsAppClick } from "@/app/lib/analytics";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 /* =========================
    Types
@@ -316,6 +317,8 @@ export default function ServicesPage() {
           </div>
         </div>
       </div>
+
+      <PageJumpNav />
     </div>
   );
 }

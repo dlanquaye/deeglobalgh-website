@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 
@@ -276,6 +277,8 @@ export default async function CategoryPage({
           </p>
         </div>
       </section>
+
+      <PageJumpNav />
     </main>
   );
 }

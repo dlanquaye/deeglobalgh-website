@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ProductCard from "@/app/components/ProductCard";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 import { prisma } from "@/lib/prisma";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
@@ -413,6 +414,8 @@ export default async function BeaconOfLightPage() {
           </div>
         </div>
       </section>
+
+      <PageJumpNav />
     </main>
   );
 }

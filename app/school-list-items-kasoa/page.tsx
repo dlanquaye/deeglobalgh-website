@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "School List Items in Kasoa | Back to School Supplies Ghana",
@@ -43,7 +44,7 @@ export default function SchoolListPage() {
           Browse All Products
         </Link>
 
-        
+
       </div>
 
 <Link
@@ -76,7 +77,7 @@ export default function SchoolListPage() {
           <p className="text-gray-600">
             Exercise books, pencils, rulers, erasers, approved textbooks, and school supplies.
           </p>
-          
+
         </div>
 
         <div>
@@ -150,6 +151,7 @@ export default function SchoolListPage() {
         </ul>
       </div>
 
+      <PageJumpNav />
     </div>
   );
 }

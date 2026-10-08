@@ -1,5 +1,7 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
+
 
 export const metadata = {
   title: "Commonly Forgotten SHS Items Checklist | Boys & Girls Ghana",
@@ -285,6 +287,8 @@ export default function ShsForgottenItemsChecklistPage() {
           requirements with the student's assigned school before buying.
         </p>
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }

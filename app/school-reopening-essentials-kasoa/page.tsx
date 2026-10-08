@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "School Reopening Essentials in Kasoa | Back to School Ghana",
@@ -266,6 +267,8 @@ export default function SchoolReopeningEssentialsKasoaPage() {
           confirm specific items before visiting or placing an order.
         </p>
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }

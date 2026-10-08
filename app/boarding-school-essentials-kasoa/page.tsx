@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "Boarding School Essentials in Kasoa | SHS Supplies Ghana",
@@ -204,6 +205,8 @@ export default function BoardingSchoolEssentialsKasoaPage() {
           <li>Easy enquiry through WhatsApp</li>
         </ul>
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }

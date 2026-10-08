@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "SHS Prospectus Shopping in Kasoa | School List Help Ghana",
@@ -223,6 +224,8 @@ export default function ShsProspectusShoppingKasoaPage() {
           <li>No assumption that every prospectus item is always in stock</li>
         </ul>
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }

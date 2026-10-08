@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "Suitcases, Trunks & Chop Boxes in Kasoa | Boarding School Ghana",
@@ -209,6 +210,8 @@ export default function BoardingStorageKasoaPage() {
           before visiting.
         </p>
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }

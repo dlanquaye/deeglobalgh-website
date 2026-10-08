@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import TrackedLink from "@/app/components/TrackedLink";
 import TrackedProductLink from "@/app/components/TrackedProductLink";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 import { prisma } from "@/lib/prisma";
 import { getPublicSeries, PUBLIC_SERIES } from "@/lib/series";
 
@@ -324,6 +325,8 @@ export default async function SeriesPage({ params }: Props) {
           </TrackedWhatsAppLink>
         </div>
       </section>
+
+      <PageJumpNav />
     </main>
   );
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 import Image from "next/image";
 import AddToCartButton from "./AddToCartButton";
 
@@ -89,16 +90,38 @@ export async function generateMetadata({
     },
   };
 }
+
+function getSafeReturnPath(returnTo?: string) {
+  if (!returnTo) {
+    return "/shop";
+  }
+
+  const value = returnTo.trim();
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return "/shop";
+  }
+
+  return value;
+}
+
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    returnTo?: string;
+  }>;
 }) {
   const { slug } = await params;
+  const { returnTo } = await searchParams;
 
   if (!slug) {
     notFound();
   }
+
+  const returnPath = getSafeReturnPath(returnTo);
 
   const product = await prisma.product.findFirst({
     where: {
@@ -182,6 +205,7 @@ Please assist me with delivery.`;
 
   const siteUrl = "https://www.shopdeeglobalgh.com";
   const productUrl = `${siteUrl}/product/${product.slug}`;
+
   const productImageUrl = product.imageSrc.startsWith("http")
     ? product.imageSrc
     : `${siteUrl}${product.imageSrc.startsWith("/") ? "" : "/"}${product.imageSrc}`;
@@ -220,6 +244,20 @@ Please assist me with delivery.`;
     },
   };
 
+  const buildProductHref = (slug: string) => {
+    const query = new URLSearchParams();
+
+    if (returnPath !== "/shop") {
+      query.set("returnTo", returnPath);
+    }
+
+    const queryString = query.toString();
+
+    return queryString
+      ? `/product/${slug}?${queryString}`
+      : `/product/${slug}`;
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <script
@@ -228,9 +266,10 @@ Please assist me with delivery.`;
           __html: JSON.stringify(productJsonLd).replace(/</g, "\\u003c"),
         }}
       />
+
       <div className="mb-6 text-sm text-gray-600">
         <Link href="/">Home</Link> /{" "}
-        <Link href="/shop">Shop</Link> /{" "}
+        <Link href={returnPath}>Shop</Link> /{" "}
         <span>{product.name}</span>
       </div>
 
@@ -290,23 +329,21 @@ Please assist me with delivery.`;
           <div className="mt-6 space-y-2 rounded-xl border bg-white p-4 text-sm">
             {product.categorySlug === "textbooks" && (
               <p>
-                {approvedIcon} NaCCA-Approved • Curriculum-Aligned Textbook
+                {approvedIcon} NaCCA-Approved &bull; Curriculum-Aligned Textbook
               </p>
             )}
 
             <p>
-              {deliveryIcon} Fast and reliable
-              delivery in Kasoa, Accra &amp; nationwide
+              {deliveryIcon} Fast and reliable delivery in Kasoa, Accra
+              &amp; nationwide
             </p>
 
             <p>
-              {packageIcon} Carefully packed to
-              avoid damage
+              {packageIcon} Carefully packed to avoid damage
             </p>
 
             <p>
-              {whatsappIcon} Order directly via
-              WhatsApp for quick response
+              {whatsappIcon} Order directly via WhatsApp for quick response
             </p>
           </div>
 
@@ -334,10 +371,10 @@ Please assist me with delivery.`;
           </TrackedWhatsAppLink>
 
           <Link
-            href="/shop"
+            href={returnPath}
             className="mt-4 block w-full rounded-xl border px-5 py-3 text-center"
           >
-            Continue Shopping
+            ← Back to Results
           </Link>
         </div>
       </div>
@@ -388,7 +425,7 @@ Please assist me with delivery.`;
                 </div>
 
                 <Link
-                  href={`/product/${item.slug}`}
+                  href={buildProductHref(item.slug)}
                   className="mt-3 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                 >
                   View
@@ -435,7 +472,7 @@ Please assist me with delivery.`;
 
                 <div className="mt-auto flex items-center justify-between gap-2 pt-4">
                   <Link
-                    href={`/product/${item.slug}`}
+                    href={buildProductHref(item.slug)}
                     className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                   >
                     View
@@ -470,6 +507,8 @@ Please assist me with delivery.`;
         >
           Order via WhatsApp
         </TrackedWhatsAppLink>
+
+        <PageJumpNav />
       </div>
     </div>
   );

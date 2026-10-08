@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import ProductCard from "@/app/components/ProductCard";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const dynamic = "force-dynamic";
 
@@ -234,6 +235,7 @@ export default async function StationeryKasoaPage({
         </p>
       </div>
 
+      <PageJumpNav />
     </div>
   );
 }

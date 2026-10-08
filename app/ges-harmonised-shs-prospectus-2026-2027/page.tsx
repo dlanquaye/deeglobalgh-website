@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
+import PageJumpNav from "@/app/components/PageJumpNav";
 
 export const metadata = {
   title: "GES SHS Prospectus 2026/2027 Checklist | Ghana",
@@ -310,6 +311,8 @@ export default function GesHarmonisedProspectusPage() {
 </a>
 
       </section>
+
+      <PageJumpNav />
     </div>
   );
 }
