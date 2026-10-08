@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -23,7 +23,7 @@ type Props = {
   product: ProductCardProduct;
 };
 
-export default function ProductCard({ product }: Props) {
+function ProductCardContent({ product }: Props) {
   const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -130,7 +130,7 @@ export default function ProductCard({ product }: Props) {
   const formatProductName = (name: string) => {
     return name
       .replace("Wise Ant", "")
-      .replace("Textbook For", "Textbook —")
+      .replace("Textbook For", "Textbook â€”")
       .trim();
   };
 
@@ -211,7 +211,7 @@ export default function ProductCard({ product }: Props) {
                 `https://wa.me/233270030000?text=${encodeURIComponent(
                   `Hello, I want to order:
 Product: ${product.name}
-Price: GH₵ ${product.retailPrice}
+Price: GHâ‚µ ${product.retailPrice}
 Quantity: 1
 
 I may also add more items.`
@@ -252,5 +252,12 @@ I may also add more items.`
         )}
       </div>
     </Link>
+  );
+}
+export default function ProductCard(props: Props) {
+  return (
+    <Suspense fallback={null}>
+      <ProductCardContent {...props} />
+    </Suspense>
   );
 }
