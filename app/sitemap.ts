@@ -13,6 +13,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/shop`, lastModified: new Date() },
     { url: `${SITE_URL}/series`, lastModified: new Date() },
     { url: `${SITE_URL}/subjects`, lastModified: new Date() },
+    {
+      url: `${SITE_URL}/beacon-of-light-jhs-literature-ghana`,
+      lastModified: new Date(),
+    },
 
     // Local SEO pages
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
