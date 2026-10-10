@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import TrackedLink from "@/app/components/TrackedLink";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { PUBLIC_SERIES } from "@/lib/series";
@@ -63,6 +63,16 @@ export default function SeriesHubPage() {
               className="rounded-xl bg-white px-5 py-2 font-semibold text-blue-900"
             >
               Browse All Textbooks
+            </TrackedLink>
+
+            <TrackedLink
+              href="/subjects"
+              linkLocation="series_hub_hero"
+              contentType="textbook_subject_hub"
+              contentName="Textbook Series"
+              className="rounded-xl border border-white/60 px-5 py-2 font-semibold text-white"
+            >
+              Browse by Subject
             </TrackedLink>
 
             <TrackedLink

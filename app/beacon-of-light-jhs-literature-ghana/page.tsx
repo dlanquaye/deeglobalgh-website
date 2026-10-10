@@ -359,6 +359,13 @@ export default async function BeaconOfLightPage() {
               >
                 Browse JHS Books
               </Link>
+
+              <Link
+                href="/textbooks-in-kasoa"
+                className="rounded-xl border border-white/40 px-6 py-3 font-bold text-white hover:bg-white/10"
+              >
+                Textbooks in Kasoa
+              </Link>
             </div>
           </div>
         </div>

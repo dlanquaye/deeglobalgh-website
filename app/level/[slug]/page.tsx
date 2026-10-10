@@ -114,6 +114,13 @@ export default async function LevelPage({ params }: Props) {
           School List Shopping
         </Link>
 
+        <Link
+          href="/subjects"
+          className="rounded-xl border px-4 py-2 font-semibold"
+        >
+          Browse by Subject
+        </Link>
+
         <TrackedWhatsAppLink
           href={`https://wa.me/233270030000?text=${encodeURIComponent(`Hello DeeGlobalGH, I would like to enquire about textbooks and school supplies for ${pretty}. Please assist me.`)}`}
           linkLocation="level_page_hero"

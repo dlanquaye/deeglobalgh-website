@@ -39,34 +39,41 @@ export default function KasoaPage() {
 
       <div className="mt-4 grid md:grid-cols-2 gap-4">
 
-        <Link href="/shop?category=textbooks" className="border p-4 rounded-xl hover:bg-gray-50">
+        <Link href="/textbooks-in-kasoa" className="border p-4 rounded-xl hover:bg-gray-50">
           <h3 className="font-semibold">Textbooks</h3>
           <p className="text-sm text-gray-500">
             Pre-School to SHS textbooks.
           </p>
         </Link>
 
-        <Link href="/shop?category=exam-materials" className="border p-4 rounded-xl hover:bg-gray-50">
+        <Link href="/exam-materials-in-kasoa" className="border p-4 rounded-xl hover:bg-gray-50">
           <h3 className="font-semibold">Exam Materials</h3>
           <p className="text-sm text-gray-500">
             BECE and WASSCE preparation items.
           </p>
         </Link>
 
-        <Link href="/shop?category=stationery" className="border p-4 rounded-xl hover:bg-gray-50">
-          <h3 className="font-semibold">School Essentials</h3>
+        <Link href="/stationery-in-kasoa" className="border p-4 rounded-xl hover:bg-gray-50">
+          <h3 className="font-semibold">Stationery & School Essentials</h3>
           <p className="text-sm text-gray-500">
             Pens, pencils, rulers, calculators, and more.
           </p>
         </Link>
 
-        <Link href="/shop?category=dormitory" className="border p-4 rounded-xl hover:bg-gray-50">
-          <h3 className="font-semibold">Dormitory Essentials</h3>
+        <Link href="/boarding-school-essentials-kasoa" className="border p-4 rounded-xl hover:bg-gray-50">
+          <h3 className="font-semibold">Boarding School Essentials</h3>
           <p className="text-sm text-gray-500">
-            For boarding students and school reopening.
+            Practical supplies for boarding students and school reopening.
           </p>
         </Link>
 
+
+        <Link href="/school-list-items-kasoa" className="border p-4 rounded-xl hover:bg-gray-50">
+          <h3 className="font-semibold">School List Shopping</h3>
+          <p className="text-sm text-gray-500">
+            Send your school list and let us help you prepare the items you need.
+          </p>
+        </Link>
       </div>
 
       {/* SHOP BY LEVEL */}

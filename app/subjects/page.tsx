@@ -159,6 +159,16 @@ export default function SubjectsHubPage() {
               School List Shopping
             </TrackedLink>
 
+            <TrackedLink
+              href="/textbooks-in-kasoa"
+              linkLocation="subjects_hub_footer"
+              contentType="local_textbook_collection"
+              contentName="Textbooks in Kasoa"
+              className="rounded-xl border px-5 py-3 font-semibold text-blue-900 hover:bg-gray-50"
+            >
+              Textbooks in Kasoa
+            </TrackedLink>
+
             <TrackedWhatsAppLink
               href={`https://wa.me/233270030000?text=${encodeURIComponent(
                 whatsappMessage

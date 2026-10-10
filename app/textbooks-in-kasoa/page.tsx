@@ -120,6 +120,20 @@ export default async function TextbooksKasoaPage({
   >
     Buy Exam Materials in Kasoa
   </Link>
+
+  <Link
+    href="/subjects"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Browse Textbooks by Subject
+  </Link>
+
+  <Link
+    href="/series"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    Browse Textbook Series
+  </Link>
 </div>
 
 

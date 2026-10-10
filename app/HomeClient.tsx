@@ -84,6 +84,8 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/textbooks-in-kasoa" className="rounded-xl border px-4 py-2">Textbooks in Kasoa</Link>
             <Link href="/stationery-in-kasoa" className="rounded-xl border px-4 py-2">Stationery in Kasoa</Link>
+            <Link href="/subjects" className="rounded-xl border px-4 py-2">Browse by Subject</Link>
+            <Link href="/school-list-items-kasoa" className="rounded-xl border px-4 py-2">School List Shopping</Link>
             <Link href="/cart" className="rounded-xl border px-4 py-2">
               Cart ({totalItems})
             </Link>

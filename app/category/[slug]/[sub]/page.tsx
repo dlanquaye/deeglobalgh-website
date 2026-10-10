@@ -93,7 +93,7 @@ export default async function CategoryPage({
           href={`/category/${slug}`}
           className="inline-block text-sm text-blue-600 hover:underline"
         >
-          ← Back to {prettyMain}
+          &larr; Back to {prettyMain}
         </Link>
       </div>
 

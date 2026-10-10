@@ -135,6 +135,22 @@ export default async function CategoryPage({
           <div className="mb-10">
             <h2 className="mb-4 text-lg font-semibold">Shop by Level</h2>
 
+            <div className="mb-5 flex flex-wrap gap-3">
+              <Link
+                href="/subjects"
+                className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+              >
+                Browse by Subject
+              </Link>
+
+              <Link
+                href="/series"
+                className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+              >
+                Browse Textbook Series
+              </Link>
+            </div>
+
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <a
                 href="/category/textbooks/pre-school"

@@ -124,6 +124,13 @@ export default async function StationeryKasoaPage({
   >
     Buy Exam Materials in Kasoa
   </Link>
+
+  <Link
+    href="/school-list-items-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    School List Shopping
+  </Link>
 </div>
 
       {/* CTA */}

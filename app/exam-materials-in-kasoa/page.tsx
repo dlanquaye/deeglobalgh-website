@@ -53,6 +53,20 @@ export default async function ExamMaterialsPage() {
   >
     Shop Stationery in Kasoa
   </Link>
+
+  <Link
+    href="/school-list-items-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    School List Shopping
+  </Link>
+
+  <Link
+    href="/kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    School Supplies in Kasoa
+  </Link>
 </div>
 
       {/* CTA */}
