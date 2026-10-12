@@ -529,7 +529,7 @@ Please assist me with delivery.`;
           productName={product.name}
           className="block w-full rounded-xl bg-green-600 py-1.5 text-center text-sm font-semibold text-white shadow-md"
         >
-          Order via WhatsApp
+          {comingSoon ? "Enquire About Availability" : "Order via WhatsApp"}
         </TrackedWhatsAppLink>
 
         <PageJumpNav />
