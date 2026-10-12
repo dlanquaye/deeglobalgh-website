@@ -15,6 +15,7 @@ type CategoryProduct = {
   retailPrice: number;
   imageSrc: string;
   stockQty: number;
+  sku?: string | null;
   categorySlug: string;
 };
 
@@ -79,7 +80,9 @@ export default function CategoryClient({
 
             const pid = String(p.id);
 
+            const comingSoon = p.sku === "DG-SHS-FAN-WA-NEW03";
             const outOfStock = p.stockQty <= 0;
+            const unavailable = comingSoon || outOfStock;
 
             return (
               <div
@@ -108,20 +111,22 @@ export default function CategoryClient({
                 </div>
 
                 <div className="mt-1 text-sm text-gray-500">
-                  Stock available: {p.stockQty}
+                  {comingSoon
+                    ? "COMING SOON"
+                    : `Stock available: ${p.stockQty}`}
                 </div>
 
                 {/* Add to cart */}
                 <button
                   type="button"
-                  disabled={outOfStock}
+                  disabled={unavailable}
                   className={`mt-4 w-full rounded-xl px-4 py-3 font-extrabold ${
-                    outOfStock
+                    unavailable
                       ? "cursor-not-allowed bg-gray-300 text-gray-600"
                       : "bg-blue-900 text-white hover:opacity-90"
                   }`}
                   onClick={() => {
-                    if (outOfStock) return;
+                    if (unavailable) return;
 
                     const success = addToCart(
                       {
@@ -147,7 +152,9 @@ export default function CategoryClient({
                     }
                   }}
                 >
-                  {outOfStock
+                  {comingSoon
+                    ? "Coming Soon"
+                    : unavailable
                     ? "Out of Stock"
                     : addedMap[pid]
                     ? "Added ✓"

@@ -155,7 +155,9 @@ export default async function ProductPage({
   });
 
   const price = Number(product.retailPrice);
+  const comingSoon = product.sku === "DG-SHS-FAN-WA-NEW03";
   const outOfStock = product.stockQty <= 0;
+  const unavailable = comingSoon || outOfStock;
 
   const bundleItems = await prisma.product.findMany({
     where: {
@@ -191,7 +193,13 @@ export default async function ProductPage({
   const packageIcon = "\u{1F4E6}";
   const whatsappIcon = "\u{1F4AC}";
 
-  const productWhatsAppMessage = `Hello DeeGlobalGH, I want to order:
+  const productWhatsAppMessage = comingSoon
+    ? `Hello DeeGlobalGH, I would like to enquire about the availability of this upcoming textbook:
+Product: ${product.name}
+Price: ${cedi} ${price.toFixed(2)}
+
+Please let me know when it is expected to become available.`
+    : `Hello DeeGlobalGH, I want to order:
 Product: ${product.name}
 Price: ${cedi} ${price.toFixed(2)}
 Quantity: 1
@@ -298,11 +306,21 @@ Please assist me with delivery.`;
               </p>
             )}
 
-          {product.stockQty <= 0 && (
+          {comingSoon ? (
+            <div className="mt-3">
+              <span className="inline-block rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white">
+                COMING SOON
+              </span>
+              <p className="mt-2 text-sm font-medium text-amber-800">
+                This textbook is not yet available for purchase.
+                Enquire about its arrival.
+              </p>
+            </div>
+          ) : outOfStock ? (
             <p className="mt-2 text-sm font-semibold text-red-600">
               Out of stock
             </p>
-          )}
+          ) : null}
 
           {product.author && (
             <div className="mt-2 text-sm text-gray-600">
@@ -343,7 +361,10 @@ Please assist me with delivery.`;
             </p>
 
             <p>
-              {whatsappIcon} Order directly via WhatsApp for quick response
+              {whatsappIcon}{" "}
+              {comingSoon
+                ? "Enquire about availability via WhatsApp"
+                : "Order directly via WhatsApp for quick response"}
             </p>
           </div>
 
@@ -357,7 +378,8 @@ Please assist me with delivery.`;
                 imageSrc: product.imageSrc,
                 stockQty: product.stockQty,
               }}
-              outOfStock={outOfStock}
+              outOfStock={unavailable}
+              comingSoon={comingSoon}
             />
           </div>
 
@@ -367,7 +389,9 @@ Please assist me with delivery.`;
             productName={product.name}
             className="mt-4 block w-full rounded-xl bg-yellow-500 px-5 py-3 text-center font-bold text-black"
           >
-            Order Now via WhatsApp
+            {comingSoon
+              ? "Enquire About Availability"
+              : "Order Now via WhatsApp"}
           </TrackedWhatsAppLink>
 
           <Link

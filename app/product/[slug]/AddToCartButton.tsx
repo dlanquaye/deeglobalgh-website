@@ -21,53 +21,70 @@ type CartProductInput = {
 type Props = {
   product: CartProductInput;
   outOfStock?: boolean;
+  comingSoon?: boolean;
 };
 
 export default function AddToCartButton({
   product,
   outOfStock = false,
+  comingSoon = false,
 }: Props) {
-  
-  const { addToCart, cartItems } = useCart();;
+  const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const unavailable =
+    comingSoon || outOfStock || product.stockQty <= 0;
+
   const handleAddToCart = () => {
+    if (unavailable) {
+      setMessage(
+        comingSoon
+          ? "This textbook is coming soon."
+          : "This item is currently unavailable."
+      );
+      return;
+    }
 
-  const success = addToCart({
-    id: product.id,
-    name: product.name,
-    retailPrice: product.retailPrice,
-    slug: product.slug,
-    imageSrc: product.imageSrc,
-    stockQty: 999, // temporary
-  });
+    const success = addToCart({
+      id: product.id,
+      name: product.name,
+      retailPrice: product.retailPrice,
+      slug: product.slug,
+      imageSrc: product.imageSrc,
+      stockQty: product.stockQty,
+    });
 
+    if (success) {
+      setAdded(true);
+      setMessage("Item added to cart.");
 
-  if (success) {
-    setAdded(true);
-    setMessage("Item added to cart.");
-
-    setTimeout(() => {
-      setMessage(null);
-    }, 2000);
-  }
-};
+      setTimeout(() => {
+        setMessage(null);
+      }, 2000);
+    } else {
+      setMessage("Unable to add item to cart. Please refresh.");
+    }
+  };
 
   return (
     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          disabled={false}
+          disabled={unavailable}
           onClick={handleAddToCart}
           className={`inline-flex items-center justify-center rounded-xl px-5 py-3 font-extrabold ${
-            outOfStock
+            unavailable
               ? "cursor-not-allowed bg-gray-300 text-gray-600"
               : "bg-blue-900 text-white hover:opacity-90"
           }`}
         >
-          {outOfStock ? "Out of Stock" : "Add to cart"}
+          {comingSoon
+            ? "Coming Soon"
+            : unavailable
+              ? "Out of Stock"
+              : "Add to cart"}
         </button>
 
         {message && (
@@ -76,14 +93,16 @@ export default function AddToCartButton({
           </p>
         )}
 
-        {outOfStock && (
+        {unavailable && (
           <p className="text-sm font-semibold text-red-600">
-            This item is currently out of stock.
+            {comingSoon
+              ? "This textbook is not yet available for purchase."
+              : "This item is currently out of stock."}
           </p>
         )}
       </div>
 
-      {added && !outOfStock && (
+      {added && !unavailable && (
         <Link
           href="/cart"
           className="inline-flex items-center justify-center rounded-xl border px-5 py-3 font-extrabold text-blue-900 hover:bg-gray-50"

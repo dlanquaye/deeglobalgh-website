@@ -14,6 +14,7 @@ type ProductCardProduct = {
   id: string;
   name: string;
   slug: string;
+  sku?: string | null;
   retailPrice: number;
   imageSrc?: string | null;
   stockQty?: number | null;
@@ -22,6 +23,8 @@ type ProductCardProduct = {
 type Props = {
   product: ProductCardProduct;
 };
+
+const COMING_SOON_SKU = "DG-SHS-FAN-WA-NEW03";
 
 function ProductCardContent({ product }: Props) {
   const [mounted, setMounted] = useState(false);
@@ -50,7 +53,9 @@ function ProductCardContent({ product }: Props) {
       ? product.imageSrc
       : "/placeholder.png";
 
+  const comingSoon = product.sku === COMING_SOON_SKU;
   const outOfStock = stockQty <= 0;
+  const unavailable = comingSoon || outOfStock;
 
   /* -------------------------------------------
      RETURN PATH
@@ -82,8 +87,12 @@ function ProductCardContent({ product }: Props) {
      ADD TO CART
   ------------------------------------------- */
   const handleAddToCart = () => {
-    if (outOfStock) {
-      setMessage("This item is currently out of stock.");
+    if (unavailable) {
+      setMessage(
+        comingSoon
+          ? "This textbook is coming soon."
+          : "This item is currently out of stock."
+      );
       return;
     }
 
@@ -130,13 +139,26 @@ function ProductCardContent({ product }: Props) {
   const formatProductName = (name: string) => {
     return name
       .replace("Wise Ant", "")
-      .replace("Textbook For", "Textbook â€”")
+      .replace("Textbook For", "Textbook \u2014")
       .trim();
   };
 
   if (!mounted) {
     return null;
   }
+
+  const whatsAppMessage = comingSoon
+    ? `Hello DeeGlobalGH, I would like to enquire about the availability of this upcoming textbook:
+Product: ${product.name}
+Price: GH\u20B5 ${product.retailPrice}
+
+Please let me know when it is expected to become available.`
+    : `Hello, I want to order:
+Product: ${product.name}
+Price: GH\u20B5 ${product.retailPrice}
+Quantity: 1
+
+I may also add more items.`;
 
   return (
     <Link
@@ -148,17 +170,22 @@ function ProductCardContent({ product }: Props) {
       </div>
 
       {/* Popular Badge */}
-      {product.name?.toLowerCase().includes("textbook") && (
-        <div className="absolute left-2 top-2 rounded-md bg-green-600 px-2 py-1 text-xs text-white shadow">
-          Popular
-        </div>
-      )}
+      {!comingSoon &&
+        product.name?.toLowerCase().includes("textbook") && (
+          <div className="absolute left-2 top-2 rounded-md bg-green-600 px-2 py-1 text-xs text-white shadow">
+            Popular
+          </div>
+        )}
 
-      {/* STOCK BADGE */}
-      {outOfStock && (
+      {/* AVAILABILITY BADGE */}
+      {unavailable && (
         <div className="absolute left-3 top-3 z-10">
-          <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
-            Out of Stock
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold text-white ${
+              comingSoon ? "bg-amber-600" : "bg-red-600"
+            }`}
+          >
+            {comingSoon ? "COMING SOON" : "Out of Stock"}
           </span>
         </div>
       )}
@@ -187,7 +214,13 @@ function ProductCardContent({ product }: Props) {
           {formatProductName(product.name)}
         </div>
 
-        {stockQty > 0 && stockQty <= 5 && (
+        {comingSoon && (
+          <p className="mt-2 text-xs font-semibold text-amber-700">
+            This textbook is not yet available. Enquire about its arrival.
+          </p>
+        )}
+
+        {!comingSoon && stockQty > 0 && stockQty <= 5 && (
           <p className="mt-1 text-xs font-medium text-red-600">
             Only few left
           </p>
@@ -209,39 +242,38 @@ function ProductCardContent({ product }: Props) {
 
               window.open(
                 `https://wa.me/233270030000?text=${encodeURIComponent(
-                  `Hello, I want to order:
-Product: ${product.name}
-Price: GHâ‚µ ${product.retailPrice}
-Quantity: 1
-
-I may also add more items.`
+                  whatsAppMessage
                 )}`,
                 "_blank"
               );
             }}
             className="w-full rounded-xl bg-green-600 py-2 text-center text-sm font-bold text-white transition hover:bg-green-700"
           >
-            Order via WhatsApp
+            {comingSoon
+              ? "Enquire About Availability"
+              : "Order via WhatsApp"}
           </button>
 
           {/* ADD TO CART */}
           <button
             type="button"
-            disabled={outOfStock}
+            disabled={unavailable}
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
               handleAddToCart();
             }}
             className={`w-full rounded-xl py-2 text-sm font-bold ${
-              outOfStock
+              unavailable
                 ? "cursor-not-allowed bg-gray-200 text-gray-500"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            {outOfStock
-              ? "Out of Stock"
-              : "Add to cart"}
+            {comingSoon
+              ? "Coming Soon"
+              : outOfStock
+                ? "Out of Stock"
+                : "Add to cart"}
           </button>
         </div>
 
@@ -254,6 +286,7 @@ I may also add more items.`
     </Link>
   );
 }
+
 export default function ProductCard(props: Props) {
   return (
     <Suspense fallback={null}>

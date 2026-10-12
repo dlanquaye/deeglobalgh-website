@@ -81,6 +81,7 @@ export default async function CategoryPage({
         retailPrice: true,
         imageSrc: true,
         stockQty: true,
+        sku: true,
         categorySlug: true,
       },
     });
