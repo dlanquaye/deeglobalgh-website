@@ -21,13 +21,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const pretty = prettifySlug(slug);
 
-  const title = slug === "textbooks" ? "NaCCA-Approved Textbooks in Ghana | DeeGlobalGH" : `${pretty} | DeeGlobalGH`;
+  const title = slug === "textbooks" ? "NaCCA-Approved & GES-Recommended Textbooks | DeeGlobalGH" : `${pretty} | DeeGlobalGH`;
 
   let description = `Shop ${pretty} in Ghana. Order from DeeGlobalGH for fast delivery in Kasoa and beyond.`;
 
   if (slug === "textbooks") {
     description =
-      "Shop NaCCA-approved textbooks for Ghanaian schools, including Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum books. Order from DeeGlobalGH in Kasoa.";
+      "Shop a large selection of NaCCA-approved and GES-recommended textbooks for KG, Primary, JHS and SHS, including Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum books from DeeGlobalGH in Kasoa.";
   }
   if (slug === "story-books") {
     description =
@@ -103,7 +103,7 @@ export default async function CategoryPage({
 
           <p className="mt-2 max-w-2xl text-white/90">
             {slug === "textbooks"
-              ? "Shop NaCCA-approved textbooks for Ghanaian schools, including curriculum-aligned books for KG, Primary, JHS and SHS. Fast delivery across Ghana."
+              ? "Shop a large selection of NaCCA-approved and GES-recommended textbooks for KG, Primary, JHS and SHS, including books for Ghana's Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum. Collection and delivery options are available."
               : `Shop ${prettifySlug(slug)} and school essentials from DeeGlobalGH in Kasoa. Fast delivery across Ghana.`}
           </p>
 
@@ -273,11 +273,11 @@ export default async function CategoryPage({
       <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-10 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-4">
           <h3 className="font-semibold">
-            {slug === "textbooks" ? "NaCCA-Approved Textbooks" : "School Essentials"}
+            {slug === "textbooks" ? "NaCCA-Approved & GES-Recommended Textbooks" : "School Essentials"}
           </h3>
           <p className="text-sm text-gray-600">
             {slug === "textbooks"
-              ? "Curriculum-aligned textbooks selected for Ghanaian schools."
+              ? "Browse textbooks for Ghanaian schools by level, subject and textbook series, including SBC, CCP and Secondary Education Curriculum titles."
               : "Practical school supplies for students, parents and schools."}
           </p>
         </div>

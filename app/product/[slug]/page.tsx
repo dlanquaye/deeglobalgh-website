@@ -347,7 +347,7 @@ Please assist me with delivery.`;
           <div className="mt-6 space-y-2 rounded-xl border bg-white p-4 text-sm">
             {product.categorySlug === "textbooks" && (
               <p>
-                {approvedIcon} NaCCA-Approved &bull; Curriculum-Aligned Textbook
+                {approvedIcon} School Textbook &bull; Curriculum-Related Learning Material
               </p>
             )}
 

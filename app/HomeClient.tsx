@@ -98,15 +98,15 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
         <div className="rounded-2xl bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 text-white p-8 shadow-xl">
 
           <h1 className="text-3xl font-bold leading-tight">
-  Buy Textbooks & School Supplies in Kasoa — Fast Delivery Available
+  Buy Textbooks & School Supplies in Kasoa — Collection & Delivery Available
 </h1>
 
 <p className="mt-3 max-w-2xl text-white/90">
-  Order all your school items in one place. From Pre-School to SHS, we deliver textbooks, stationery, and full school lists across Kasoa, Accra, and Ghana.
+  Shop textbooks, stationery, boarding essentials and school-list items for Pre-School to SHS. Collection and delivery options are available.
 </p>
 
 <p className="mt-2 text-sm text-white/80 font-medium">
-  ✔ NaCCA-Approved Textbooks • ✔ Fast Delivery • ✔ WhatsApp Ordering Available
+  ✔ School Textbooks • ✔ Collection & Delivery Options • ✔ WhatsApp Ordering Available
 </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -151,7 +151,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
   <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-3">
 
     <p className="font-semibold text-center md:text-left">
-      🚚 Fast delivery available in Kasoa, Accra & nationwide — Order now via WhatsApp
+      🚚 Collection and delivery options available — Order or enquire via WhatsApp
     </p>
 
     <a
@@ -215,23 +215,23 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
       {/* ================= TRUST ================= */}
       <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-3 gap-6">
         <div className="rounded-xl border p-5 bg-white shadow-sm">
-          <h3 className="font-semibold">NaCCA-Approved & Curriculum-Aligned Textbooks</h3>
+          <h3 className="font-semibold">NaCCA-Approved & GES-Recommended Textbooks</h3>
           <p className="text-gray-600 mt-2">
-            Shop textbooks for Ghanaian schools, including Standards-Based Curriculum (SBC) books for KG and Primary, Common Core Programme (CCP) books for JHS, and books for the new Secondary Education Curriculum.
+            Shop a large selection of textbooks for KG, Primary, JHS and SHS, including books developed for Ghana&apos;s Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum.
           </p>
         </div>
 
         <div className="rounded-xl border p-5 bg-white shadow-sm">
-          <h3 className="font-semibold">Complete School Supplies</h3>
+          <h3 className="font-semibold">School Supplies & Essentials</h3>
           <p className="text-gray-600 mt-2">
-            From textbooks to boarding essentials, everything in one place.
+            From textbooks and stationery to boarding and practical student essentials.
           </p>
         </div>
 
         <div className="rounded-xl border p-5 bg-white shadow-sm">
-          <h3 className="font-semibold">Fast Delivery</h3>
+          <h3 className="font-semibold">Collection & Delivery</h3>
           <p className="text-gray-600 mt-2">
-            Reliable delivery across Kasoa, Accra, and Ghana.
+            Collection and delivery options are available for customer orders.
           </p>
         </div>
       </section>

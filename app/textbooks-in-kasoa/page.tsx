@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Textbooks in Kasoa | Buy School Books in Kasoa - DeeGlobalGH",
   description:
-    "Buy textbooks in Kasoa for Basic, JHS, and SHS. Fast delivery available. Order school books online in Kasoa today.",
+    "Buy a large selection of NaCCA-approved and GES-recommended textbooks in Kasoa for Pre-School, Basic, JHS and SHS, including SBC, CCP and Secondary Education Curriculum books.",
   alternates: {
     canonical: "https://www.shopdeeglobalgh.com/textbooks-in-kasoa",
   },
@@ -96,13 +96,13 @@ export default async function TextbooksKasoaPage({
       </h1>
 
       <p className="text-gray-600 max-w-2xl mb-4">
-        Looking for textbooks in Kasoa? DeeGlobalGH provides approved textbooks
-        for Pre-School, Basic 1–6, JHS, and SHS students. Order online and get
-        fast delivery in Kasoa.
+        Looking for textbooks in Kasoa? DeeGlobalGH stocks a large selection of NaCCA-approved and GES-recommended textbooks
+        for Pre-School, Basic 1–6, JHS, and SHS students. These include books for Ghana's Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum. Order online and choose
+        collection or delivery in Kasoa.
       </p>
 
       <p className="text-gray-600 max-w-2xl mb-6">
-        We stock Ghana Education Service recommended textbooks, exam materials,
+        Browse school books by level, subject and textbook series, together with exam materials,
         and learning resources to help students succeed.
       </p>
 
@@ -236,13 +236,13 @@ export default async function TextbooksKasoaPage({
 
         <p className="text-gray-600 mb-3">
           Parents and students in Kasoa can easily order textbooks online from
-          DeeGlobalGH. We offer fast delivery and a wide range of textbooks for
-          all levels.
+          DeeGlobalGH. We offer collection and delivery options, with NaCCA-approved and GES-recommended textbooks for
+          different school levels.
         </p>
 
         <p className="text-gray-600">
-          Whether you need Basic school textbooks, JHS materials, or SHS approved
-          books, you can find them here and order quickly for delivery.
+          Whether you need Standards-Based Curriculum books, Common Core Programme textbooks, JHS materials, or SHS
+          books, you can browse the available selection and order for collection or delivery.
         </p>
       </div>
 
