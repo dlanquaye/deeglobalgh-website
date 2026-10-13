@@ -5,6 +5,7 @@ import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { canonicalizeBrand } from "@/lib/product-sync/normalizer";
 import type { SyncItem } from "@/lib/product-sync/types";
+import { preparePriceImport } from "@/lib/product-sync/price-import";
 
 function optionalText(value: unknown): string | undefined {
   const text = String(value ?? "").trim();
@@ -226,6 +227,113 @@ export async function POST(req: NextRequest) {
       },
     });
 
+  if (importType === "price") {
+    const errors: string[] = [];
+
+    const headers = worksheet
+      ? XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
+          header: 1,
+          blankrows: false,
+        })[0] ?? []
+      : [];
+
+    const headerNames = headers.map((value) =>
+      String(value ?? "").trim()
+    );
+
+    if (
+      !headerNames.includes("SKU") ||
+      !headerNames.includes("Retail Price")
+    ) {
+      errors.push(
+        'Price import requires exactly these columns: "SKU" and "Retail Price".'
+      );
+    }
+
+    const skuGroups = new Map<
+      string,
+      typeof existingProducts
+    >();
+
+    for (const product of existingProducts) {
+      const key = product.sku?.trim().toLowerCase();
+
+      if (!key) continue;
+
+      const matches = skuGroups.get(key) ?? [];
+      matches.push(product);
+      skuGroups.set(key, matches);
+    }
+
+    const priceRows = rows.map((row, index) => {
+      const sku = String(row["SKU"] ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (!sku) {
+        errors.push(`Row ${index + 2}: SKU is required.`);
+        return {
+          existingId: undefined,
+          retailPrice: row["Retail Price"],
+        };
+      }
+
+      const matches = skuGroups.get(sku) ?? [];
+
+      if (matches.length !== 1) {
+        errors.push(
+          `Row ${index + 2}: SKU "${sku}" matches ${matches.length} products; exactly one existing product is required.`
+        );
+      }
+
+      return {
+        existingId:
+          matches.length === 1 ? matches[0].id : undefined,
+        retailPrice: row["Retail Price"],
+      };
+    });
+
+    const result = preparePriceImport(priceRows);
+    errors.push(...result.errors);
+
+    const valid = errors.length === 0;
+
+    const syncItems = valid ? result.syncItems : [];
+
+    const mappedPreview = rows.map((row, index) => {
+      const sku = String(row["SKU"] ?? "").trim();
+      const matches = skuGroups.get(sku.toLowerCase()) ?? [];
+      const matchedProduct = matches.length === 1 ? matches[0] : undefined;
+
+      return {
+        rowNumber: index + 2,
+        sku,
+        name: matchedProduct?.name ?? "",
+        retailPrice: row["Retail Price"],
+        action: valid ? "UPDATE" : "REVIEW",
+        matchType: matchedProduct ? "SKU" : "NONE",
+        existingId: priceRows[index]?.existingId,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      analysis: {
+        fileName: file.name,
+        fileSize: file.size,
+        importType: "price",
+        status: valid ? "VALIDATED" : "VALIDATION_FAILED",
+        totalRows: rows.length,
+        validRows: valid ? rows.length : 0,
+        invalidRows: valid ? 0 : rows.length,
+        newProducts: 0,
+        existingProducts: valid ? syncItems.length : 0,
+        preview: mappedPreview,
+        syncItems,
+        errors,
+      },
+    });
+  }
   const skuMap = new Map(
     existingProducts
       .filter(

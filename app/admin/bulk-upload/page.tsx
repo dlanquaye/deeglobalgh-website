@@ -9,76 +9,147 @@ export default function BulkUploadPage() {
   const [syncItems, setSyncItems] = useState<any[]>([]);
 
   const [importType, setImportType] = useState("products");
+  const [isValidated, setIsValidated] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSynchronizing, setIsSynchronizing] = useState(false);
+
+  const clearAnalysis = () => {
+    setPreview([]);
+    setSyncItems([]);
+    setIsValidated(false);
+    setMessage("");
+  };
 
   const fileSize =
   file ? (file.size / 1024 / 1024).toFixed(2) : null;
 
   const handleAnalyze = async () => {
-  if (!file) {
-    setMessage("Please select a file");
-    return;
-  }
+    clearAnalysis();
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("importType", importType);
-
-  const res = await fetch("/api/admin/catalog", {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-
-  const data = await res.json();
-
-  setPreview(data.analysis.preview ?? []);
-  setSyncItems(data.analysis.syncItems ?? []);
-
-  if (res.ok) {
-    if (data.analysis.status === "VALIDATED") {
-      setMessage(
-        `✅ Validation successful.
-
-Total Products: ${data.analysis.totalRows}
-New Products: ${data.analysis.newProducts}
-Existing Products: ${data.analysis.existingProducts}
-Ready for Synchronization: ${data.analysis.validRows}`
-      );
-    } else {
-      setMessage(
-        `❌ Validation failed. ${data.analysis.errors.length} error(s) found.`
-      );
+    if (!file) {
+      setMessage("Please select a file.");
+      return;
     }
-  } else {
-    setMessage(`❌ Error: ${data.error}`);
-  }
-};
 
-const handleSynchronize = async () => {
-  const res = await fetch("/api/admin/catalog/synchronize", {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    syncItems,
-  }),
-});
+    setIsAnalyzing(true);
 
-  const data = await res.json();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("importType", importType);
 
-  if (res.ok) {
-  alert(`Synchronization complete.
+      const res = await fetch("/api/admin/catalog", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
 
-Updated: ${data.report.updated}
-Inserted: ${data.report.inserted}
-Review: ${data.report.review}`);
-} else {
-  alert("Synchronization failed.");
-}
-};
+      const data = await res.json();
+      const analysis = data?.analysis;
 
+      if (!res.ok || !analysis) {
+        setMessage(data?.error ?? "Catalogue analysis failed.");
+        return;
+      }
+
+      const valid =
+        analysis.status === "VALIDATED" &&
+        Array.isArray(analysis.syncItems) &&
+        analysis.syncItems.length > 0;
+
+      setPreview(
+        Array.isArray(analysis.preview) ? analysis.preview : []
+      );
+
+      setSyncItems(valid ? analysis.syncItems : []);
+      setIsValidated(valid);
+
+      if (valid) {
+        setMessage(
+          `Validation successful.
+
+Total Products: ${analysis.totalRows}
+New Products: ${analysis.newProducts}
+Existing Products: ${analysis.existingProducts}
+Ready for Synchronization: ${analysis.validRows}`
+        );
+      } else {
+        const errors = Array.isArray(analysis.errors)
+          ? analysis.errors.join("\n")
+          : "No valid products were found.";
+
+        setMessage(`Validation failed.\n${errors}`);
+      }
+    } catch {
+      setMessage("Unable to analyse the selected file.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSynchronize = async () => {
+    if (
+      !isValidated ||
+      syncItems.length === 0 ||
+      isSynchronizing ||
+      isAnalyzing
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      importType === "price"
+        ? `Apply retail price changes to ${syncItems.length} existing products?`
+        : `Synchronize ${syncItems.length} catalogue items?`
+    );
+
+    if (!confirmed) return;
+
+    setIsSynchronizing(true);
+    setIsValidated(false);
+
+    try {
+      const res = await fetch("/api/admin/catalog/synchronize", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          importType,
+          syncItems,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        const errors = Array.isArray(data?.errors)
+          ? data.errors.join("\n")
+          : data?.error ?? "Synchronization failed.";
+
+        setMessage(errors);
+        return;
+      }
+
+      const report = data.report;
+
+      setMessage(
+        `Synchronization complete.
+
+Updated: ${report.updated}
+Inserted: ${report.inserted}
+Review: ${report.review}
+Errors: ${report.errors ?? 0}`
+      );
+
+      setSyncItems([]);
+    } catch {
+      setMessage("Unable to synchronize catalogue.");
+    } finally {
+      setIsSynchronizing(false);
+    }
+  };
   return (
 <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-8">
@@ -166,7 +237,10 @@ Catalog Synchronization Centre
   <select
     className="w-full rounded-xl border p-3"
     value={importType}
-onChange={(e) => setImportType(e.target.value)}
+onChange={(e) => {
+  setImportType(e.target.value);
+  clearAnalysis();
+}}
   >
     <option value="products">
       📦 New Products
@@ -203,7 +277,10 @@ onChange={(e) => setImportType(e.target.value)}
   <input
     type="file"
     accept=".xlsx,.csv"
-    onChange={(e) => setFile(e.target.files?.[0] || null)}
+    onChange={(e) => {
+  setFile(e.target.files?.[0] || null);
+  clearAnalysis();
+}}
     className="block w-full rounded-xl border p-4"
   />
 
@@ -274,7 +351,7 @@ onChange={(e) => setImportType(e.target.value)}
 
   <button
   onClick={handleSynchronize}
-  disabled={preview.length === 0}
+  disabled={!isValidated || syncItems.length === 0 || isSynchronizing || isAnalyzing}
   className="rounded-lg bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
 >
   Synchronize Catalog
@@ -296,6 +373,11 @@ onChange={(e) => setImportType(e.target.value)}
           <th className="border px-3 py-2 text-left">Product</th>
           <th className="border px-3 py-2 text-left">Action</th>
           <th className="border px-3 py-2 text-left">Match Type</th>
+          {importType === "price" && (
+            <th className="border px-3 py-2 text-right">
+              New Retail Price (GH₵)
+            </th>
+          )}
         </tr>
       </thead>
 
@@ -333,7 +415,18 @@ onChange={(e) => setImportType(e.target.value)}
     {item.matchType}
   </span>
 </td>
-          </tr>
+
+            {importType === "price" && (
+              <td className="border px-3 py-2 text-right">
+                {item.retailPrice !== "" &&
+                item.retailPrice !== null &&
+                item.retailPrice !== undefined &&
+                Number.isFinite(Number(item.retailPrice))
+                  ? "GH₵" + Number(item.retailPrice).toFixed(2)
+                  : "Invalid price"}
+              </td>
+            )}
+</tr>
         ))}
       </tbody>
     </table>

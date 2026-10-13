@@ -1,107 +1,226 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { synchronizeCatalog } from "@/lib/catalog-sync";
+import { preparePriceImport } from "@/lib/product-sync/price-import";
 
-export async function POST(
-  req: Request
-) {
+export async function POST(req: Request) {
   try {
-    const session =
-      await requireAdmin();
+    const session = await requireAdmin();
 
     if (!session.staffId) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "This account is not linked to a staff record.",
+          error: "This account is not linked to a staff record.",
         },
-        {
-          status: 403,
-        }
+        { status: 403 }
       );
     }
 
-    const staff =
-      await prisma.staff.findUnique({
-        where: {
-          id: session.staffId,
-        },
-        select: {
-          id: true,
-          role: true,
-          isActive: true,
-        },
-      });
+    const staff = await prisma.staff.findUnique({
+      where: {
+        id: session.staffId,
+      },
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+      },
+    });
 
-    if (
-      !staff ||
-      !staff.isActive
-    ) {
+    if (!staff || !staff.isActive) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Active staff account required.",
+          error: "Active staff account required.",
         },
-        {
-          status: 403,
-        }
+        { status: 403 }
       );
     }
 
-    const isSuperAdmin =
-      session.role ===
-      "SUPER_ADMIN";
+    const isSuperAdmin = session.role === "SUPER_ADMIN";
 
     const canSynchronizeCatalogue =
-      isSuperAdmin ||
-      staff.role ===
-        "MANAGER";
+      isSuperAdmin || staff.role === "MANAGER";
 
     if (!canSynchronizeCatalogue) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "You do not have permission to synchronise the catalogue.",
+          error: "You do not have permission to synchronise the catalogue.",
         },
-        {
-          status: 403,
-        }
+        { status: 403 }
       );
     }
 
-    const body =
-      await req.json();
+    const body = await req.json();
 
-    const syncItems =
-      body?.syncItems;
+    const syncItems = body?.syncItems;
+
+    if (!Array.isArray(syncItems)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid synchronisation payload.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (body?.importType === "price") {
+      if (syncItems.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Price import contains no products.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const errors: string[] = [];
+
+      const priceRows = syncItems.map((item, index) => {
+        const rowNumber = index + 2;
+
+        if (
+          !item ||
+          typeof item !== "object" ||
+          Array.isArray(item)
+        ) {
+          errors.push(`Row ${rowNumber}: Invalid item.`);
+          return {
+            existingId: undefined,
+            retailPrice: undefined,
+          };
+        }
+
+        if (item.action !== "UPDATE") {
+          errors.push(
+            `Row ${rowNumber}: Price imports must update existing products.`
+          );
+        }
+
+        if (
+          !item.product ||
+          typeof item.product !== "object" ||
+          Array.isArray(item.product)
+        ) {
+          errors.push(
+            `Row ${rowNumber}: Invalid product payload.`
+          );
+
+          return {
+            existingId: item.existingId,
+            retailPrice: undefined,
+          };
+        }
+
+        const fields = Object.keys(item.product);
+
+        if (
+          fields.length !== 1 ||
+          fields[0] !== "retailPrice"
+        ) {
+          errors.push(
+            `Row ${rowNumber}: Price updates may change retailPrice only.`
+          );
+        }
+
+        return {
+          existingId: item.existingId,
+          retailPrice: item.product.retailPrice,
+        };
+      });
+
+      const validation = preparePriceImport(priceRows);
+
+      errors.push(...validation.errors);
+
+      if (errors.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Price import validation failed.",
+            errors,
+          },
+          { status: 400 }
+        );
+      }
+
+      const validatedItems = validation.syncItems;
+
+      const ids = validatedItems.map(
+        (item) => item.existingId as string
+      );
+
+      const report = await prisma.$transaction(async (tx) => {
+        const existingProducts = await tx.product.findMany({
+          where: {
+            id: {
+              in: ids,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingProducts.length !== ids.length) {
+          throw new Error("PRICE_IMPORT_PRODUCT_NOT_FOUND");
+        }
+
+        for (const item of validatedItems) {
+          await tx.product.update({
+            where: {
+              id: item.existingId!,
+            },
+            data: {
+              retailPrice: Number(item.product.retailPrice),
+            },
+          });
+        }
+
+        return {
+          inserted: 0,
+          updated: validatedItems.length,
+          review: 0,
+          errors: 0,
+          messages: [
+            `${validatedItems.length} retail prices updated successfully.`,
+          ],
+        };
+      });
+
+      return NextResponse.json({
+        success: true,
+        report,
+      });
+    }
 
     if (
-      !Array.isArray(
-        syncItems
-      )
+      body?.importType !== undefined &&
+      body.importType !== "products" &&
+      body.importType !== "update" &&
+      body.importType !== "stock" &&
+      body.importType !== "seo" &&
+      body.importType !== "images"
     ) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Invalid synchronisation payload.",
+          error: "Unsupported catalogue import type.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    const report =
-      await synchronizeCatalog(
-        syncItems,
-        false
-      );
+    const report = await synchronizeCatalog(
+      syncItems,
+      false
+    );
 
     return NextResponse.json({
       success: true,
@@ -110,35 +229,40 @@ export async function POST(
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message ===
-        "Unauthorized"
+      error.message === "Unauthorized"
     ) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Authentication required.",
+          error: "Authentication required.",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
     if (
       error instanceof Error &&
-      error.message ===
-        "CredentialChangeRequired"
+      error.message === "CredentialChangeRequired"
     ) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Credential change required.",
+          error: "Credential change required.",
         },
+        { status: 403 }
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "PRICE_IMPORT_PRODUCT_NOT_FOUND"
+    ) {
+      return NextResponse.json(
         {
-          status: 403,
-        }
+          success: false,
+          error: "One or more products no longer exist. Reanalyse the price spreadsheet.",
+        },
+        { status: 400 }
       );
     }
 
@@ -150,12 +274,9 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Unable to synchronise catalogue.",
+        error: "Unable to synchronise catalogue.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
