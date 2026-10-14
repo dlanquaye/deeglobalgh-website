@@ -299,4 +299,148 @@ describe("catalogue synchronisation API", () => {
     expect(response.status).toBe(403);
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
+
+  it("accepts a cost-price-only update", async () => {
+    mocks.findProducts.mockResolvedValue([
+      { id: "biology" },
+    ]);
+
+    const response = await POST(
+      request({
+        importType: "price",
+        syncItems: [
+          {
+            action: "UPDATE",
+            existingId: "biology",
+            product: {
+              costPrice: 180,
+            },
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
+      where: { id: "biology" },
+      data: { costPrice: 180 },
+    });
+  });
+
+  it("accepts a wholesale-price-only update", async () => {
+    mocks.findProducts.mockResolvedValue([
+      { id: "biology" },
+    ]);
+
+    const response = await POST(
+      request({
+        importType: "price",
+        syncItems: [
+          {
+            action: "UPDATE",
+            existingId: "biology",
+            product: {
+              wholesalePrice: 225,
+            },
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
+      where: { id: "biology" },
+      data: { wholesalePrice: 225 },
+    });
+  });
+
+  it("updates cost and wholesale without rewriting retail price", async () => {
+    mocks.findProducts.mockResolvedValue([
+      { id: "biology" },
+    ]);
+
+    const response = await POST(
+      request({
+        importType: "price",
+        syncItems: [
+          {
+            action: "UPDATE",
+            existingId: "biology",
+            product: {
+              costPrice: 100,
+              wholesalePrice: 117,
+            },
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
+      where: { id: "biology" },
+      data: {
+        costPrice: 100,
+        wholesalePrice: 117,
+      },
+    });
+
+    expect(
+      mocks.updateProduct.mock.calls[0][0].data
+    ).not.toHaveProperty("retailPrice");
+  });
+
+  it("accepts all three commercial price fields", async () => {
+    mocks.findProducts.mockResolvedValue([
+      { id: "biology" },
+    ]);
+
+    const response = await POST(
+      request({
+        importType: "price",
+        syncItems: [
+          {
+            action: "UPDATE",
+            existingId: "biology",
+            product: {
+              costPrice: 180,
+              wholesalePrice: 225,
+              retailPrice: 250,
+            },
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
+      where: { id: "biology" },
+      data: {
+        costPrice: 180,
+        wholesalePrice: 225,
+        retailPrice: 250,
+      },
+    });
+  });
+
+  it("rejects a price payload with no commercial fields", async () => {
+    const response = await POST(
+      request({
+        importType: "price",
+        syncItems: [
+          {
+            action: "UPDATE",
+            existingId: "biology",
+            product: {},
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
 });

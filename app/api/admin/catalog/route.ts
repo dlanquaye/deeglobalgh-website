@@ -241,12 +241,53 @@ export async function POST(req: NextRequest) {
       String(value ?? "").trim()
     );
 
-    if (
-      !headerNames.includes("SKU") ||
-      !headerNames.includes("Retail Price")
-    ) {
+    const allowedHeaders = new Set([
+      "SKU",
+      "Cost Price",
+      "Wholesale Price",
+      "Retail Price",
+    ]);
+
+    const unexpectedHeaders = headerNames.filter(
+      (header) =>
+        header &&
+        !allowedHeaders.has(header)
+    );
+
+    const hasSkuColumn =
+      headerNames.includes("SKU");
+
+    const hasCostPriceColumn =
+      headerNames.includes("Cost Price");
+
+    const hasWholesalePriceColumn =
+      headerNames.includes("Wholesale Price");
+
+    const hasRetailPriceColumn =
+      headerNames.includes("Retail Price");
+
+    const hasAtLeastOnePriceColumn =
+      hasCostPriceColumn ||
+      hasWholesalePriceColumn ||
+      hasRetailPriceColumn;
+
+    if (!hasSkuColumn) {
       errors.push(
-        'Price import requires exactly these columns: "SKU" and "Retail Price".'
+        'Price import requires a "SKU" column.'
+      );
+    }
+
+    if (!hasAtLeastOnePriceColumn) {
+      errors.push(
+        'Price import requires at least one of: "Cost Price", "Wholesale Price", or "Retail Price".'
+      );
+    }
+
+    if (unexpectedHeaders.length > 0) {
+      errors.push(
+        `Price import contains unsupported columns: ${unexpectedHeaders.join(
+          ", "
+        )}.`
       );
     }
 
@@ -256,65 +297,136 @@ export async function POST(req: NextRequest) {
     >();
 
     for (const product of existingProducts) {
-      const key = product.sku?.trim().toLowerCase();
+      const key =
+        product.sku
+          ?.trim()
+          .toLowerCase();
 
       if (!key) continue;
 
-      const matches = skuGroups.get(key) ?? [];
+      const matches =
+        skuGroups.get(key) ?? [];
+
       matches.push(product);
       skuGroups.set(key, matches);
     }
 
-    const priceRows = rows.map((row, index) => {
-      const sku = String(row["SKU"] ?? "")
-        .trim()
-        .toLowerCase();
+    const priceRows = rows.map(
+      (row, index) => {
+        const sku = String(
+          row["SKU"] ?? ""
+        )
+          .trim()
+          .toLowerCase();
 
-      if (!sku) {
-        errors.push(`Row ${index + 2}: SKU is required.`);
+        if (!sku) {
+          errors.push(
+            `Row ${index + 2}: SKU is required.`
+          );
+        }
+
+        const matches =
+          skuGroups.get(sku) ?? [];
+
+        if (
+          sku &&
+          matches.length !== 1
+        ) {
+          errors.push(
+            `Row ${index + 2}: SKU "${sku}" matches ${matches.length} products; exactly one existing product is required.`
+          );
+        }
+
         return {
-          existingId: undefined,
-          retailPrice: row["Retail Price"],
+          existingId:
+            matches.length === 1
+              ? matches[0].id
+              : undefined,
+
+          costPrice:
+            hasCostPriceColumn
+              ? row["Cost Price"]
+              : undefined,
+
+          wholesalePrice:
+            hasWholesalePriceColumn
+              ? row["Wholesale Price"]
+              : undefined,
+
+          retailPrice:
+            hasRetailPriceColumn
+              ? row["Retail Price"]
+              : undefined,
         };
       }
+    );
 
-      const matches = skuGroups.get(sku) ?? [];
+    const result =
+      preparePriceImport(priceRows);
 
-      if (matches.length !== 1) {
-        errors.push(
-          `Row ${index + 2}: SKU "${sku}" matches ${matches.length} products; exactly one existing product is required.`
-        );
-      }
-
-      return {
-        existingId:
-          matches.length === 1 ? matches[0].id : undefined,
-        retailPrice: row["Retail Price"],
-      };
-    });
-
-    const result = preparePriceImport(priceRows);
     errors.push(...result.errors);
 
-    const valid = errors.length === 0;
+    const valid =
+      errors.length === 0;
 
-    const syncItems = valid ? result.syncItems : [];
+    const syncItems =
+      valid
+        ? result.syncItems
+        : [];
 
-    const mappedPreview = rows.map((row, index) => {
-      const sku = String(row["SKU"] ?? "").trim();
-      const matches = skuGroups.get(sku.toLowerCase()) ?? [];
-      const matchedProduct = matches.length === 1 ? matches[0] : undefined;
+    const mappedPreview =
+      rows.map((row, index) => {
+        const sku = String(
+          row["SKU"] ?? ""
+        ).trim();
 
-      return {
-        rowNumber: index + 2,
-        sku,
-        name: matchedProduct?.name ?? "",
-        retailPrice: row["Retail Price"],
-        action: valid ? "UPDATE" : "REVIEW",
-        matchType: matchedProduct ? "SKU" : "NONE",
-        existingId: priceRows[index]?.existingId,
-      };
-    });
+        const matches =
+          skuGroups.get(
+            sku.toLowerCase()
+          ) ?? [];
+
+        const matchedProduct =
+          matches.length === 1
+            ? matches[0]
+            : undefined;
+
+        return {
+          rowNumber: index + 2,
+          sku,
+          name:
+            matchedProduct?.name ??
+            "",
+
+          costPrice:
+            hasCostPriceColumn
+              ? row["Cost Price"]
+              : undefined,
+
+          wholesalePrice:
+            hasWholesalePriceColumn
+              ? row["Wholesale Price"]
+              : undefined,
+
+          retailPrice:
+            hasRetailPriceColumn
+              ? row["Retail Price"]
+              : undefined,
+
+          action:
+            valid
+              ? "UPDATE"
+              : "REVIEW",
+
+          matchType:
+            matchedProduct
+              ? "SKU"
+              : "NONE",
+
+          existingId:
+            priceRows[index]
+              ?.existingId,
+        };
+      });
 
     return NextResponse.json({
       success: true,
@@ -322,12 +434,30 @@ export async function POST(req: NextRequest) {
         fileName: file.name,
         fileSize: file.size,
         importType: "price",
-        status: valid ? "VALIDATED" : "VALIDATION_FAILED",
+        status:
+          valid
+            ? "VALIDATED"
+            : "VALIDATION_FAILED",
+
         totalRows: rows.length,
-        validRows: valid ? rows.length : 0,
-        invalidRows: valid ? 0 : rows.length,
+
+        validRows:
+          valid
+            ? rows.length
+            : 0,
+
+        invalidRows:
+          valid
+            ? 0
+            : rows.length,
+
         newProducts: 0,
-        existingProducts: valid ? syncItems.length : 0,
+
+        existingProducts:
+          valid
+            ? syncItems.length
+            : 0,
+
         preview: mappedPreview,
         syncItems,
         errors,

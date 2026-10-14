@@ -82,6 +82,12 @@ export async function POST(req: Request) {
 
       const errors: string[] = [];
 
+      const allowedPriceFields = new Set([
+        "costPrice",
+        "wholesalePrice",
+        "retailPrice",
+      ]);
+
       const priceRows = syncItems.map((item, index) => {
         const rowNumber = index + 2;
 
@@ -90,9 +96,14 @@ export async function POST(req: Request) {
           typeof item !== "object" ||
           Array.isArray(item)
         ) {
-          errors.push(`Row ${rowNumber}: Invalid item.`);
+          errors.push(
+            `Row ${rowNumber}: Invalid item.`
+          );
+
           return {
             existingId: undefined,
+            costPrice: undefined,
+            wholesalePrice: undefined,
             retailPrice: undefined,
           };
         }
@@ -114,28 +125,72 @@ export async function POST(req: Request) {
 
           return {
             existingId: item.existingId,
+            costPrice: undefined,
+            wholesalePrice: undefined,
             retailPrice: undefined,
           };
         }
 
-        const fields = Object.keys(item.product);
+        const fields =
+          Object.keys(item.product);
+
+        const unsupportedFields =
+          fields.filter(
+            (field) =>
+              !allowedPriceFields.has(field)
+          );
+
+        if (unsupportedFields.length > 0) {
+          errors.push(
+            `Row ${rowNumber}: Price updates contain unsupported fields: ${unsupportedFields.join(
+              ", "
+            )}.`
+          );
+        }
+
+        const suppliedPriceFields =
+          fields.filter((field) =>
+            allowedPriceFields.has(field)
+          );
 
         if (
-          fields.length !== 1 ||
-          fields[0] !== "retailPrice"
+          suppliedPriceFields.length === 0
         ) {
           errors.push(
-            `Row ${rowNumber}: Price updates may change retailPrice only.`
+            `Row ${rowNumber}: At least one commercial price field is required.`
           );
         }
 
         return {
           existingId: item.existingId,
-          retailPrice: item.product.retailPrice,
+          costPrice:
+            Object.prototype.hasOwnProperty.call(
+              item.product,
+              "costPrice"
+            )
+              ? item.product.costPrice
+              : undefined,
+
+          wholesalePrice:
+            Object.prototype.hasOwnProperty.call(
+              item.product,
+              "wholesalePrice"
+            )
+              ? item.product.wholesalePrice
+              : undefined,
+
+          retailPrice:
+            Object.prototype.hasOwnProperty.call(
+              item.product,
+              "retailPrice"
+            )
+              ? item.product.retailPrice
+              : undefined,
         };
       });
 
-      const validation = preparePriceImport(priceRows);
+      const validation =
+        preparePriceImport(priceRows);
 
       errors.push(...validation.errors);
 
@@ -143,63 +198,117 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: "Price import validation failed.",
+            error:
+              "Price import validation failed.",
             errors,
           },
           { status: 400 }
         );
       }
 
-      const validatedItems = validation.syncItems;
+      const validatedItems =
+        validation.syncItems;
 
-      const ids = validatedItems.map(
-        (item) => item.existingId as string
-      );
+      const ids =
+        validatedItems.map(
+          (item) =>
+            item.existingId as string
+        );
 
-      const report = await prisma.$transaction(async (tx) => {
-        const existingProducts = await tx.product.findMany({
-          where: {
-            id: {
-              in: ids,
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
+      const report =
+        await prisma.$transaction(
+          async (tx) => {
+            const existingProducts =
+              await tx.product.findMany({
+                where: {
+                  id: {
+                    in: ids,
+                  },
+                },
+                select: {
+                  id: true,
+                },
+              });
 
-        if (existingProducts.length !== ids.length) {
-          throw new Error("PRICE_IMPORT_PRODUCT_NOT_FOUND");
-        }
+            if (
+              existingProducts.length !==
+              ids.length
+            ) {
+              throw new Error(
+                "PRICE_IMPORT_PRODUCT_NOT_FOUND"
+              );
+            }
 
-        for (const item of validatedItems) {
-          await tx.product.update({
-            where: {
-              id: item.existingId!,
-            },
-            data: {
-              retailPrice: Number(item.product.retailPrice),
-            },
-          });
-        }
+            for (
+              const item
+              of validatedItems
+            ) {
+              const updateData: {
+                costPrice?: number;
+                wholesalePrice?: number;
+                retailPrice?: number;
+              } = {};
 
-        return {
-          inserted: 0,
-          updated: validatedItems.length,
-          review: 0,
-          errors: 0,
-          messages: [
-            `${validatedItems.length} retail prices updated successfully.`,
-          ],
-        };
-      });
+              if (
+                item.product.costPrice !==
+                undefined
+              ) {
+                updateData.costPrice =
+                  Number(
+                    item.product.costPrice
+                  );
+              }
+
+              if (
+                item.product.wholesalePrice !==
+                undefined
+              ) {
+                updateData.wholesalePrice =
+                  Number(
+                    item.product.wholesalePrice
+                  );
+              }
+
+              if (
+                item.product.retailPrice !==
+                undefined
+              ) {
+                updateData.retailPrice =
+                  Number(
+                    item.product.retailPrice
+                  );
+              }
+
+              await tx.product.update({
+                where: {
+                  id: item.existingId!,
+                },
+                data: updateData,
+              });
+            }
+
+            return {
+              inserted: 0,
+              updated:
+                validatedItems.length,
+              review: 0,
+              errors: 0,
+              messages: [
+                `${validatedItems.length} commercial price update${
+                  validatedItems.length === 1
+                    ? ""
+                    : "s"
+                } completed successfully.`,
+              ],
+            };
+          }
+        );
 
       return NextResponse.json({
         success: true,
         report,
       });
     }
-
     if (
       body?.importType !== undefined &&
       body.importType !== "products" &&

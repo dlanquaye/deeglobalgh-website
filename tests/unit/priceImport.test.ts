@@ -1,11 +1,11 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   preparePriceImport,
 } from "@/lib/product-sync/price-import";
 
 describe("price import validation", () => {
-  it("accepts a valid price-only update", () => {
+  it("accepts a valid retail-price-only update", () => {
     const result = preparePriceImport([
       {
         existingId: "wise-ant-biology",
@@ -26,6 +26,122 @@ describe("price import validation", () => {
     ]);
   });
 
+  it("accepts a valid cost-price-only update", () => {
+    const result = preparePriceImport([
+      {
+        existingId: "wise-ant-biology",
+        costPrice: 180,
+      },
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.syncItems).toEqual([
+      {
+        action: "UPDATE",
+        existingId: "wise-ant-biology",
+        product: {
+          costPrice: 180,
+        },
+      },
+    ]);
+  });
+
+  it("accepts a valid wholesale-price-only update", () => {
+    const result = preparePriceImport([
+      {
+        existingId: "wise-ant-biology",
+        wholesalePrice: 225,
+      },
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.syncItems).toEqual([
+      {
+        action: "UPDATE",
+        existingId: "wise-ant-biology",
+        product: {
+          wholesalePrice: 225,
+        },
+      },
+    ]);
+  });
+
+  it("accepts cost and wholesale prices without resending retail price", () => {
+    const result = preparePriceImport([
+      {
+        existingId: "best-brain-social-studies",
+        costPrice: 100,
+        wholesalePrice: 117,
+      },
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.syncItems).toEqual([
+      {
+        action: "UPDATE",
+        existingId: "best-brain-social-studies",
+        product: {
+          costPrice: 100,
+          wholesalePrice: 117,
+        },
+      },
+    ]);
+
+    expect(
+      result.syncItems[0].product
+    ).not.toHaveProperty("retailPrice");
+  });
+
+  it("accepts all three commercial price fields", () => {
+    const result = preparePriceImport([
+      {
+        existingId: "wise-ant-biology",
+        costPrice: 180,
+        wholesalePrice: 225,
+        retailPrice: 250,
+      },
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.syncItems).toEqual([
+      {
+        action: "UPDATE",
+        existingId: "wise-ant-biology",
+        product: {
+          costPrice: 180,
+          wholesalePrice: 225,
+          retailPrice: 250,
+        },
+      },
+    ]);
+  });
+
+  it("ignores blank optional commercial price fields", () => {
+    const result = preparePriceImport([
+      {
+        existingId: "wise-ant-biology",
+        costPrice: "",
+        wholesalePrice: 225,
+        retailPrice: "",
+      },
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.syncItems).toEqual([
+      {
+        action: "UPDATE",
+        existingId: "wise-ant-biology",
+        product: {
+          wholesalePrice: 225,
+        },
+      },
+    ]);
+  });
+
   it("accepts multiple valid price updates", () => {
     const result = preparePriceImport([
       {
@@ -34,11 +150,11 @@ describe("price import validation", () => {
       },
       {
         existingId: "wise-ant-chemistry",
-        retailPrice: 250,
+        costPrice: 180,
       },
       {
         existingId: "wise-ant-physics",
-        retailPrice: 250,
+        wholesalePrice: 225,
       },
     ]);
 
@@ -61,16 +177,21 @@ describe("price import validation", () => {
     );
   });
 
-  it("rejects missing retail prices", () => {
+  it("rejects a row with no commercial price supplied", () => {
     const result = preparePriceImport([
       {
         existingId: "wise-ant-biology",
+        costPrice: "",
+        wholesalePrice: "",
         retailPrice: "",
       },
     ]);
 
     expect(result.valid).toBe(false);
     expect(result.syncItems).toEqual([]);
+    expect(result.errors[0]).toContain(
+      "At least one of Cost Price, Wholesale Price, or Retail Price is required"
+    );
   });
 
   it("rejects zero and negative prices", () => {
@@ -78,7 +199,7 @@ describe("price import validation", () => {
       const result = preparePriceImport([
         {
           existingId: "wise-ant-biology",
-          retailPrice: price,
+          costPrice: price,
         },
       ]);
 
@@ -92,7 +213,7 @@ describe("price import validation", () => {
       const result = preparePriceImport([
         {
           existingId: "wise-ant-biology",
-          retailPrice: price,
+          wholesalePrice: price,
         },
       ]);
 
@@ -121,7 +242,7 @@ describe("price import validation", () => {
       },
       {
         existingId: "wise-ant-biology",
-        retailPrice: 260,
+        costPrice: 180,
       },
     ]);
 
@@ -147,6 +268,8 @@ describe("price import validation", () => {
       },
       {
         existingId: "wise-ant-chemistry",
+        costPrice: "",
+        wholesalePrice: "",
         retailPrice: "",
       },
     ]);

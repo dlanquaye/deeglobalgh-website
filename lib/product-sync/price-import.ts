@@ -1,14 +1,67 @@
-﻿import type { SyncItem } from "./types";
+import type { SyncItem } from "./types";
 
 export interface PriceImportRow {
   existingId?: string;
-  retailPrice: unknown;
+  costPrice?: unknown;
+  wholesalePrice?: unknown;
+  retailPrice?: unknown;
 }
 
 export interface PriceImportResult {
   valid: boolean;
   syncItems: SyncItem[];
   errors: string[];
+}
+
+type CommercialPriceField =
+  | "costPrice"
+  | "wholesalePrice"
+  | "retailPrice";
+
+type CommercialPriceUpdate = Partial<
+  Record<CommercialPriceField, number>
+>;
+
+function isBlank(value: unknown) {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" &&
+      value.trim() === "")
+  );
+}
+
+function parseOptionalPrice({
+  value,
+  label,
+  rowNumber,
+  errors,
+}: {
+  value: unknown;
+  label: string;
+  rowNumber: number;
+  errors: string[];
+}): number | undefined {
+  if (isBlank(value)) {
+    return undefined;
+  }
+
+  const numericValue = Number(value);
+
+  if (
+    !Number.isFinite(numericValue) ||
+    numericValue <= 0 ||
+    Math.round(numericValue * 100) !==
+      numericValue * 100
+  ) {
+    errors.push(
+      `Row ${rowNumber}: Invalid ${label.toLowerCase()}.`
+    );
+
+    return undefined;
+  }
+
+  return numericValue;
 }
 
 export function preparePriceImport(
@@ -46,30 +99,58 @@ export function preparePriceImport(
 
     seenIds.add(existingId);
 
-    const rawPrice = row.retailPrice;
+    const rowErrorCountBefore =
+      errors.length;
+
+    const costPrice = parseOptionalPrice({
+      value: row.costPrice,
+      label: "Cost Price",
+      rowNumber,
+      errors,
+    });
+
+    const wholesalePrice = parseOptionalPrice({
+      value: row.wholesalePrice,
+      label: "Wholesale Price",
+      rowNumber,
+      errors,
+    });
+
+    const retailPrice = parseOptionalPrice({
+      value: row.retailPrice,
+      label: "Retail Price",
+      rowNumber,
+      errors,
+    });
 
     if (
-      rawPrice === null ||
-      rawPrice === undefined ||
-      (typeof rawPrice === "string" &&
-        rawPrice.trim() === "")
+      errors.length >
+      rowErrorCountBefore
     ) {
-      errors.push(
-        `Row ${rowNumber}: Retail price is required.`
-      );
       return;
     }
 
-    const retailPrice = Number(rawPrice);
+    const product: CommercialPriceUpdate = {};
+
+    if (costPrice !== undefined) {
+      product.costPrice = costPrice;
+    }
+
+    if (wholesalePrice !== undefined) {
+      product.wholesalePrice =
+        wholesalePrice;
+    }
+
+    if (retailPrice !== undefined) {
+      product.retailPrice =
+        retailPrice;
+    }
 
     if (
-      !Number.isFinite(retailPrice) ||
-      retailPrice <= 0 ||
-      Math.round(retailPrice * 100) !==
-        retailPrice * 100
+      Object.keys(product).length === 0
     ) {
       errors.push(
-        `Row ${rowNumber}: Invalid retail price.`
+        `Row ${rowNumber}: At least one of Cost Price, Wholesale Price, or Retail Price is required.`
       );
       return;
     }
@@ -77,9 +158,7 @@ export function preparePriceImport(
     syncItems.push({
       action: "UPDATE",
       existingId,
-      product: {
-        retailPrice,
-      },
+      product,
     });
   });
 
