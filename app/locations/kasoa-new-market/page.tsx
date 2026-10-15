@@ -11,17 +11,17 @@ const PHONE_E164 = "+233270030000";
 
 export const metadata: Metadata = {
   title:
-    "DeeGlobalGH Kasoa New Market Branch | Textbooks, Stationery & School Supplies",
+    "DeeGlobalGH Kasoa New Market | NaCCA Textbooks, Stationery & School Supplies",
   description:
-    "Visit DeeGlobalGH at Kasoa New Market, behind the lorry park near Gari Lane, for textbooks, stationery, boarding school essentials, school-list shopping and student supplies. Open Monday to Saturday, 7am to 5pm.",
+    "Visit DeeGlobalGH at Kasoa New Market for NaCCA-approved and GES-recommended textbooks, Pre-School, Basic, JHS and SHS books, Cambridge and Montessori learning materials, stationery, boarding essentials and school supplies.",
   alternates: {
     canonical: PAGE_URL,
   },
   openGraph: {
     title:
-      "DeeGlobalGH - Kasoa New Market Branch | School Supplies in Kasoa",
+      "DeeGlobalGH - Kasoa New Market | Textbooks, Stationery & Educational Materials",
     description:
-      "Find DeeGlobalGH inside Kasoa New Market, behind the lorry park near Gari Lane. Shop textbooks, stationery, boarding essentials and school-list items in Kasoa.",
+      "Shop textbooks, stationery, educational materials, boarding essentials and school-list items at DeeGlobalGH in Kasoa New Market, including Ghana curriculum, Cambridge and Montessori learning materials.",
     url: PAGE_URL,
     siteName: "DeeGlobalGH",
     type: "website",
@@ -119,10 +119,15 @@ export default function KasoaNewMarketBranchPage() {
             DeeGlobalGH - Kasoa New Market Branch
           </h1>
 
-          <p className="text-gray-700 max-w-3xl text-lg">
-            Visit DeeGlobalGH inside Kasoa New Market for textbooks, stationery,
-            school supplies, boarding school essentials and school-list
-            shopping. We are located behind the lorry park, around Gari Lane.
+          <p className="text-gray-700 max-w-4xl text-lg">
+            Visit DeeGlobalGH inside Kasoa New Market for a wide range of
+            textbooks, stationery, educational materials and school supplies.
+            We stock many NaCCA-approved and GES-recommended textbooks for
+            Pre-School (Creche, Nursery 1, Nursery 2, KG 1 and KG 2), Basic
+            School, JHS and SHS, together with selected Cambridge curriculum
+            textbooks, Montessori books and learning materials, boarding school
+            essentials and school-list items. We are located behind the lorry
+            park, around Gari Lane.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -154,7 +159,7 @@ export default function KasoaNewMarketBranchPage() {
         {/* QUICK INFORMATION */}
         <section className="mt-10">
           <h2 className="text-2xl font-bold text-blue-900 mb-5">
-            Visit our shop in Kasoa New Market
+            Textbooks, stationery and educational materials in Kasoa New Market
           </h2>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -182,6 +187,115 @@ export default function KasoaNewMarketBranchPage() {
               <p className="text-gray-600">
                 Walk in and shop, order ahead for collection, or ask us about
                 delivery.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* SEARCHABLE SCHOOL LEVELS, BRANDS AND SERIES */}
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold text-blue-900 mb-3">
+            Textbooks, stationery and educational materials for different school levels
+          </h2>
+
+          <p className="text-gray-700 max-w-4xl mb-4">
+            DeeGlobalGH serves parents, students, teachers and schools looking for
+            educational materials in Kasoa for Pre-School (Creche, Nursery 1,
+            Nursery 2, KG 1 and KG 2), Basic School, JHS and SHS. Our range
+            includes many NaCCA-approved and
+            GES-recommended textbooks and learning materials used in Ghanaian schools,
+            subject to current availability.
+          </p>
+
+          <p className="text-gray-700 max-w-4xl mb-6">
+            We also stock curriculum-based learning materials for Ghana's
+            Standards-Based Curriculum, Common Core Programme and Secondary Education
+            Curriculum, together with stationery, classroom supplies, examination
+            materials and practical school essentials.
+          </p>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="border rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-blue-900 mb-3">
+                Stationery and school essentials brands
+              </h3>
+
+              <p className="text-gray-600 mb-4">
+                Our stationery and school essentials range includes products from
+                brands such as:
+              </p>
+
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-gray-700">
+                <li>Nataraj</li>
+                <li>Deli</li>
+                <li>I-Select</li>
+                <li>Vneeds</li>
+                <li>BIC</li>
+                <li>MOTARRO</li>
+                <li>Fenlot</li>
+                <li>Casio</li>
+                <li>Camel</li>
+                <li>Camlin</li>
+              </ul>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Product availability varies, so contact us if you are looking for a
+                particular stationery item or brand.
+              </p>
+            </div>
+
+            <div className="border rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-blue-900 mb-3">
+                Textbook series and educational book brands
+              </h3>
+
+              <p className="text-gray-600 mb-4">
+                Textbook series and educational book brands available in our wider
+                range include:
+              </p>
+
+              <ul className="grid sm:grid-cols-2 gap-x-5 gap-y-2 text-gray-700">
+                <li>Golden Series</li>
+                <li>Wise Ant Series</li>
+                <li>Excellence Series</li>
+                <li>Essential Series</li>
+                <li>Naky Nugget</li>
+                <li>Best Brain Series</li>
+                <li>Don Series</li>
+                <li>Heritage Hills</li>
+                <li>Ruben&apos;s Series</li>
+                <li>Victory Series</li>
+                <li>Kwadwoan Series</li>
+                <li>Alpha Series</li>
+                <li>Ahyese Series</li>
+                <li>A+ Series</li>
+                <li>Tamak Series</li>
+                <li>Fun Series</li>
+                <li>Potosky Series</li>
+                <li>Active Kids</li>
+                <li>Advocate Series</li>
+                <li>Unique Field</li>
+                <li>Masterman Series</li>
+                <li>Flamingo Series</li>
+                <li>Afrafra</li>
+                <li>Adwinsa Series</li>
+                <li>Le Fran&ccedil;ais Compr&eacute;hensif</li>
+                <li>Akrong</li>
+                <li>Concise</li>
+                <li>Bio Series</li>
+                <li>Right Hour Series</li>
+                <li>Pro Quarm / Dr J. A. Quarm</li>
+                <li>Ultimate Series</li>
+                <li>One Touch</li>
+                <li>Atta Kay</li>
+                <li>EBS Series</li>
+                <li>Calculus Series</li>
+                <li>Baffuor Ba</li>
+              </ul>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Specific titles, editions and school levels vary. Contact us to confirm
+                the book or series you need before travelling.
               </p>
             </div>
           </div>
