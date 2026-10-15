@@ -1,4 +1,4 @@
-﻿import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_SERIES } from "@/lib/series";
 import { getStandaloneSubjects } from "@/lib/subjects";
@@ -20,6 +20,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Local SEO pages
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
+    {
+      url: `${SITE_URL}/locations/kasoa-new-market`,
+      lastModified: new Date(),
+    },
     { url: `${SITE_URL}/textbooks-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/stationery-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/exam-materials-in-kasoa`, lastModified: new Date() },

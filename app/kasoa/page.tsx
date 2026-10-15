@@ -76,6 +76,28 @@ export default function KasoaPage() {
         </Link>
       </div>
 
+      {/* VISIT OUR KASOA NEW MARKET BRANCH */}
+      <section className="mt-10 border rounded-2xl p-6 bg-blue-50">
+        <h2 className="text-xl font-bold text-blue-900">
+          Visit DeeGlobalGH at Kasoa New Market
+        </h2>
+
+        <p className="mt-2 text-gray-600 max-w-2xl">
+          Our Kasoa New Market Branch is located inside the market, behind the
+          lorry park around Gari Lane. You can walk in, collect an order, or
+          contact us before travelling for directions and availability.
+        </p>
+
+        <div className="mt-4">
+          <Link
+            href="/locations/kasoa-new-market"
+            className="inline-block bg-blue-900 text-white px-5 py-3 rounded-xl font-semibold"
+          >
+            View Kasoa New Market Branch
+          </Link>
+        </div>
+      </section>
+
       {/* SHOP BY LEVEL */}
       <h2 className="mt-10 text-xl font-bold">Shop by level</h2>
 
