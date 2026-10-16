@@ -25,6 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
     },
     { url: `${SITE_URL}/textbooks-in-kasoa`, lastModified: new Date() },
+    { url: `${SITE_URL}/jhs-textbooks-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/stationery-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/exam-materials-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/school-list-items-kasoa`, lastModified: new Date() },
