@@ -9,14 +9,14 @@ const PAGE_URL = `${SITE_URL}/jhs-textbooks-in-kasoa`;
 export const metadata: Metadata = {
   title: "JHS Textbooks & JHS Books in Kasoa | DeeGlobalGH",
   description:
-    "Buy JHS textbooks and JHS books in Kasoa for English, Mathematics, Science, Computing, RME, Social Studies, Career Technology and other Common Core subjects. Browse Essential, Excellence, Best Brain and Naky Nugget books from DeeGlobalGH.",
+    "Buy JHS textbooks and JHS books in Kasoa for English, Mathematics, Science, Computing, RME, Social Studies, Career Technology and other Common Core subjects. Browse JHS school books from different educational publishers and textbook ranges available from DeeGlobalGH.",
   alternates: {
     canonical: PAGE_URL,
   },
   openGraph: {
     title: "JHS Textbooks & JHS Books in Kasoa | DeeGlobalGH",
     description:
-      "Find JHS textbooks, Junior High School books and Common Core learning materials in Kasoa from DeeGlobalGH, including Essential, Excellence, Best Brain and Naky Nugget series.",
+      "Find JHS textbooks, Junior High School books and Common Core learning materials in Kasoa from DeeGlobalGH, including books from different educational publishers and textbook series.",
     url: PAGE_URL,
     siteName: "DeeGlobalGH",
     type: "website",
@@ -69,16 +69,24 @@ const jhsSubjects = [
 
 const jhsSeries = [
   {
-    name: "Essential Series",
-    href: "/series/essential",
+    name: "Golden Series",
+    href: "/series/golden",
   },
   {
     name: "Excellence Series",
     href: "/series/excellence",
   },
   {
+    name: "Essential Series",
+    href: "/series/essential",
+  },
+  {
     name: "Best Brain Series",
     href: "/series/best-brain",
+  },
+  {
+    name: "Don Series",
+    href: "/series/don",
   },
 ];
 
@@ -106,8 +114,8 @@ export default function JhsTextbooksKasoaPage() {
           </p>
 
           <p className="mt-3 max-w-4xl text-sm text-white/80">
-            Our JHS range includes books from series such as Essential,
-            Excellence, Best Brain and Naky Nugget. Specific subjects, editions
+            Our JHS range includes books from different educational publishers
+            and textbook series. Specific subjects, editions
             and titles may vary, so contact us if you want us to confirm a
             particular book before travelling.
           </p>
@@ -192,10 +200,10 @@ export default function JhsTextbooksKasoaPage() {
         </div>
 
         <p className="mt-5 max-w-4xl text-sm text-gray-600">
-          Other JHS subject areas may include Creative Arts and Design,
-          Integrated Science and Literature-related learning materials,
-          depending on the school, curriculum requirements and titles currently
-          available.
+          Other JHS subject areas customers may look for include Creative Arts
+          and Design, French, Ghanaian Languages, Integrated Science and
+          Literature-related learning materials, depending on the school,
+          curriculum requirements and titles currently available.
         </p>
       </section>
 
@@ -206,10 +214,11 @@ export default function JhsTextbooksKasoaPage() {
           </h2>
 
           <p className="mt-2 max-w-4xl text-gray-600">
-            Our JHS textbook and JHS book range includes recognised educational
-            series used by students and schools in Ghana. Browse the series
-            currently represented online, or contact us if you need a specific
-            title.
+            Our JHS textbook and JHS book range includes books from several
+            educational series used by students and schools in Ghana. Golden
+            Series, Excellence Series, Essential Series, Best Brain Series,
+            Don Series and Naky Nugget Series are among the textbook series we
+            supply, but they are not the full range available from DeeGlobalGH.
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -227,13 +236,28 @@ export default function JhsTextbooksKasoaPage() {
             ))}
           </div>
 
-          <div className="mt-4 rounded-xl bg-gray-50 p-4">
-            <p className="font-semibold text-blue-900">Naky Nugget</p>
-            <p className="mt-1 text-sm text-gray-600">
-              Naky Nugget JHS books are also represented in our confirmed JHS
-              range. Contact us to check the exact subject or title you need.
-            </p>
-          </div>
+          <TrackedWhatsAppLink
+              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+                "Hello DeeGlobalGH, I am looking for a JHS textbook series that I did not see on the website. Please help me check whether it is available."
+              )}`}
+              linkLocation="jhs_series_collection"
+              productName="Other JHS Textbook Series"
+              className="mt-5 inline-flex rounded-xl bg-yellow-400 px-5 py-3 font-semibold text-black hover:bg-yellow-300"
+            >
+              Enquire About Other Textbook Series
+            </TrackedWhatsAppLink>
+
+            <div className="mt-4 rounded-xl bg-gray-50 p-4">
+              <p className="font-semibold text-blue-900">
+                Naky Nugget Series
+              </p>
+              <p className="mt-1 text-sm text-gray-600">
+                Naky Nugget Series is one of the educational textbook series
+                represented in our wider school-book range. For JHS, customers
+                may look for titles such as Naky Nugget Series Creative Arts
+                and Design, subject to current availability.
+              </p>
+            </div>
         </div>
       </section>
 
@@ -244,9 +268,10 @@ export default function JhsTextbooksKasoaPage() {
           </h2>
 
           <p className="mt-2 max-w-4xl text-gray-600">
-            Customers looking for JHS books in Kasoa often ask for Mathematics,
-            English, Science, Computing, RME, Social Studies, Career Technology
-            and Creative Arts and Design books. We also help customers check
+            Customers looking for JHS books in Kasoa often ask for English
+            Language, Mathematics, Science, Computing, RME, Social Studies,
+            Career Technology, Creative Arts and Design, French and Ghanaian
+            Language books. We also help customers check
             specific textbook series, school book lists and subject
             combinations for JHS 1, JHS 2 and JHS 3.
           </p>
