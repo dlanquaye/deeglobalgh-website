@@ -129,6 +129,13 @@ export default async function TextbooksKasoaPage({
   </Link>
 
   <Link
+    href="/jhs-textbooks-in-kasoa"
+    className="border px-4 py-2 rounded-xl hover:bg-gray-100"
+  >
+    JHS Books &amp; Textbooks
+  </Link>
+
+  <Link
     href="/series"
     className="border px-4 py-2 rounded-xl hover:bg-gray-100"
   >
