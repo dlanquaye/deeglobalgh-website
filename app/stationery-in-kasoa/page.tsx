@@ -155,9 +155,28 @@ export default async function StationeryKasoaPage({
     AND: [],
   };
 
-  /* CATEGORY (default = stationery) */
+  /* CATEGORY (default = stationery discovery) */
   where.AND.push(
-    category ? { categorySlug: category } : { categorySlug: "stationery" }
+    category
+      ? { categorySlug: category }
+      : {
+          OR: [
+            { categorySlug: "stationery" },
+            {
+              categorySlug: "school-essentials",
+              subCategorySlug: {
+                in: [
+                  "a4-paper",
+                  "crayons",
+                  "exercise-books",
+                  "pencils",
+                  "pens",
+                  "rulers",
+                ],
+              },
+            },
+          ],
+        }
   );
 
   /* SEARCH */
