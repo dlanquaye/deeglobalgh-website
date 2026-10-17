@@ -327,7 +327,19 @@ export default function ShsTextbooksKasoaPage() {
                 </p>
 
                 <h3 className="mt-2 font-bold text-gray-900">
-                  {book.title}
+                  {book.title === "Adwinsa Series Conquering Physics" ? (
+                    <TrackedLink
+                      href="/conquering-physics-shs-textbook-ghana"
+                      linkLocation="shs_popular_books"
+                      contentType="shs_textbook"
+                      contentName="Conquering Physics SHS 1-3"
+                      className="hover:text-blue-800 hover:underline"
+                    >
+                      {book.title}
+                    </TrackedLink>
+                  ) : (
+                    book.title
+                  )}
                 </h3>
 
                 <p className="mt-3 text-lg font-bold text-blue-900">
