@@ -303,11 +303,11 @@ export default async function ConqueringPhysicsPage() {
             </p>
 
             <h2 className="mt-2 text-xl font-bold text-blue-950">
-              Kojo Borbor & T. Dzidefo Afram
+              Kojo Borbor & Dzidefo Afram
             </h2>
 
             <p className="mt-3 leading-7 text-gray-600">
-              The book cover identifies Kojo Borbor and T. Dzidefo Afram as
+              The book cover identifies Kojo Borbor and Dzidefo Afram as
               the authors of Conquering Senior High School Physics.
             </p>
           </article>

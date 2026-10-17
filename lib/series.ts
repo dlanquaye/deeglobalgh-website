@@ -1,4 +1,4 @@
-﻿export type PublicSeries = {
+export type PublicSeries = {
   slug: string;
   brand: string;
   name: string;
@@ -41,6 +41,17 @@ export const PUBLIC_SERIES: PublicSeries[] = [
     heading: "Excellence Series Textbooks",
     intro:
       "Browse available Excellence Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+  },
+  {
+    slug: "adwinsa",
+    brand: "Adwinsa",
+    name: "Adwinsa Series",
+    title: "Adwinsa Series Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Shop Adwinsa Series textbooks and learning materials for Ghanaian schools. Browse available Adwinsa books from DeeGlobalGH in Kasoa for collection or delivery.",
+    heading: "Adwinsa Series Textbooks",
+    intro:
+      "Browse available Adwinsa Series textbooks and learning materials for Ghanaian students, including Conquering Senior High School Physics. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
   },
   {
     slug: "wise-ant",

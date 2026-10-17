@@ -60,6 +60,12 @@ const linkedSubjects = [
     description:
       "SHS Economics textbooks and related learning materials.",
   },
+  {
+    name: "Physics",
+    href: "/conquering-physics-shs-textbook-ghana",
+    description:
+      "SHS Physics textbooks and Physics learning materials, including Conquering Physics for SHS 1-3.",
+  },
 ];
 
 const additionalSubjects = [
