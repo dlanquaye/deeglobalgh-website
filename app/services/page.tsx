@@ -34,10 +34,10 @@ const services: Service[] = [
   {
     id: "interpretation",
     slug: "chinese-english-interpretation-translation-ghana",
-    title: "Chineseâ€“English Interpretation/Translation & Business Liaison",
+    title: "Chinese–English Interpretation/Translation & Business Liaison",
     titleZh: "ä¸­è‹±å£è¯‘/ç¿»è¯‘ä¸Žå•†åŠ¡åè°ƒæœåŠ¡",
     summary:
-      "This service provides professional Chineseâ€“English interpretation and translation, combined with business liaison support.",
+      "This service provides professional Chinese–English interpretation and translation, combined with business liaison support.",
     who:
       "This service is for businesses, individuals, traders, schools, and organisations working with Chinese partners or clients.",
     includes: [
@@ -193,7 +193,7 @@ export default function ServicesPage() {
 
           <p className="mt-4 text-center text-sm text-gray-500">
             This service is offered in Ghana and supports individuals, families,
-            and organisations seeking reliable Chineseâ€“English communication,
+            and organisations seeking reliable Chinese–English communication,
             language training, and cross-cultural support.
           </p>
 

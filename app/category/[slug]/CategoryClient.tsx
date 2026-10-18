@@ -38,21 +38,17 @@ export default function CategoryClient({
 
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
-  const filtered = useMemo(
-    () => products.filter((p) => p.categorySlug === slug),
-    [products, slug]
-  );
-
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-bold">{pretty}</h1>
+
       {slug === "story-books" && (
-  <p className="mt-3 text-gray-600 max-w-2xl">
-    Buy story books for kids and students in Ghana. Explore African story books,
-    literature books, and reading books for all levels. DeeGlobalGH stocks quality
-    story books with fast delivery across Kasoa and Ghana.
-  </p>
-)}
+        <p className="mt-3 max-w-2xl text-gray-600">
+          Buy story books for kids and students in Ghana. Explore African story books,
+          literature books, and reading books for all levels. DeeGlobalGH stocks quality
+          story books with fast delivery across Kasoa and Ghana.
+        </p>
+      )}
 
       <p className="mt-2 text-gray-700">
         Showing products under <span className="font-semibold">{pretty}</span>.
@@ -68,13 +64,13 @@ export default function CategoryClient({
       </div>
 
       <p className="mt-2 text-sm text-gray-600">
-        Found <span className="font-semibold">{filtered.length}</span>{" "}
-        product{filtered.length === 1 ? "" : "s"} in this category.
+        Showing <span className="font-semibold">{products.length}</span>{" "}
+        product{products.length === 1 ? "" : "s"} on this page.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length > 0 ? (
-          filtered.map((p) => {
+        {products.length > 0 ? (
+          products.map((p) => {
             const imageSrc =
               p.imageSrc || "/products/placeholder.webp";
 
@@ -106,7 +102,7 @@ export default function CategoryClient({
                   </div>
                 </Link>
 
-                <div className="mt-1 font-bold text-lg text-[color:var(--brand-blue)]">
+                <div className="mt-1 text-lg font-bold text-[color:var(--brand-blue)]">
                   GH₵ {p.retailPrice}
                 </div>
 

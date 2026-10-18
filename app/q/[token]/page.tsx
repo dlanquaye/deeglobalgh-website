@@ -246,7 +246,7 @@ export default async function PublicQuotationPage({
                     "13px",
                 }}
               >
-                Educational Books â€¢ School Supplies â€¢ Exam Essentials
+                Educational Books • School Supplies • Exam Essentials
               </div>
             </div>
 

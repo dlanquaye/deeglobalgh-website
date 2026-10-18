@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
+const PRODUCTS_PER_PAGE = 24;
 
 function prettifySlug(slug: string) {
   return slug
@@ -15,13 +16,31 @@ function prettifySlug(slug: string) {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const query = await searchParams;
+
   const pretty = prettifySlug(slug);
 
-  const title = slug === "textbooks" ? "NaCCA-Approved & GES-Recommended Textbooks | DeeGlobalGH" : `${pretty} | DeeGlobalGH`;
+  const requestedPage = Number.parseInt(query?.page || "1", 10);
+  const currentPage =
+    Number.isFinite(requestedPage) && requestedPage > 1
+      ? requestedPage
+      : 1;
+
+  const baseTitle =
+    slug === "textbooks"
+      ? "NaCCA-Approved & GES-Recommended Textbooks | DeeGlobalGH"
+      : `${pretty} | DeeGlobalGH`;
+
+  const title =
+    currentPage > 1
+      ? `${baseTitle.replace(" | DeeGlobalGH", "")} - Page ${currentPage} | DeeGlobalGH`
+      : baseTitle;
 
   let description = `Shop ${pretty} in Ghana. Order from DeeGlobalGH for fast delivery in Kasoa and beyond.`;
 
@@ -29,12 +48,16 @@ export async function generateMetadata({
     description =
       "Shop a large selection of NaCCA-approved and GES-recommended textbooks for KG, Primary, JHS and SHS, including Standards-Based Curriculum (SBC), Common Core Programme (CCP) and Secondary Education Curriculum books from DeeGlobalGH in Kasoa.";
   }
+
   if (slug === "story-books") {
     description =
       "Buy story books for kids and students in Ghana. Shop African story books, literature books, and reading books with fast delivery from DeeGlobalGH.";
   }
 
-  const canonicalUrl = `${SITE_URL}/category/${slug}`;
+  const canonicalUrl =
+    currentPage > 1
+      ? `${SITE_URL}/category/${slug}?page=${currentPage}`
+      : `${SITE_URL}/category/${slug}`;
 
   return {
     title,
@@ -57,23 +80,54 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+
+  const requestedPage = Number.parseInt(query?.page || "1", 10);
+
+  const safeRequestedPage =
+    Number.isFinite(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
 
   let products: any[] = [];
+  let totalProducts = 0;
 
   try {
+    const where = {
+      categorySlug: slug,
+      isActive: true,
+      websiteVisible: true,
+    };
+
+    totalProducts = await prisma.product.count({
+      where,
+    });
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(totalProducts / PRODUCTS_PER_PAGE)
+    );
+
+    const currentPage = Math.min(safeRequestedPage, totalPages);
+
     const data = await prisma.product.findMany({
-      where: {
-        categorySlug: slug,
-        isActive: true,
-        websiteVisible: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where,
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
+      skip: (currentPage - 1) * PRODUCTS_PER_PAGE,
+      take: PRODUCTS_PER_PAGE,
       select: {
         id: true,
         name: true,
@@ -90,7 +144,36 @@ export default async function CategoryPage({
   } catch (error) {
     console.error("Database error (category page):", error);
     products = [];
+    totalProducts = 0;
   }
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalProducts / PRODUCTS_PER_PAGE)
+  );
+
+  const currentPage = Math.min(safeRequestedPage, totalPages);
+
+  const firstProductNumber =
+    totalProducts === 0
+      ? 0
+      : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
+
+  const lastProductNumber = Math.min(
+    currentPage * PRODUCTS_PER_PAGE,
+    totalProducts
+  );
+
+  const buildPageHref = (page: number) => {
+    return page > 1
+      ? `/category/${slug}?page=${page}`
+      : `/category/${slug}`;
+  };
+
+  const pageNumbers = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1
+  );
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -193,8 +276,12 @@ export default async function CategoryPage({
                 href="/category/exam-materials/jhs"
                 className="group rounded-2xl border border-yellow-200 bg-gradient-to-r from-yellow-100 to-yellow-50 p-5 transition hover:shadow-md"
               >
-                <p className="font-semibold group-hover:text-yellow-700">JHS</p>
-                <p className="mt-1 text-xs text-gray-500">BECE preparation</p>
+                <p className="font-semibold group-hover:text-yellow-700">
+                  JHS
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  BECE preparation
+                </p>
               </a>
 
               <a
@@ -213,8 +300,12 @@ export default async function CategoryPage({
                 href="/category/textbooks/shs"
                 className="group rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-100 to-purple-50 p-5 transition hover:shadow-md"
               >
-                <p className="font-semibold group-hover:text-purple-700">SHS</p>
-                <p className="mt-1 text-xs text-gray-500">SHS split levels</p>
+                <p className="font-semibold group-hover:text-purple-700">
+                  SHS
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  SHS split levels
+                </p>
               </a>
 
               <a
@@ -236,7 +327,9 @@ export default async function CategoryPage({
                 <p className="font-semibold group-hover:text-green-700">
                   SHS (WASSCE)
                 </p>
-                <p className="mt-1 text-xs text-gray-500">Exam preparation</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Exam preparation
+                </p>
               </a>
             </div>
           </div>
@@ -245,7 +338,9 @@ export default async function CategoryPage({
         {/* EXAM NAV */}
         {slug === "exam-materials" && (
           <div className="mb-10">
-            <h2 className="mb-4 text-lg font-semibold">Select Exam Level</h2>
+            <h2 className="mb-4 text-lg font-semibold">
+              Select Exam Level
+            </h2>
 
             <div className="grid grid-cols-2 gap-4">
               <a
@@ -265,15 +360,108 @@ export default async function CategoryPage({
           </div>
         )}
 
+        {/* RESULT SUMMARY */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+          <p>
+            {totalProducts > 0 ? (
+              <>
+                Showing{" "}
+                <strong className="text-gray-900">
+                  {firstProductNumber}–{lastProductNumber}
+                </strong>{" "}
+                of{" "}
+                <strong className="text-gray-900">
+                  {totalProducts}
+                </strong>{" "}
+                products
+              </>
+            ) : (
+              "No products found"
+            )}
+          </p>
+
+          {totalPages > 1 && (
+            <p>
+              Page{" "}
+              <strong className="text-gray-900">{currentPage}</strong>{" "}
+              of{" "}
+              <strong className="text-gray-900">{totalPages}</strong>
+            </p>
+          )}
+        </div>
+
         {/* PRODUCTS */}
         <CategoryClient slug={slug} products={products} />
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <nav
+            aria-label={`${prettifySlug(slug)} product pages`}
+            className="mt-8 flex flex-wrap items-center justify-center gap-2 border-t pt-6"
+          >
+            {currentPage > 1 ? (
+              <Link
+                href={buildPageHref(currentPage - 1)}
+                className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                ← Previous
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className="cursor-not-allowed rounded-lg border bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-400"
+              >
+                ← Previous
+              </span>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-2">
+              {pageNumbers.map((pageNumber) => {
+                const isCurrent = pageNumber === currentPage;
+
+                return (
+                  <Link
+                    key={pageNumber}
+                    href={buildPageHref(pageNumber)}
+                    aria-current={isCurrent ? "page" : undefined}
+                    className={`flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-semibold ${
+                      isCurrent
+                        ? "border-blue-900 bg-blue-900 text-white"
+                        : "bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {pageNumber}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {currentPage < totalPages ? (
+              <Link
+                href={buildPageHref(currentPage + 1)}
+                className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                Next →
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className="cursor-not-allowed rounded-lg border bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-400"
+              >
+                Next →
+              </span>
+            )}
+          </nav>
+        )}
       </section>
 
       {/* TRUST */}
       <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-10 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-4">
           <h3 className="font-semibold">
-            {slug === "textbooks" ? "NaCCA-Approved & GES-Recommended Textbooks" : "School Essentials"}
+            {slug === "textbooks"
+              ? "NaCCA-Approved & GES-Recommended Textbooks"
+              : "School Essentials"}
           </h3>
           <p className="text-sm text-gray-600">
             {slug === "textbooks"
