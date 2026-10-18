@@ -18,8 +18,10 @@ const levels = [
 
 const categories = [
   { name: "Textbooks", slug: "textbooks" },
-  { name: "Stationery", slug: "stationery" },
-  { name: "School Supplies", slug: "school-supplies" },
+  {
+    name: "Stationery & School Essentials",
+    slug: "school-essentials",
+  },
 ];
 
 type ShopClientProps = {
@@ -173,7 +175,12 @@ export default function ShopClient({ products }: ShopClientProps) {
           Showing:{" "}
           <span className="font-semibold">
             {selectedLevel ? formatLevelName(selectedLevel) : ""}
-            {selectedLevel && selectedCategory && " • "}
+            {selectedLevel && selectedCategory && (
+              <>
+                {" "}
+                &bull;{" "}
+              </>
+            )}
             {selectedCategory
               ? categories.find(
                   (category) => category.slug === selectedCategory
