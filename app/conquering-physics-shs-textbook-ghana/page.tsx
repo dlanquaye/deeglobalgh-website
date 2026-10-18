@@ -17,14 +17,14 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Conquering Physics SHS 1-3 in Kasoa | DeeGlobalGH",
   description:
-    "Buy Conquering Senior High School Physics SHS 1-3 by Adwinsa in Kasoa. Combined SHS Physics textbook for Senior High School students. Order from DeeGlobalGH at Kasoa New Market.",
+    "Buy Conquering Senior High School Physics by Adwinsa in Kasoa. NaCCA-approved Physics textbook for SHS 1, 2 and 3 students. Order from DeeGlobalGH at Kasoa New Market.",
   alternates: {
     canonical: PAGE_URL,
   },
   openGraph: {
     title: "Conquering Physics SHS 1-3 | DeeGlobalGH Kasoa",
     description:
-      "Find Conquering Senior High School Physics SHS 1-3 by Adwinsa at DeeGlobalGH in Kasoa. Check current price and availability before ordering.",
+      "Find Conquering Senior High School Physics by Adwinsa at DeeGlobalGH in Kasoa. NaCCA-approved Physics textbook for SHS 1, 2 and 3. Check current price and availability.",
     url: PAGE_URL,
     siteName: "DeeGlobalGH",
     type: "website",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Conquering Physics SHS 1-3 | DeeGlobalGH",
     description:
-      "Buy Conquering Senior High School Physics SHS 1-3 in Kasoa from DeeGlobalGH.",
+      "Buy Conquering Senior High School Physics, a NaCCA-approved Physics textbook, in Kasoa from DeeGlobalGH.",
     images: [
       `${SITE_URL}/products/conquering-senior-high-school-physics-shs-1-3.webp`,
     ],
@@ -97,12 +97,12 @@ export default async function ConqueringPhysicsPage() {
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: "Conquering Senior High School Physics - SHS 1-3",
+    name: "Conquering Senior High School Physics",
     image: [
       `${SITE_URL}/products/conquering-senior-high-school-physics-shs-1-3.webp`,
     ],
     description:
-      "Conquering Senior High School Physics is a combined SHS 1-3 Physics textbook by Adwinsa for Senior High School students in Ghana.",
+      "Conquering Senior High School Physics is a NaCCA-approved Physics textbook published by Adwinsa for SHS 1, 2 and 3 students in Ghana.",
     sku: PRODUCT_SKU,
     brand: {
       "@type": "Brand",
@@ -203,13 +203,20 @@ export default async function ConqueringPhysicsPage() {
             </p>
 
             <h1 className="mt-3 text-3xl font-bold leading-tight text-blue-950 md:text-4xl">
-              Conquering Senior High School Physics - SHS 1-3
+              <span className="text-blue-700">Conquering</span>{" "}
+              Senior High School{" "}
+              <span className="text-blue-700">Physics</span>
             </h1>
+
+            <p className="mt-3 inline-flex w-fit rounded-full bg-yellow-100 px-4 py-2 text-sm font-bold text-blue-950">
+              NaCCA-Approved Physics Textbook
+            </p>
 
             <p className="mt-4 text-lg leading-8 text-gray-700">
               Looking for <strong>Conquering Physics</strong> for Senior High
-              School? DeeGlobalGH stocks the combined SHS 1-3 Physics textbook
-              from Adwinsa for students, parents, teachers and schools in Kasoa.
+              School? DeeGlobalGH stocks this NaCCA-approved Physics textbook
+              published by Adwinsa for SHS 1, 2 and 3 students, parents,
+              teachers and schools in Kasoa.
             </p>
 
             <div className="mt-6 rounded-2xl border bg-blue-50 p-5">
@@ -321,10 +328,10 @@ export default async function ConqueringPhysicsPage() {
           </h2>
 
           <p className="mt-4 max-w-4xl leading-8 text-gray-700">
-            Conquering Senior High School Physics is an Adwinsa Physics book
-            for SHS students. The cover identifies it as an SHS 1-3 combined
-            title and states that it is based on the standards-based Physics
-            curriculum for secondary education.
+            Conquering Senior High School Physics is a NaCCA-approved Physics
+            textbook published by Adwinsa for SHS students. It is a combined
+            SHS 1, 2 and 3 title, and the cover states that it is based on the
+            standards-based Physics curriculum for secondary education.
           </p>
 
           <p className="mt-4 max-w-4xl leading-8 text-gray-700">
