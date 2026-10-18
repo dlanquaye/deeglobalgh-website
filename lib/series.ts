@@ -43,6 +43,17 @@ export const PUBLIC_SERIES: PublicSeries[] = [
       "Browse available Excellence Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
   },
   {
+    slug: "prof-quarm",
+    brand: "Prof-Quarm Publication",
+    name: "Prof Quarm Series",
+    title: "Prof Quarm SHS Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Shop current Prof Quarm SHS textbooks in Ghana, including English Language, Mathematics, General Science and Social Studies editions with NaCCA approval markings. Available from DeeGlobalGH in Kasoa.",
+    heading: "Prof Quarm SHS Textbooks",
+    intro:
+      "Browse current Prof Quarm textbooks for Senior High School students, including English Language, Mathematics, General Science and Social Studies for SHS 1, 2 and 3. Current editions in our range carry NaCCA approval markings on the books. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+  },
+  {
     slug: "a1-series",
     brand: "A1 Series",
     name: "A1 Series",

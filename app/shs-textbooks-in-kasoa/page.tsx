@@ -402,6 +402,15 @@ export default function ShsTextbooksKasoaPage() {
             >
               Browse Wise Ant Series
             </TrackedLink>
+            <TrackedLink
+              href="/series/prof-quarm"
+              linkLocation="shs_series_collection"
+              contentType="shs_textbook_series"
+              contentName="Prof Quarm Series"
+              className="rounded-xl border bg-gray-50 px-5 py-3 font-semibold text-blue-900 hover:bg-gray-100"
+            >
+              Browse Prof Quarm Series
+            </TrackedLink>
 
             <TrackedWhatsAppLink
               href={`https://wa.me/233270030000?text=${encodeURIComponent(
