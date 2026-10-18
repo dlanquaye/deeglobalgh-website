@@ -61,16 +61,28 @@ const linkedSubjects = [
       "SHS Economics textbooks and related learning materials.",
   },
   {
-    name: "Physics",
-    href: "/conquering-physics-shs-textbook-ghana",
+    name: "Science",
+    href: "/subjects/science",
     description:
-      "SHS Physics textbooks and Physics learning materials, including Conquering Physics for SHS 1-3.",
+      "SHS Science textbooks and learning materials, including General Science and Integrated Science.",
   },
   {
-    name: "General Science",
-    href: "/a1-general-science-shs-textbook-ghana",
+    name: "Biology",
+    href: "/subjects/biology",
     description:
-      "SHS General Science textbooks and learning materials, including A1 Series College General Science for SHS 1-3.",
+      "SHS Biology textbooks and learning materials from different publishers and series.",
+  },
+  {
+    name: "Chemistry",
+    href: "/subjects/chemistry",
+    description:
+      "SHS Chemistry textbooks and learning materials from different publishers and series.",
+  },
+  {
+    name: "Physics",
+    href: "/subjects/physics",
+    description:
+      "SHS Physics textbooks and learning materials from different publishers and series.",
   },
 ];
 
@@ -457,15 +469,7 @@ export default function ShsTextbooksKasoaPage() {
             >
               GAP Series English Language SHS 1-3
             </TrackedLink>
-            <TrackedLink
-              href="/a1-general-science-shs-textbook-ghana"
-              linkLocation="shs_other_ranges"
-              contentType="shs_textbook"
-              contentName="A1 General Science SHS 1-3"
-              className="inline-flex rounded-xl border bg-gray-50 px-5 py-3 font-semibold text-blue-900 hover:bg-gray-100"
-            >
-              A1 General Science SHS 1-3
-            </TrackedLink>
+
 
             <TrackedWhatsAppLink
               href={`https://wa.me/233270030000?text=${encodeURIComponent(

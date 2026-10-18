@@ -161,9 +161,6 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     relatedSubjects: [
       "general-science",
       "integrated-science",
-      "biology",
-      "chemistry",
-      "physics",
     ],
   },
   {
@@ -179,7 +176,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     intro:
       "Explore available General Science textbooks and related learning materials for SHS learners.",
     standalonePage: false,
-    relatedSubjects: ["science", "integrated-science", "biology", "chemistry", "physics"],
+    relatedSubjects: ["science", "integrated-science"],
   },
   {
     slug: "integrated-science",
@@ -208,8 +205,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Biology Textbooks",
     intro:
       "Explore available Biology textbooks and related learning materials for SHS learners.",
-    standalonePage: false,
-    relatedSubjects: ["science"],
+    standalonePage: true,
   },
   {
     slug: "chemistry",
@@ -223,8 +219,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Chemistry Textbooks",
     intro:
       "Explore available Chemistry textbooks and related learning materials for SHS learners.",
-    standalonePage: false,
-    relatedSubjects: ["science"],
+    standalonePage: true,
   },
   {
     slug: "physics",
@@ -238,8 +233,7 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     heading: "Physics Textbooks",
     intro:
       "Explore available Physics textbooks and related learning materials for SHS learners.",
-    standalonePage: false,
-    relatedSubjects: ["science"],
+    standalonePage: true,
   },
   {
     slug: "computing",
