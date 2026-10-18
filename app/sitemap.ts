@@ -35,6 +35,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/gap-series-english-language-shs`,
       lastModified: new Date(),
     },
+    {
+      url: `${SITE_URL}/a1-general-science-shs-textbook-ghana`,
+      lastModified: new Date(),
+    },
     { url: `${SITE_URL}/stationery-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/exam-materials-in-kasoa`, lastModified: new Date() },
     { url: `${SITE_URL}/school-list-items-kasoa`, lastModified: new Date() },

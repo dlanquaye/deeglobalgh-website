@@ -442,6 +442,15 @@ export default function ShsTextbooksKasoaPage() {
             >
               GAP Series English Language SHS 1-3
             </TrackedLink>
+            <TrackedLink
+              href="/a1-general-science-shs-textbook-ghana"
+              linkLocation="shs_other_ranges"
+              contentType="shs_textbook"
+              contentName="A1 General Science SHS 1-3"
+              className="inline-flex rounded-xl border bg-gray-50 px-5 py-3 font-semibold text-blue-900 hover:bg-gray-100"
+            >
+              A1 General Science SHS 1-3
+            </TrackedLink>
 
             <TrackedWhatsAppLink
               href={`https://wa.me/233270030000?text=${encodeURIComponent(
