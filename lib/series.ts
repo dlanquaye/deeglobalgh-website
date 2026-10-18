@@ -43,6 +43,17 @@ export const PUBLIC_SERIES: PublicSeries[] = [
       "Browse available Excellence Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
   },
   {
+    slug: "a1-series",
+    brand: "A1 Series",
+    name: "A1 Series",
+    title: "A1 Series Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Shop A1 Series textbooks and learning materials for Ghanaian schools. Browse available A1 Series books from DeeGlobalGH in Kasoa for collection or delivery.",
+    heading: "A1 Series Textbooks",
+    intro:
+      "Browse available A1 Series textbooks and learning materials for Ghanaian students, including A1 Series College General Science Comprehensive Notes for SHS 1, 2 & 3. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+  },
+  {
     slug: "gap-series",
     brand: "GAP Series",
     name: "GAP Series",
