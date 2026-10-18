@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import TrackedLink from "@/app/components/TrackedLink";
@@ -304,7 +304,7 @@ export default async function SeriesPage({ params }: Props) {
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <div className="rounded-2xl border bg-white p-6">
           <h2 className="text-xl font-bold">
-            Need Help Finding a {series.name} Book?
+            Need Help Finding {series.slug === "a1-series" ? "an" : "a"} {series.name} Book?
           </h2>
 
           <p className="mt-2 max-w-3xl text-gray-600">
