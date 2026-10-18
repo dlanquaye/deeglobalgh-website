@@ -212,6 +212,45 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 
 </div>
 
+      {/* ================= SHS / SHTS / STEM DISCOVERY ================= */}
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                Senior High School Learning
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold text-blue-950">
+                SHS, SHTS & STEM Textbooks
+              </h2>
+
+              <p className="mt-3 leading-7 text-gray-600">
+                Find a growing range of textbooks and learning materials for
+                Ghana&apos;s SHS, SHTS and STEM curriculum at DeeGlobalGH in
+                Kasoa. Send us the title, subject or school book list you need
+                and we can help check current availability.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/shs-textbooks-in-kasoa"
+                className="rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800"
+              >
+                Browse SHS Textbooks
+              </Link>
+
+              <Link
+                href="/school-list-items-kasoa"
+                className="rounded-xl border px-5 py-3 font-semibold text-blue-900 hover:bg-gray-50"
+              >
+                Send Your Book List
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* ================= TRUST ================= */}
       <section className="mx-auto max-w-6xl px-4 py-10 grid md:grid-cols-3 gap-6">
         <div className="rounded-xl border p-5 bg-white shadow-sm">

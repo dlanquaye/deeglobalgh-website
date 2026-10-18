@@ -43,6 +43,17 @@ export const PUBLIC_SERIES: PublicSeries[] = [
       "Browse available Excellence Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
   },
   {
+    slug: "gap-series",
+    brand: "GAP Series",
+    name: "GAP Series",
+    title: "GAP Series Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Shop GAP Series textbooks and learning materials for Ghanaian schools. Browse available GAP Series books from DeeGlobalGH in Kasoa for collection or delivery.",
+    heading: "GAP Series Textbooks",
+    intro:
+      "Browse available GAP Series textbooks and learning materials for Ghanaian students, including GAP Series English Language for Senior High Schools 1, 2 & 3. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+  },
+  {
     slug: "adwinsa",
     brand: "Adwinsa",
     name: "Adwinsa Series",

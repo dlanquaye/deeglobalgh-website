@@ -432,16 +432,28 @@ export default function ShsTextbooksKasoaPage() {
             be treated as the complete list of books we may carry.
           </p>
 
-          <TrackedWhatsAppLink
-            href={`https://wa.me/233270030000?text=${encodeURIComponent(
-              otherSeriesMessage
-            )}`}
-            linkLocation="shs_other_ranges"
-            productName="Other SHS Book Ranges"
-            className="mt-5 inline-flex rounded-xl border border-yellow-500 bg-yellow-50 px-5 py-3 font-semibold text-black hover:bg-yellow-100"
-          >
-            Enquire About Another SHS Book or Series
-          </TrackedWhatsAppLink>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <TrackedLink
+              href="/gap-series-english-language-shs"
+              linkLocation="shs_other_ranges"
+              contentType="shs_textbook"
+              contentName="GAP Series English Language SHS 1-3"
+              className="inline-flex rounded-xl border bg-gray-50 px-5 py-3 font-semibold text-blue-900 hover:bg-gray-100"
+            >
+              GAP Series English Language SHS 1-3
+            </TrackedLink>
+
+            <TrackedWhatsAppLink
+              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+                otherSeriesMessage
+              )}`}
+              linkLocation="shs_other_ranges"
+              productName="Other SHS Book Ranges"
+              className="inline-flex rounded-xl border border-yellow-500 bg-yellow-50 px-5 py-3 font-semibold text-black hover:bg-yellow-100"
+            >
+              Enquire About Another SHS Book or Series
+            </TrackedWhatsAppLink>
+          </div>
         </div>
       </section>
 
