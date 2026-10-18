@@ -66,6 +66,12 @@ const linkedSubjects = [
     description:
       "SHS Physics textbooks and Physics learning materials, including Conquering Physics for SHS 1-3.",
   },
+  {
+    name: "General Science",
+    href: "/a1-general-science-shs-textbook-ghana",
+    description:
+      "SHS General Science textbooks and learning materials, including A1 Series College General Science for SHS 1-3.",
+  },
 ];
 
 const additionalSubjects = [
