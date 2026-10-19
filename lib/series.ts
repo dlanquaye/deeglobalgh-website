@@ -1,4 +1,4 @@
-export type PublicSeries = {
+﻿export type PublicSeries = {
   slug: string;
   brand: string;
   name: string;
@@ -118,6 +118,17 @@ export const PUBLIC_SERIES: PublicSeries[] = [
     heading: "Essential Series Textbooks",
     intro:
       "Browse available Essential Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+  },
+  {
+    slug: "baffour-ba",
+    brand: "Baffour-Ba Series",
+    name: "Baffour-Ba Series",
+    title: "Baffour-Ba SHS Mathematics Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Shop Baffour-Ba Mathematics and Additional Mathematics textbooks for SHS students in Ghana. NaCCA-approved books by Baffour Asamoah, aligned with Ghana's Standards-Based Curriculum and available from DeeGlobalGH in Kasoa.",
+    heading: "Baffour-Ba SHS Mathematics Textbooks",
+    intro:
+      "Browse Baffour-Ba Series Mathematics and Additional Mathematics textbooks by Baffour Asamoah for Senior High School students. These editions carry NaCCA approval markings and are aligned with Ghana's Standards-Based Curriculum. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
   },
 ];
 
