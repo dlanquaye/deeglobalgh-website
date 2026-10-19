@@ -1,4 +1,4 @@
-export type SubjectLevel =
+﻿export type SubjectLevel =
   | "creche"
   | "nursery-1"
   | "nursery-2"
@@ -364,6 +364,57 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     intro:
       "Explore available Career Technology textbooks and related learning materials for JHS learners.",
     standalonePage: true,
+  },
+  {
+    slug: "government",
+    name: "Government",
+    family: "Humanities / Social Sciences",
+    aliases: ["Government", "Government Studies"],
+    levels: SHS_LEVELS,
+    title: "Government Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Browse available Government textbooks and learning materials for SHS learners in Ghana from DeeGlobalGH in Kasoa.",
+    heading: "Government Textbooks",
+    intro:
+      "Explore available Government textbooks and related learning materials for Senior High School students.",
+    standalonePage: true,
+    relatedSubjects: ["social-studies", "history"],
+  },
+  {
+    slug: "geography",
+    name: "Geography",
+    family: "Humanities / Social Sciences",
+    aliases: ["Geography"],
+    levels: SHS_LEVELS,
+    title: "Geography Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Browse available Geography textbooks and learning materials for SHS learners in Ghana from DeeGlobalGH in Kasoa.",
+    heading: "Geography Textbooks",
+    intro:
+      "Explore available Geography textbooks and related learning materials for Senior High School students.",
+    standalonePage: true,
+    relatedSubjects: ["social-studies"],
+  },
+  {
+    slug: "accounting",
+    name: "Accounting",
+    family: "Business",
+    aliases: [
+      "Accounting",
+      "Financial Accounting",
+      "Cost Accounting",
+      "Management Accounting",
+      "Principles of Accounting",
+    ],
+    levels: SHS_LEVELS,
+    title: "Accounting Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Browse Accounting textbooks for SHS learners in Ghana, including Financial Accounting, Cost Accounting and related Accounting titles from DeeGlobalGH in Kasoa.",
+    heading: "Accounting Textbooks",
+    intro:
+      "Explore available Accounting textbooks and learning materials, including Financial Accounting, Cost Accounting and other related Accounting titles for Senior High School students.",
+    standalonePage: true,
+    relatedSubjects: ["economics"],
   },
   {
     slug: "economics",

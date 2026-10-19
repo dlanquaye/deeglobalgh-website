@@ -1,4 +1,7 @@
-﻿import { getPublicSubject, type PublicSubject } from "./subjects";
+﻿import {
+  getPublicSubject,
+  type PublicSubject,
+} from "./subjects";
 
 /**
  * Subject Discovery matching utilities.
@@ -72,6 +75,10 @@ export function subjectTermsEqual(left: string, right: string): boolean {
  * More specific subject identities must be evaluated before broader
  * subjects whose names may also occur inside them.
  *
+ * Accounting deliberately includes Financial Accounting, Cost
+ * Accounting, Management Accounting and other configured Accounting
+ * aliases from lib/subjects.ts.
+ *
  * This order does not change subject-family relationships and does not
  * rename catalogue products.
  */
@@ -84,6 +91,9 @@ export const SUBJECT_MATCHING_PRECEDENCE = [
   "biology",
   "chemistry",
   "physics",
+  "government",
+  "geography",
+  "accounting",
   "literature",
   "literacy",
   "numeracy",
