@@ -378,7 +378,6 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     intro:
       "Explore available Government textbooks and related learning materials for Senior High School students.",
     standalonePage: true,
-    relatedSubjects: ["social-studies", "history"],
   },
   {
     slug: "geography",
@@ -393,7 +392,6 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     intro:
       "Explore available Geography textbooks and related learning materials for Senior High School students.",
     standalonePage: true,
-    relatedSubjects: ["social-studies"],
   },
   {
     slug: "accounting",
@@ -414,7 +412,6 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     intro:
       "Explore available Accounting textbooks and learning materials, including Financial Accounting, Cost Accounting and other related Accounting titles for Senior High School students.",
     standalonePage: true,
-    relatedSubjects: ["economics"],
   },
   {
     slug: "economics",
@@ -453,3 +450,4 @@ export function getPublicSubject(slug: string): PublicSubject | undefined {
 export function getStandaloneSubjects(): PublicSubject[] {
   return PUBLIC_SUBJECTS.filter((subject) => subject.standalonePage);
 }
+
