@@ -414,6 +414,33 @@ export const PUBLIC_SUBJECTS: PublicSubject[] = [
     standalonePage: true,
   },
   {
+    slug: "food-and-nutrition",
+    name: "Food and Nutrition",
+    family: "Home Economics",
+    aliases: ["Food and Nutrition", "Foods and Nutrition"],
+    levels: SHS_LEVELS,
+    title: "Food and Nutrition Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Browse available Food and Nutrition textbooks and learning materials for SHS learners in Ghana from DeeGlobalGH in Kasoa.",
+    heading: "Food and Nutrition Textbooks",
+    intro:
+      "Explore available Food and Nutrition textbooks and related learning materials for Senior High School students.",
+    standalonePage: true,
+  },
+  {
+    slug: "management-in-living",
+    name: "Management in Living",
+    family: "Home Economics",
+    aliases: ["Management in Living"],
+    levels: SHS_LEVELS,
+    title: "Management in Living Textbooks in Ghana | DeeGlobalGH",
+    description:
+      "Browse available Management in Living textbooks and learning materials for SHS learners in Ghana from DeeGlobalGH in Kasoa.",
+    heading: "Management in Living Textbooks",
+    intro:
+      "Explore available Management in Living textbooks and related learning materials for Senior High School students.",
+    standalonePage: true,
+  },  {
     slug: "economics",
     name: "Economics",
     family: "Humanities / Business",
@@ -450,4 +477,5 @@ export function getPublicSubject(slug: string): PublicSubject | undefined {
 export function getStandaloneSubjects(): PublicSubject[] {
   return PUBLIC_SUBJECTS.filter((subject) => subject.standalonePage);
 }
+
 

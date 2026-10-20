@@ -107,6 +107,8 @@ export const SUBJECT_MATCHING_PRECEDENCE = [
   "owop",
   "social-studies",
   "career-technology",
+  "food-and-nutrition",
+  "management-in-living",
   "economics",
 ] as const;
 
@@ -352,3 +354,4 @@ export function matchProductSubject(
     matchSubjectFromException(product)
   );
 }
+
