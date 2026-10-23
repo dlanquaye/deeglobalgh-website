@@ -411,8 +411,9 @@ export default function KasoaNewMarketBranchPage() {
                   Shop.
                 </li>
                 <li>
-                  Ask the staff at Cheaphouse to direct you to DeeGlobalGH
-                  Bookshop.
+                  When you reach Cheaphouse Provision Shop, please call
+                  DeeGlobalGH directly on 027 003 0000 for the final directions
+                  to the shop.
                 </li>
               </ol>
             </div>
@@ -431,7 +432,9 @@ export default function KasoaNewMarketBranchPage() {
                   Ask for Psalms 23 or Cheaphouse Provision Shop.
                 </li>
                 <li>
-                  From Cheaphouse, ask to be directed to DeeGlobalGH Bookshop.
+                  When you reach Psalms 23 or Cheaphouse Provision Shop, please
+                  call DeeGlobalGH directly on 027 003 0000 for the final
+                  directions to the shop.
                 </li>
               </ol>
             </div>
@@ -553,3 +556,4 @@ export default function KasoaNewMarketBranchPage() {
     </>
   );
 }
+
