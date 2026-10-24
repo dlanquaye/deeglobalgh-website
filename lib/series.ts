@@ -35,12 +35,13 @@ export const PUBLIC_SERIES: PublicSeries[] = [
     slug: "excellence",
     brand: "Excellence",
     name: "Excellence Series",
-    title: "Excellence Series Textbooks in Ghana | DeeGlobalGH",
+    title:
+      "Excellence Series Textbooks in Ghana | Pre-School to SHS | DeeGlobalGH",
     description:
-      "Shop Excellence Series textbooks and learning materials for Ghanaian schools. Browse available Excellence books from DeeGlobalGH in Kasoa for collection or delivery.",
-    heading: "Excellence Series Textbooks",
+      "Shop Excellence Series textbooks in Ghana for Pre-School, Basic 1–6, JHS and SHS. Browse available Excellence books from DeeGlobalGH in Kasoa for collection or delivery.",
+    heading: "Excellence Series Textbooks – Pre-School to SHS",
     intro:
-      "Browse available Excellence Series textbooks and learning materials for Ghanaian students. DeeGlobalGH supplies school books from Kasoa, with collection and delivery options available.",
+      "Browse available Excellence Series textbooks and learning materials from Pre-School through Basic 1–6 and JHS to Senior High School. DeeGlobalGH supplies Excellence books for Ghanaian students from Kasoa, with collection and delivery options available.",
   },
   {
     slug: "prof-quarm",
