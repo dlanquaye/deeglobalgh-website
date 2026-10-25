@@ -101,11 +101,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     select: {
       slug: true,
+      levelSlugs: true,
     },
     orderBy: {
       slug: "asc",
     },
   });
+
+  const levelSlugs = Array.from(
+    new Set(
+      products.flatMap((product) =>
+        Array.isArray(product.levelSlugs)
+          ? product.levelSlugs.filter(Boolean)
+          : []
+      )
+    )
+  ).sort();
+
+  const levelPages: MetadataRoute.Sitemap = levelSlugs.map((levelSlug) => ({
+    url: `${SITE_URL}/level/${levelSlug}`,
+    lastModified: new Date(),
+  }));
 
   const productPages: MetadataRoute.Sitemap = products.map((product) => ({
     url: `${SITE_URL}/product/${product.slug}`,
@@ -116,6 +132,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...seriesPages,
     ...subjectPages,
+    ...levelPages,
     ...productPages,
   ];
 }
