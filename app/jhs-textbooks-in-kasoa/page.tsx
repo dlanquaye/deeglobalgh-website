@@ -203,7 +203,18 @@ export default function JhsTextbooksKasoaPage() {
           Other JHS subject areas customers may look for include Creative Arts
           and Design, French, Ghanaian Languages, Integrated Science and
           Literature-related learning materials, depending on the school,
-          curriculum requirements and titles currently available.
+          curriculum requirements and titles currently available. For the
+          prescribed JHS literature text, you can also{" "}
+          <TrackedLink
+            href="/beacon-of-light-jhs-literature-ghana"
+            linkLocation="jhs_subject_collection"
+            contentType="jhs_literature"
+            contentName="The Beacon of Light"
+            className="font-semibold text-blue-700 underline underline-offset-4"
+          >
+            view The Beacon of Light books for JHS learners
+          </TrackedLink>
+          .
         </p>
       </section>
 
