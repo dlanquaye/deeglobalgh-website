@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useCart } from "../context/CartContext";
 import { trackWhatsAppClick } from "@/app/lib/analytics";
 
@@ -32,9 +31,6 @@ function ProductCardContent({ product }: Props) {
 
   const { addToCart } = useCart();
 
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -58,17 +54,9 @@ function ProductCardContent({ product }: Props) {
   const unavailable = comingSoon || outOfStock;
 
   /* -------------------------------------------
-     RETURN PATH
+     CLEAN PRODUCT URL
   ------------------------------------------- */
-  const queryString = searchParams.toString();
-
-  const returnTo = queryString
-    ? `${pathname}?${queryString}`
-    : pathname;
-
-  const productHref = `/product/${product.slug}?${new URLSearchParams({
-    returnTo,
-  }).toString()}`;
+  const productHref = `/product/${product.slug}`;
 
   /* -------------------------------------------
      AUTO CLEAR MESSAGE

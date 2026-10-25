@@ -253,17 +253,7 @@ Please assist me with delivery.`;
   };
 
   const buildProductHref = (slug: string) => {
-    const query = new URLSearchParams();
-
-    if (returnPath !== "/shop") {
-      query.set("returnTo", returnPath);
-    }
-
-    const queryString = query.toString();
-
-    return queryString
-      ? `/product/${slug}?${queryString}`
-      : `/product/${slug}`;
+    return `/product/${slug}`;
   };
 
   return (
