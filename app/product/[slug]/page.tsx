@@ -333,6 +333,19 @@ Please assist me with delivery.`;
               {product.shortSummary}
             </p>
           )}
+          {product.name === "The Beacon Of Light" && (
+            <p className="mt-4 text-sm leading-6 text-gray-700">
+              Learn more about the prescribed JHS literature text, its 2027 BECE
+              relevance and supporting resources on our{" "}
+              <Link
+                href="/beacon-of-light-jhs-literature-ghana"
+                className="font-semibold text-blue-700 underline underline-offset-4"
+              >
+                The Beacon of Light JHS literature guide
+              </Link>
+              .
+            </p>
+          )}
 
           <div className="mt-6 space-y-2 rounded-xl border bg-white p-4 text-sm">
             {product.categorySlug === "textbooks" && (
