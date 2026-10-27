@@ -6,6 +6,7 @@ import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import PageJumpNav from "@/app/components/PageJumpNav";
 import Image from "next/image";
 import AddToCartButton from "./AddToCartButton";
+import MetaViewContent from "./MetaViewContent";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
 
@@ -155,6 +156,11 @@ export default async function ProductPage({
   });
 
   const price = Number(product.retailPrice);
+
+  const metaCategory =
+    product.subCategorySlug?.trim() ||
+    product.categorySlug?.trim() ||
+    "product";
   const comingSoon = product.sku === "DG-SHS-FAN-WA-NEW03";
   const outOfStock = product.stockQty <= 0;
   const unavailable = comingSoon || outOfStock;
@@ -257,6 +263,15 @@ Please assist me with delivery.`;
   };
 
   return (
+    <>
+      <MetaViewContent
+        productId={product.id}
+        productName={product.name}
+        productSlug={product.slug}
+        value={price}
+        category={metaCategory}
+      />
+
     <div className="mx-auto max-w-6xl px-4 py-10">
       <script
         type="application/ld+json"
@@ -538,5 +553,6 @@ Please assist me with delivery.`;
         <PageJumpNav />
       </div>
     </div>
+    </>
   );
 }
