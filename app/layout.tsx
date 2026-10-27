@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import Header from "./components/Header";
+import MetaPixel from "./components/MetaPixel";
 import { CartProvider } from "./context/CartContext";
 
 const SITE_URL = "https://www.shopdeeglobalgh.com";
@@ -69,6 +70,8 @@ export default function RootLayout({
             ),
           }}
         />
+
+        <MetaPixel />
 
         <CartProvider>
           <Header />
