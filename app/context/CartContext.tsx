@@ -2,6 +2,7 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -167,13 +168,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const clearCart = () => {
-  setItems([]);
+  const clearCart = useCallback(() => {
+    setItems([]);
 
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-};
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
 
   /* -------------------------------------------
      DERIVED VALUES
