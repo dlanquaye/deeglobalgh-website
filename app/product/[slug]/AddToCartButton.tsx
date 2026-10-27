@@ -4,6 +4,12 @@ import { useCart } from "@/app/context/CartContext";
 import Link from "next/link";
 import { useState } from "react";
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 /**
  * This defines ONLY what the cart needs.
  * It is intentionally NOT tied to Prisma Product type
@@ -56,6 +62,17 @@ export default function AddToCartButton({
     });
 
     if (success) {
+      if (window.fbq) {
+        window.fbq("track", "AddToCart", {
+          content_ids: [product.id],
+          content_name: product.name,
+          content_type: "product",
+          content_url: `https://www.shopdeeglobalgh.com/product/${product.slug}`,
+          value: product.retailPrice,
+          currency: "GHS",
+        });
+      }
+
       setAdded(true);
       setMessage("Item added to cart.");
 
