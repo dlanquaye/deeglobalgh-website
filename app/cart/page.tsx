@@ -4,6 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/app/context/CartContext";
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 function formatMoney(amount: number) {
   return `GH₵ ${amount.toFixed(0)}`;
 }
@@ -18,6 +24,22 @@ export default function CartPage() {
     removeFromCart,
     clearCart,
   } = useCart();
+  const handleInitiateCheckout = () => {
+    if (window.fbq) {
+      window.fbq("track", "InitiateCheckout", {
+        content_ids: items.map((item) => item.id),
+        contents: items.map((item) => ({
+          id: item.id,
+          quantity: item.qty,
+          item_price: item.retailPrice,
+        })),
+        content_type: "product",
+        num_items: totalItems,
+        value: subtotal,
+        currency: "GHS",
+      });
+    }
+  };
 
   return (
     <main className="py-10">
@@ -177,6 +199,7 @@ export default function CartPage() {
               {/* Actions */}
               <Link
                 href="/checkout"
+                onClick={handleInitiateCheckout}
                 className="btn-primary mt-6 inline-flex w-full items-center justify-center px-6 py-4 text-base"
               >
                 <button
