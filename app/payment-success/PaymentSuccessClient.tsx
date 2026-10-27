@@ -26,8 +26,13 @@ type OrderResponse = {
   paymentStatus: string;
   customerName?: string | null;
   orderItems?: {
+    productId: string;
+
     quantity: number;
+
+    unitPrice: number;
     product?: {
+      id?: string | null;
       name?: string | null;
     } | null;
   }[];
@@ -247,6 +252,135 @@ export default function PaymentSuccessClient({
     clearCart,
   ]);
 
+  /*
+   * ==========================================
+   * META PURCHASE EVENT
+   * ==========================================
+   *
+   * Fires only after the database confirms PAID.
+   * Prevents duplicate browser events if the
+   * customer refreshes the success page.
+   * ==========================================
+   */
+  useEffect(() => {
+    if (
+      paymentState !==
+        "PAID" ||
+      !order
+    ) {
+      return;
+    }
+
+    const purchaseKey =
+      `meta_purchase_sent_${order.orderId}`;
+
+    if (
+      localStorage.getItem(
+        purchaseKey
+      )
+    ) {
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const sendPurchase = () => {
+      if (!window.fbq) {
+        return false;
+      }
+
+      const totalPaid =
+        getOrderAmountGhs(
+          order
+        );
+
+      const contents =
+        order.orderItems
+          ?.filter(
+            (item) =>
+              Boolean(
+                item.productId
+              )
+          )
+          .map((item) => ({
+            id: item.productId,
+            quantity: item.quantity,
+            item_price: Number(
+              item.unitPrice
+            ),
+          })) ?? [];
+
+      const contentIds =
+        contents.map(
+          (item) => item.id
+        );
+
+      const numItems =
+        contents.reduce(
+          (total, item) =>
+            total +
+            item.quantity,
+          0
+        );
+
+      window.fbq(
+        "track",
+        "Purchase",
+        {
+          content_ids: contentIds,
+          contents,
+          content_type: "product",
+          num_items: numItems,
+          value: totalPaid,
+          currency: "GHS",
+          order_id: order.orderId,
+        },
+        {
+          eventID:
+            `purchase_${order.orderId}`,
+        }
+      );
+
+      localStorage.setItem(
+        purchaseKey,
+        "true"
+      );
+
+      return true;
+    };
+
+    if (sendPurchase()) {
+      return;
+    }
+
+    const interval =
+      window.setInterval(
+        () => {
+          attempts += 1;
+
+          if (
+            sendPurchase() ||
+            attempts >=
+              maxAttempts
+          ) {
+            window.clearInterval(
+              interval
+            );
+          }
+        },
+        250
+      );
+
+    return () => {
+      window.clearInterval(
+        interval
+      );
+    };
+  }, [
+    paymentState,
+    order,
+  ]);
   /*
    * ==========================================
    * WHATSAPP NOTIFICATION
