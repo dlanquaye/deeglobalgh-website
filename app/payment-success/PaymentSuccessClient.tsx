@@ -383,52 +383,18 @@ export default function PaymentSuccessClient({
   ]);
   /*
    * ==========================================
-   * WHATSAPP NOTIFICATION
+   * WHATSAPP PAYMENT CONFIRMATION
    * ==========================================
    *
-   * Runs only after the order is confirmed PAID.
+   * Customer chooses when to open WhatsApp.
+   * Order details are pre-filled. The customer
+   * can then attach the payment screenshot.
    * ==========================================
    */
-  useEffect(() => {
-    if (
-      paymentState !==
-        "PAID" ||
-      !order
-    ) {
+  const handleWhatsAppConfirmation = () => {
+    if (!order) {
       return;
     }
-
-    const key =
-      `whatsapp_sent_${order.orderId}`;
-
-    if (
-      localStorage.getItem(
-        key
-      )
-    ) {
-      return;
-    }
-
-    localStorage.setItem(
-      key,
-      "true"
-    );
-
-    const itemsList =
-      order.orderItems
-        ?.map(
-          (
-            item,
-            index
-          ) =>
-            `${index + 1}. ${
-              item.product
-                ?.name ??
-              "Unknown Product"
-            } x${item.quantity}`
-        )
-        .join("\n") ||
-      "No items found";
 
     const totalPaid =
       getOrderAmountGhs(
@@ -436,39 +402,21 @@ export default function PaymentSuccessClient({
       );
 
     const message =
-      `🧾 *NEW PAID ORDER — DEEGLOBALGH*\n\n` +
-      `👤 Name: ${
-        order.customerName ||
-        order.email
-      }\n` +
-      `📞 Phone: ${
-        order.phone ||
-        "N/A"
-      }\n\n` +
-      `🛒 Items:\n${itemsList}\n\n` +
-      `💰 Total Paid: GHS ${totalPaid.toFixed(
-        2
-      )}\n\n` +
-      `🆔 Order ID: ${order.orderId}\n\n` +
-      `✅ Payment Status: PAID`;
-
-    const encoded =
-      encodeURIComponent(
-        message
-      );
+      `Hello DeeGlobalGH, I have completed payment for Order ${order.orderId}. ` +
+      `Amount paid: GHS ${totalPaid.toFixed(2)}. ` +
+      `I am attaching my payment confirmation screenshot.`;
 
     const url =
-      `https://wa.me/233270030000?text=${encoded}`;
+      `https://wa.me/233270030000?text=${encodeURIComponent(
+        message
+      )}`;
 
     window.open(
       url,
-      "_blank"
+      "_blank",
+      "noopener,noreferrer"
     );
-  }, [
-    paymentState,
-    order,
-  ]);
-
+  };
   /*
    * ==========================================
    * UI
@@ -570,6 +518,24 @@ export default function PaymentSuccessClient({
           </p>
         </div>
       )}
+
+      <div className="mx-auto mt-6 max-w-md">
+        <p className="text-sm font-medium text-gray-700">
+          Please take a screenshot of this page for your records.
+        </p>
+
+        <p className="mt-2 text-sm text-gray-600">
+          You can also send your payment confirmation to DeeGlobalGH on WhatsApp.
+        </p>
+
+        <button
+          type="button"
+          onClick={handleWhatsAppConfirmation}
+          className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700"
+        >
+          Send Payment Confirmation on WhatsApp
+        </button>
+      </div>
 
       <p className="mt-6 text-gray-700">
         We are processing your order and will contact you shortly for delivery.
