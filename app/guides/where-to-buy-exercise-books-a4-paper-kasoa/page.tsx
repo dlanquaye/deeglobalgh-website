@@ -55,7 +55,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
             </Link>
 
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20a%20quote%20for%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20a%20quote%20for%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_guide_quote"
   className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
 >
@@ -357,7 +357,7 @@ export default function ExerciseBooksA4PaperGuidePage() {
             </Link>
 
             <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20please%20send%20me%20a%20retail%20or%20wholesale%20quote%20for%20exercise%20books%20or%20A4%20paper."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20please%20send%20me%20a%20retail%20or%20wholesale%20quote%20for%20exercise%20books%20or%20A4%20paper."
   linkLocation="exercise_books_a4_guide_retail_wholesale"
   className="rounded-xl border border-white px-6 py-3 font-bold text-white hover:bg-white hover:text-blue-900"
 >

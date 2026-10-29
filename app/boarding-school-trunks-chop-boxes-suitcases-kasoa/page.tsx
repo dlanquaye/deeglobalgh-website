@@ -35,7 +35,7 @@ export default function BoardingStorageKasoaPage() {
 
         <div className="flex flex-wrap gap-3">
           <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20want%20to%20check%20available%20suitcases%2C%20trunks%20and%20chop%20boxes%20for%20boarding%20school."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20want%20to%20check%20available%20suitcases%2C%20trunks%20and%20chop%20boxes%20for%20boarding%20school."
   linkLocation="boarding_trunks_suitcases"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >

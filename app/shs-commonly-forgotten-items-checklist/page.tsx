@@ -47,7 +47,7 @@ export default function ShsForgottenItemsChecklistPage() {
       {/* CTA */}
       <div className="flex flex-wrap gap-3 mb-10">
         <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20checking%20items%20for%20SHS%20boarding%20or%20school%20reopening."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20checking%20items%20for%20SHS%20boarding%20or%20school%20reopening."
   linkLocation="shs_commonly_forgotten_items"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >

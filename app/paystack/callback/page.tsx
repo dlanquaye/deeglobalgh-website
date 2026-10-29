@@ -95,7 +95,7 @@ export default async function PaystackCallbackPage({
             </Link>
 
             <TrackedWhatsAppLink
-              href="https://wa.me/233270030000"
+              href="https://wa.me/233246011773"
               linkLocation="paystack_callback_failure"
               className="rounded bg-green-600 px-4 py-2 text-white"
             >

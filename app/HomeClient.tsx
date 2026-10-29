@@ -113,12 +113,12 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
 
   {/* PRIMARY CTA */}
   <Link
-  href={`https://wa.me/233270030000?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to enquire about school supplies, textbooks and stationery. Please assist me.")}`}
+  href={`https://wa.me/233246011773?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to enquire about school supplies, textbooks and stationery. Please assist me.")}`}
   target="_blank"
   onClick={() =>
     trackWhatsAppClick(
       "homepage_hero",
-      "https://wa.me/233270030000"
+      "https://wa.me/233246011773"
     )
   }
   className="bg-yellow-400 text-blue-900 px-5 py-3 rounded-xl font-bold shadow-lg"
@@ -155,7 +155,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
     </p>
 
     <a
-  href={`https://wa.me/233270030000?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to place an order and enquire about delivery. Please assist me.")}`}
+  href={`https://wa.me/233246011773?text=${encodeURIComponent("Hello DeeGlobalGH, I would like to place an order and enquire about delivery. Please assist me.")}`}
   target="_blank"
   rel="noopener noreferrer"
   onClick={() =>
@@ -381,7 +381,7 @@ export default function HomeClient({ products = [] }: { products?: HomeProduct[]
     );
 
     window.open(
-      `https://wa.me/233270030000?text=${encodeURIComponent(
+      `https://wa.me/233246011773?text=${encodeURIComponent(
         `Hello, I want to order:
 Product: ${p.name}
 Price: GH₵ ${p.retailPrice}

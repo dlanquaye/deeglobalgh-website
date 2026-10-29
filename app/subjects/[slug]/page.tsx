@@ -193,7 +193,7 @@ export default async function SubjectPage({ params }: Props) {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="subject_page_hero"
@@ -316,7 +316,7 @@ export default async function SubjectPage({ params }: Props) {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="subject_page_footer"

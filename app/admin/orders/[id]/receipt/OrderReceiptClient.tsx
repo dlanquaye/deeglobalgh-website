@@ -799,14 +799,14 @@ export default function OrderReceiptClient({
           <strong>
             WhatsApp:
           </strong>{" "}
-          027 003 0000
+          0246 011 773
         </div>
 
         <div>
           <strong>
             Customer Care Calls:
           </strong>{" "}
-          0246 011 773
+          027 003 0000
         </div>
 
         <div>

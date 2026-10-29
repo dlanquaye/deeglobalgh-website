@@ -86,7 +86,7 @@ export default function SeriesHubPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="series_hub_hero"
@@ -166,7 +166,7 @@ export default function SeriesHubPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="series_hub_footer"

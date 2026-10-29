@@ -316,14 +316,14 @@ export default function PublicReceiptClient({
           <strong>
             WhatsApp:
           </strong>{" "}
-          027 003 0000
+          0246 011 773
         </p>
 
         <p>
           <strong>
             Customer Care Calls:
           </strong>{" "}
-          0246 011 773
+          027 003 0000
         </p>
 
         <p>

@@ -199,7 +199,7 @@ export default async function CategoryPage({
             </Link>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 `Hello DeeGlobalGH, I would like to enquire about ${prettifySlug(slug)}. Please assist me.`
               )}`}
               linkLocation="category_page_hero"

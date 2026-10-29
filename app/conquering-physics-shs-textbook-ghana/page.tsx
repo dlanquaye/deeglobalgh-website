@@ -257,7 +257,7 @@ export default async function ConqueringPhysicsPage() {
               </TrackedLink>
 
               <TrackedWhatsAppLink
-                href={`https://wa.me/233270030000?text=${encodeURIComponent(
+                href={`https://wa.me/233246011773?text=${encodeURIComponent(
                   whatsappMessage
                 )}`}
                 linkLocation="conquering_physics_hero"
@@ -376,7 +376,7 @@ export default async function ConqueringPhysicsPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="conquering_physics_location"

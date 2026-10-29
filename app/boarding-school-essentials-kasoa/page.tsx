@@ -37,7 +37,7 @@ export default function BoardingSchoolEssentialsKasoaPage() {
       {/* CTA */}
       <div className="flex gap-3 mb-10 flex-wrap">
         <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20with%20a%20boarding%20school%20or%20SHS%20prospectus%20list."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20help%20with%20a%20boarding%20school%20or%20SHS%20prospectus%20list."
   linkLocation="boarding_school_essentials"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >

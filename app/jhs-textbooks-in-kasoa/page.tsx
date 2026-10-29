@@ -142,7 +142,7 @@ export default function JhsTextbooksKasoaPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="jhs_textbooks_hero"
@@ -248,7 +248,7 @@ export default function JhsTextbooksKasoaPage() {
           </div>
 
           <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 "Hello DeeGlobalGH, I am looking for a JHS textbook series that I did not see on the website. Please help me check whether it is available."
               )}`}
               linkLocation="jhs_series_collection"
@@ -332,7 +332,7 @@ export default function JhsTextbooksKasoaPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="jhs_textbooks_local"

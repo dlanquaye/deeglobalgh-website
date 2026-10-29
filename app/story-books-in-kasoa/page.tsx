@@ -220,7 +220,7 @@ export default async function StoryBooksInKasoaPage({
 
           <div className="mt-6 flex flex-wrap gap-3">
             <TrackedWhatsAppLink
-              href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20story%20books%2C%20novels%20or%20literature%20books.%20Please%20assist%20me."
+              href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20story%20books%2C%20novels%20or%20literature%20books.%20Please%20assist%20me."
               linkLocation="story_books_page_hero"
               className="rounded-xl bg-yellow-400 px-5 py-3 font-semibold text-black"
             >
@@ -535,7 +535,7 @@ export default async function StoryBooksInKasoaPage({
 
             <div className="mt-6 flex flex-wrap gap-3">
               <TrackedWhatsAppLink
-                href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20am%20looking%20for%20a%20story%20book%2C%20novel%2C%20prose%20or%20drama%20book.%20Please%20help%20me%20check%20availability."
+                href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20am%20looking%20for%20a%20story%20book%2C%20novel%2C%20prose%20or%20drama%20book.%20Please%20help%20me%20check%20availability."
                 linkLocation="story_books_page_bottom"
                 className="rounded-xl bg-green-600 px-5 py-3 font-semibold text-white"
               >

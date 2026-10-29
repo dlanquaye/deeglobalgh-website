@@ -26,7 +26,7 @@ const CUSTOMER_CARE_TEL =
   "+233246011773";
 
 const WHATSAPP_URL =
-  "https://wa.me/233270030000";
+  "https://wa.me/233246011773";
 
 const WEBSITE_URL =
   "https://www.shopdeeglobalgh.com";
@@ -1069,7 +1069,7 @@ export default async function DigitalReceiptPage(
                       700,
                   }}
                 >
-                  WhatsApp: 027 003 0000
+                  WhatsApp: 0246 011 773
                 </TrackedWhatsAppLink>
 
                 <a

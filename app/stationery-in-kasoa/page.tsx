@@ -419,7 +419,7 @@ export default async function StationeryKasoaPage({
         </Link>
 
         <TrackedWhatsAppLink
-          href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20stationery%20and%20school%20supplies.%20Please%20assist%20me."
+          href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20stationery%20and%20school%20supplies.%20Please%20assist%20me."
           linkLocation="stationery_in_kasoa"
           className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-black"
         >
@@ -561,7 +561,7 @@ export default async function StationeryKasoaPage({
         </p>
 
         <TrackedWhatsAppLink
-          href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20bulk%20or%20wholesale%20stationery.%20Please%20assist%20me."
+          href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20bulk%20or%20wholesale%20stationery.%20Please%20assist%20me."
           linkLocation="stationery_bulk_enquiry"
           className="inline-block rounded-xl bg-yellow-500 px-5 py-3 font-bold text-black"
         >

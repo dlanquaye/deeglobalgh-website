@@ -35,7 +35,7 @@ export default function SchoolReopeningEssentialsKasoaPage() {
 
         <div className="flex flex-wrap gap-3">
           <TrackedWhatsAppLink
-  href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20need%20help%20with%20school%20reopening%20shopping."
+  href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20need%20help%20with%20school%20reopening%20shopping."
   linkLocation="school_reopening_essentials"
   className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-bold"
 >

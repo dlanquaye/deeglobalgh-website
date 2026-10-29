@@ -161,7 +161,7 @@ export default async function BeaconOfLightPage() {
               </a>
 
               <TrackedWhatsAppLink
-                href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20The%20Beacon%20of%20Light%20books.%20Please%20help%20me%20check%20the%20available%20main%20text%2C%20commentary%20and%20workbook."
+                href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20The%20Beacon%20of%20Light%20books.%20Please%20help%20me%20check%20the%20available%20main%20text%2C%20commentary%20and%20workbook."
                 linkLocation="beacon_of_light_landing"
                 className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
               >
@@ -339,7 +339,7 @@ export default async function BeaconOfLightPage() {
 
             <div className="mt-7 flex flex-wrap gap-3">
               <TrackedWhatsAppLink
-                href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20order%20or%20check%20availability%20for%20The%20Beacon%20of%20Light%20books."
+                href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20order%20or%20check%20availability%20for%20The%20Beacon%20of%20Light%20books."
                 linkLocation="beacon_of_light_bottom_cta"
                 className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white hover:bg-green-700"
               >

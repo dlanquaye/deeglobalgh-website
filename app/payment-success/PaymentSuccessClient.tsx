@@ -407,7 +407,7 @@ export default function PaymentSuccessClient({
       `I am attaching my payment confirmation screenshot.`;
 
     const url =
-      `https://wa.me/233270030000?text=${encodeURIComponent(
+      `https://wa.me/233246011773?text=${encodeURIComponent(
         message
       )}`;
 

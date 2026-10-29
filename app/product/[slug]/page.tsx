@@ -213,7 +213,7 @@ Quantity: 1
 Please assist me with delivery.`;
 
   const productWhatsAppUrl =
-    `https://wa.me/233270030000?text=${encodeURIComponent(
+    `https://wa.me/233246011773?text=${encodeURIComponent(
       productWhatsAppMessage
     )}`;
 

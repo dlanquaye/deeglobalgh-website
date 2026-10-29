@@ -206,7 +206,7 @@ export default async function LevelPage({
         </Link>
 
         <TrackedWhatsAppLink
-          href={`https://wa.me/233270030000?text=${encodeURIComponent(
+          href={`https://wa.me/233246011773?text=${encodeURIComponent(
             `Hello DeeGlobalGH, I would like to enquire about textbooks and school supplies for ${pretty}. Please assist me.`
           )}`}
           linkLocation="level_page_hero"

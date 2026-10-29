@@ -1096,8 +1096,8 @@ export async function POST(
             result.paymentMethod
           )}\n` +
           `Receipt: ${digitalReceiptUrl}\n` +
-          `Call: 0246 011 773\n` +
-          `WhatsApp: 027 003 0000\n` +
+          `Call: 027 003 0000\n` +
+          `WhatsApp: 0246 011 773\n` +
           `Review: https://www.shopdeeglobalgh.com/review\n` +
           `Thank you.`;
 

@@ -229,7 +229,7 @@ I may also add more items.`;
               );
 
               window.open(
-                `https://wa.me/233270030000?text=${encodeURIComponent(
+                `https://wa.me/233246011773?text=${encodeURIComponent(
                   whatsAppMessage
                 )}`,
                 "_blank"

@@ -673,7 +673,7 @@ export default function CheckoutPage() {
 );
 
 window.open(
-  `https://wa.me/233270030000?text=${encoded}`,
+  `https://wa.me/233246011773?text=${encoded}`,
   "_blank"
 );
     } catch (

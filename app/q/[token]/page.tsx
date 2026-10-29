@@ -866,7 +866,7 @@ export default async function PublicQuotationPage({
             </a>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${whatsappMessage}`}
+              href={`https://wa.me/233246011773?text=${whatsappMessage}`}
               linkLocation="public_quotation_contact"
               style={{
                 display:
@@ -921,11 +921,11 @@ export default async function PublicQuotationPage({
           </div>
 
           <div>
-            WhatsApp: 027 003 0000
+            WhatsApp: 0246 011 773
           </div>
 
           <div>
-            Customer Care: 0246 011 773
+            Customer Care: 027 003 0000
           </div>
 
           <div>

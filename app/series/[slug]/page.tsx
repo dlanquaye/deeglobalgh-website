@@ -297,7 +297,7 @@ export default async function SeriesPage({ params }: Props) {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="series_page_hero"
@@ -547,7 +547,7 @@ export default async function SeriesPage({ params }: Props) {
           </p>
 
           <TrackedWhatsAppLink
-            href={`https://wa.me/233270030000?text=${encodeURIComponent(
+            href={`https://wa.me/233246011773?text=${encodeURIComponent(
               whatsappMessage
             )}`}
             linkLocation="series_page_footer"

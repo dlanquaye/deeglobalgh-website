@@ -140,7 +140,7 @@ export default function KasoaNewMarketBranchPage() {
             </TrackedDirectionsLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${whatsappMessage}`}
+              href={`https://wa.me/233246011773?text=${whatsappMessage}`}
               linkLocation="kasoa_new_market_branch"
               className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold"
             >
@@ -506,7 +506,7 @@ export default function KasoaNewMarketBranchPage() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 "Hello DeeGlobalGH, I would like to send my school list or prospectus and check which items are available before I come to the Kasoa New Market Branch."
               )}`}
               linkLocation="kasoa_new_market_school_list"

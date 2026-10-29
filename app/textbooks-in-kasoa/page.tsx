@@ -316,7 +316,7 @@ export default async function TextbooksKasoaPage({
         </Link>
 
         <TrackedWhatsAppLink
-          href="https://wa.me/233270030000?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20textbooks.%20Please%20assist%20me."
+          href="https://wa.me/233246011773?text=Hello%20DeeGlobalGH%2C%20I%20would%20like%20to%20enquire%20about%20textbooks.%20Please%20assist%20me."
           linkLocation="textbooks_in_kasoa"
           className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-black"
         >

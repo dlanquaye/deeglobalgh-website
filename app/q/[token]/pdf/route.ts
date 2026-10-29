@@ -1125,7 +1125,7 @@ export async function GET(
   y -= 16;
 
   page.drawText(
-    "WhatsApp: 027 003 0000 | Customer Care: 0246 011 773 | Shop Line: 030 398 2358",
+    "WhatsApp: 0246 011 773 | Customer Care: 027 003 0000 | Shop Line: 030 398 2358",
     {
       x:
         MARGIN_X,

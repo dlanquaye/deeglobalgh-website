@@ -183,7 +183,7 @@ export default async function ExamMaterialsPage({
       {/* CTA */}
       <div className="mb-6 flex flex-wrap gap-3">
         <TrackedWhatsAppLink
-          href={`https://wa.me/233270030000?text=${encodeURIComponent(
+          href={`https://wa.me/233246011773?text=${encodeURIComponent(
             "Hello DeeGlobalGH, I would like to enquire about exam materials, revision books and past questions. Please assist me."
           )}`}
           linkLocation="exam_materials_in_kasoa"

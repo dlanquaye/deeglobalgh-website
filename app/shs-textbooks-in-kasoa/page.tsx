@@ -257,7 +257,7 @@ export default function ShsTextbooksKasoaPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="shs_textbooks_hero"
@@ -378,7 +378,7 @@ export default function ShsTextbooksKasoaPage() {
           </div>
 
           <TrackedWhatsAppLink
-            href={`https://wa.me/233270030000?text=${encodeURIComponent(
+            href={`https://wa.me/233246011773?text=${encodeURIComponent(
               "Hello DeeGlobalGH, I would like to check the availability of an SHS book I saw on your website."
             )}`}
             linkLocation="shs_popular_books"
@@ -425,7 +425,7 @@ export default function ShsTextbooksKasoaPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 otherSeriesMessage
               )}`}
               linkLocation="shs_series_collection"
@@ -472,7 +472,7 @@ export default function ShsTextbooksKasoaPage() {
 
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 otherSeriesMessage
               )}`}
               linkLocation="shs_other_ranges"
@@ -544,7 +544,7 @@ export default function ShsTextbooksKasoaPage() {
             </TrackedLink>
 
             <TrackedWhatsAppLink
-              href={`https://wa.me/233270030000?text=${encodeURIComponent(
+              href={`https://wa.me/233246011773?text=${encodeURIComponent(
                 whatsappMessage
               )}`}
               linkLocation="shs_textbooks_prospectus"
