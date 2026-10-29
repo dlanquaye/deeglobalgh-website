@@ -76,7 +76,7 @@ export default function CategoryClient({
 
             const pid = String(p.id);
 
-            const comingSoon = p.sku === "DG-SHS-FAN-WA-NEW03";
+            const comingSoon = false;
             const outOfStock = p.stockQty <= 0;
             const unavailable = comingSoon || outOfStock;
 

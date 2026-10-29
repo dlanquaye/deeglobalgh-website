@@ -23,7 +23,7 @@ type Props = {
   product: ProductCardProduct;
 };
 
-const COMING_SOON_SKU = "DG-SHS-FAN-WA-NEW03";
+const COMING_SOON_SKU = "";
 
 function ProductCardContent({ product }: Props) {
   const [mounted, setMounted] = useState(false);
@@ -49,7 +49,7 @@ function ProductCardContent({ product }: Props) {
       ? product.imageSrc
       : "/placeholder.png";
 
-  const comingSoon = product.sku === COMING_SOON_SKU;
+  const comingSoon = false;
   const outOfStock = stockQty <= 0;
   const unavailable = comingSoon || outOfStock;
 

@@ -161,7 +161,7 @@ export default async function ProductPage({
     product.subCategorySlug?.trim() ||
     product.categorySlug?.trim() ||
     "product";
-  const comingSoon = product.sku === "DG-SHS-FAN-WA-NEW03";
+  const comingSoon = false;
   const outOfStock = product.stockQty <= 0;
   const unavailable = comingSoon || outOfStock;
 
