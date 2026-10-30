@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   description:
     "Shop textbooks, stationery, and school essentials in Ghana. Fast delivery across Kasoa and beyond.",
   manifest: "/manifest.json",
+
+  verification: {
+    other: {
+      "facebook-domain-verification": "8er7ef8jqbqfc2kngheymansf1ds1n",
+    },
+  },
 };
 
 const businessStructuredData = {
