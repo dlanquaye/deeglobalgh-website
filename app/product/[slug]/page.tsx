@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import PageJumpNav from "@/app/components/PageJumpNav";
-import Image from "next/image";
+import ProtectedProductImage from "@/app/components/ProtectedProductImage";
 import AddToCartButton from "./AddToCartButton";
 import MetaViewContent from "./MetaViewContent";
 
@@ -289,7 +289,7 @@ Please assist me with delivery.`;
       <div className="grid gap-10 md:grid-cols-2">
         <div className="rounded-2xl border bg-white p-6">
           <div className="relative h-[420px]">
-            <Image
+            <ProtectedProductImage
               src={product.imageSrc || "/products/placeholder.webp"}
               alt={product.imageAlt || product.name}
               fill
@@ -445,7 +445,7 @@ Please assist me with delivery.`;
                 className="rounded-2xl border bg-white p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl md:p-4"
               >
                 <div className="relative mb-3 h-40 w-full">
-                  <Image
+                  <ProtectedProductImage
                     src={
                       item.imageSrc ||
                       "/products/placeholder.webp"
@@ -491,7 +491,7 @@ Please assist me with delivery.`;
                 className="rounded-xl border bg-white p-4 transition hover:shadow-md"
               >
                 <div className="relative mb-2 h-40 w-full">
-                  <Image
+                  <ProtectedProductImage
                     src={
                       item.imageSrc ||
                       "/products/placeholder.webp"
