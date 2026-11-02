@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
+import ProtectedProductImage from "@/app/components/ProtectedProductImage";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
 
@@ -260,7 +260,7 @@ export default async function LevelPage({
               className="rounded-xl border p-3 transition hover:bg-gray-50"
             >
               <div className="relative mb-3 flex h-44 items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-3">
-                <Image
+                <ProtectedProductImage
                   src={product.imageSrc || "/products/placeholder.webp"}
                   alt={product.name}
                   width={400}
