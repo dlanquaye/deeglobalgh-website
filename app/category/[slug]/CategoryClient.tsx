@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import ProtectedProductImage from "@/app/components/ProtectedProductImage";
 import { useMemo, useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 
@@ -88,7 +88,7 @@ export default function CategoryClient({
                 {/* Product link */}
                 <Link href={`/product/${p.slug}`} className="block">
                   <div className="flex h-52 items-center justify-center rounded-xl bg-gray-50">
-                    <Image
+                    <ProtectedProductImage
                       src={imageSrc}
                       alt={p.name}
                       width={500}
