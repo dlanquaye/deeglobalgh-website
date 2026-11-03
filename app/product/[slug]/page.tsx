@@ -540,6 +540,57 @@ Please assist me with delivery.`;
         </div>
       )}
 
+      <section
+        id="kasoa-school-shopping-links"
+        aria-labelledby="kasoa-school-shopping-title"
+        className="mt-14 mb-24 rounded-2xl border border-blue-100 bg-blue-50 p-5 md:p-8"
+      >
+        <h2
+          id="kasoa-school-shopping-title"
+          className="text-xl font-bold text-blue-900 md:text-2xl"
+        >
+          More School Shopping at DeeGlobalGH in Kasoa
+        </h2>
+
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-700 md:text-base">
+          Looking for more than one textbook? Explore stationery,
+          boarding essentials and school-list supplies at DeeGlobalGH,
+          Kasoa New Market.
+        </p>
+
+        <nav
+          aria-label="Explore school shopping in Kasoa"
+          className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          <Link
+            href="/textbooks-in-kasoa"
+            className="rounded-xl border border-blue-100 bg-white px-4 py-4 font-semibold text-blue-900 transition hover:border-blue-300 hover:bg-blue-50"
+          >
+            Textbooks in Kasoa
+          </Link>
+
+          <Link
+            href="/stationery-in-kasoa"
+            className="rounded-xl border border-blue-100 bg-white px-4 py-4 font-semibold text-blue-900 transition hover:border-blue-300 hover:bg-blue-50"
+          >
+            Stationery &amp; School Supplies
+          </Link>
+
+          <Link
+            href="/boarding-school-essentials-kasoa"
+            className="rounded-xl border border-blue-100 bg-white px-4 py-4 font-semibold text-blue-900 transition hover:border-blue-300 hover:bg-blue-50"
+          >
+            Boarding School Essentials
+          </Link>
+
+          <Link
+            href="/school-list-items-kasoa"
+            className="rounded-xl border border-blue-100 bg-white px-4 py-4 font-semibold text-blue-900 transition hover:border-blue-300 hover:bg-blue-50"
+          >
+            School List Shopping
+          </Link>
+        </nav>
+      </section>
       <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-white p-3">
         <TrackedWhatsAppLink
           href={productWhatsAppUrl}
