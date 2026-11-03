@@ -590,6 +590,36 @@ Please assist me with delivery.`;
             School List Shopping
           </Link>
         </nav>
+
+        <aside
+          id="publisher-partnership-invitation"
+          aria-labelledby="publisher-partnership-title"
+          className="mt-6 rounded-xl border border-amber-200 bg-white p-5"
+        >
+          <p className="text-sm font-semibold text-blue-800">
+            For Publishers, Authors &amp; Book Owners
+          </p>
+
+          <h3
+            id="publisher-partnership-title"
+            className="mt-2 text-lg font-bold text-blue-900"
+          >
+            Want More Customers for Your Books?
+          </h3>
+
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-700">
+            DeeGlobalGH welcomes opportunities to help publishers and
+            authors market and sell their books to parents, students,
+            schools and other readers in Ghana.
+          </p>
+
+          <Link
+            href="/book-publishing-marketing-partners-ghana"
+            className="mt-4 inline-flex rounded-lg bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+          >
+            Explore Book Marketing Partnerships
+          </Link>
+        </aside>
       </section>
       <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-white p-3">
         <TrackedWhatsAppLink
