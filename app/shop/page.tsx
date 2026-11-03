@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 import { prisma } from "@/lib/prisma";
@@ -216,6 +216,51 @@ export default async function ShopPage({
           <p className="text-gray-600">
             Reliable delivery across Ghana.
           </p>
+        </div>
+      </section>
+
+      {/* NATIONAL SHOPPING AND PUBLISHER PARTNERSHIPS */}
+      <section
+        id="national-shopping-partnership-links"
+        aria-label="Online textbook ordering and publisher partnerships"
+        className="mx-auto mt-6 grid max-w-6xl grid-cols-1 gap-4 px-4 md:grid-cols-2"
+      >
+        <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
+          <h2 className="text-lg font-bold text-blue-900">
+            Ordering Textbooks from Outside Kasoa?
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            DeeGlobalGH is based at Kasoa New Market, but customers
+            across Ghana can enquire about ordering textbooks online
+            and arranging delivery to their location.
+          </p>
+
+          <Link
+            href="/order-textbooks-online-ghana"
+            className="mt-4 inline-flex rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
+          >
+            Order Textbooks Online in Ghana
+          </Link>
+        </div>
+
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-lg font-bold text-blue-900">
+            Are You a Publisher, Author or Book Owner?
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            Looking for opportunities to promote and sell your books?
+            Explore book marketing, retail sales and distribution
+            partnership discussions with DeeGlobalGH.
+          </p>
+
+          <Link
+            href="/book-publishing-marketing-partners-ghana"
+            className="mt-4 inline-flex rounded-lg border border-blue-900 px-4 py-2.5 text-sm font-semibold text-blue-900 transition hover:bg-white"
+          >
+            Explore Book Marketing Partnerships
+          </Link>
         </div>
       </section>
 
