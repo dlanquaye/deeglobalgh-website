@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +49,7 @@ export async function generateMetadata({
       : baseTitle;
 
   const description =
-    "Buy a large selection of NaCCA-approved and GES-recommended textbooks in Kasoa for Pre-School, Basic, JHS and SHS, including SBC, CCP and Secondary Education Curriculum books.";
+    "Shop textbooks in Kasoa for Preschool, Primary, JHS and SHS. Browse curriculum-aligned school books at DeeGlobalGH or enquire about online ordering and delivery across Ghana.";
 
   const canonicalUrl =
     !hasFilters && currentPage > 1
@@ -245,16 +245,23 @@ export default async function TextbooksKasoaPage({
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* ================= SEO HEADER ================= */}
       <h1 className="mb-4 text-3xl font-bold text-blue-900">
-        Textbooks in Kasoa – Buy School Books Near You
+        Textbooks in Kasoa — Shop Locally or Order Online Across Ghana
       </h1>
 
       <p className="mb-4 max-w-2xl text-gray-600">
-        Looking for textbooks in Kasoa? DeeGlobalGH stocks a large selection
-        of NaCCA-approved and GES-recommended textbooks for Pre-School,
-        Basic 1–6, JHS, and SHS students. These include books for Ghana&apos;s
-        Standards-Based Curriculum (SBC), Common Core Programme (CCP) and
-        Secondary Education Curriculum. Order online and choose collection or
-        delivery in Kasoa.
+        Looking for textbooks in Kasoa or ordering from another part of Ghana?
+        DeeGlobalGH offers school textbooks for Preschool, Basic 1–6, JHS and
+        SHS, including materials for Ghana&apos;s Standards-Based Curriculum
+        (SBC), Common Core Programme (CCP) and Secondary Education Curriculum.
+        Visit our shop at Kasoa New Market, browse available books online or
+        send us your school book list to confirm titles, editions and prices.
+      </p>
+
+      <p className="mb-4 max-w-2xl text-gray-600">
+        Customers in Kasoa can arrange collection or local delivery. Customers
+        elsewhere in Ghana can also enquire about ordering textbooks and
+        arranging delivery, subject to destination and available transport
+        services.
       </p>
 
       <p className="mb-6 max-w-2xl text-gray-600">
@@ -538,7 +545,18 @@ export default async function TextbooksKasoaPage({
         <p className="text-gray-600">
           Whether you need Standards-Based Curriculum books, Common Core
           Programme textbooks, JHS materials, or SHS books, you can browse the
-          available selection and order for collection or delivery.
+          available selection and enquire about collection or delivery.
+        </p>
+
+        <p className="mt-4 text-gray-700">
+          Shopping from outside Kasoa?{" "}
+          <Link
+            href="/order-textbooks-online-ghana"
+            className="font-semibold text-blue-800 underline underline-offset-4"
+          >
+            Find out how to order textbooks online in Ghana
+          </Link>
+          , including how to send your school book list and arrange delivery.
         </p>
       </div>
 
