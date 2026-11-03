@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Textbooks, Stationery & School Supplies in Kasoa | DeeGlobalGH",
+  description:
+    "Find textbooks, stationery, exam materials, boarding essentials and school-list supplies at DeeGlobalGH in Kasoa New Market. Enquire or shop online.",
+  alternates: {
+    canonical: "https://www.shopdeeglobalgh.com/kasoa",
+  },
+};
 import Link from "next/link";
 import TrackedWhatsAppLink from "@/app/components/TrackedWhatsAppLink";
 

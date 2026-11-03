@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "DeeGlobalGH | Textbooks, Stationery & School Essentials in Kasoa",
+  description:
+    "Shop NaCCA and GES curriculum-aligned textbooks, stationery, school bags, exam materials and boarding essentials at DeeGlobalGH, Kasoa New Market, Ghana.",
+  alternates: {
+    canonical: "https://www.shopdeeglobalgh.com/",
+  },
+};
 import { prisma } from "@/lib/prisma";
 import HomeClient from "./HomeClient";
 
