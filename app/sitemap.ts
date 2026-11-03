@@ -1,4 +1,4 @@
-﻿import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_SERIES } from "@/lib/series";
 import { getStandaloneSubjects } from "@/lib/subjects";
@@ -15,6 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/subjects`, lastModified: new Date() },
     {
       url: `${SITE_URL}/beacon-of-light-jhs-literature-ghana`,
+      lastModified: new Date(),
+    },
+
+    // Nationwide textbook ordering and publisher partnerships
+    {
+      url: `${SITE_URL}/order-textbooks-online-ghana`,
+      lastModified: new Date(),
+    },
+    {
+      url: `${SITE_URL}/book-publishing-marketing-partners-ghana`,
       lastModified: new Date(),
     },
 
