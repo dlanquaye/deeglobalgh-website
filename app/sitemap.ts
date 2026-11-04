@@ -28,6 +28,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
     },
 
+    // Tamak Series JHS Questions and Answers
+    {
+      url: `${SITE_URL}/tamak-series-jhs-questions-and-answers`,
+      lastModified: new Date(),
+    },
     // Local SEO pages
     { url: `${SITE_URL}/kasoa`, lastModified: new Date() },
     {
