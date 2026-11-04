@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "../CategoryClient";
@@ -87,9 +87,17 @@ export default async function CategoryPage({
   try {
     const where = {
       categorySlug: slug,
-      subCategorySlug: sub,
       isActive: true,
       websiteVisible: true,
+      ...(slug === "exam-materials" &&
+      (sub === "jhs" || sub === "shs")
+        ? {
+            OR: [
+              { subCategorySlug: sub },
+              { levelSlugs: { has: sub } },
+            ],
+          }
+        : { subCategorySlug: sub }),
     };
 
     totalProducts = await prisma.product.count({
