@@ -346,6 +346,24 @@ export default function JhsTextbooksKasoaPage() {
       </section>
 
       <PageJumpNav />
+      <section className="mx-auto my-10 max-w-6xl rounded-2xl border border-blue-200 bg-blue-50 p-6">
+        <h2 className="text-xl font-bold text-blue-900">
+          JHS Revision and Questions &amp; Answers Books
+        </h2>
+        <p className="mt-3 leading-7 text-gray-700">
+          In addition to JHS textbooks, DeeGlobalGH offers
+          supplementary study and revision materials. Explore
+          Tamak Series Practical Questions &amp; Answers Simplified
+          books for Basic 7, 8 and 9.
+        </p>
+        <a
+          href="/tamak-series-jhs-questions-and-answers"
+          className="mt-4 inline-flex rounded-xl bg-blue-900 px-5 py-3 font-bold text-white hover:bg-blue-800"
+        >
+          Explore Tamak Series JHS Books
+        </a>
+      </section>
+
     </main>
   );
 }

@@ -227,6 +227,24 @@ export default async function ExamMaterialsPage({
         )}
       </div>
 
+      <section className="mb-8 rounded-2xl border border-blue-200 bg-blue-50 p-6">
+        <h2 className="text-xl font-bold text-blue-900">
+          Looking for Tamak Series JHS Questions &amp; Answers?
+        </h2>
+        <p className="mt-3 leading-7 text-gray-700">
+          Explore the seven Tamak Series Practical Questions &amp;
+          Answers Simplified books for Basic 7, 8 and 9.
+          Choose individual subjects for JHS study, revision
+          and BECE preparation.
+        </p>
+        <Link
+          href="/tamak-series-jhs-questions-and-answers"
+          className="mt-4 inline-flex rounded-xl bg-blue-900 px-5 py-3 font-bold text-white hover:bg-blue-800"
+        >
+          Explore Tamak Series Books
+        </Link>
+      </section>
+
       {/* PRODUCTS */}
       {products.length === 0 ? (
         <p>No exam materials available yet.</p>

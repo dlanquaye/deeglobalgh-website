@@ -236,6 +236,24 @@ export default async function CategoryPage({
         )}
       </div>
 
+      {slug === "exam-materials" && sub === "jhs" && (
+        <div className="mb-7 rounded-xl border border-blue-200 bg-blue-50 p-5">
+          <p className="font-bold text-blue-900">
+            Looking for all seven Tamak Series subjects?
+          </p>
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            Browse the Tamak Series Practical Questions &amp; Answers
+            Simplified collection for Basic 7, 8 and 9.
+          </p>
+          <Link
+            href="/tamak-series-jhs-questions-and-answers"
+            className="mt-3 inline-flex font-bold text-blue-800 underline underline-offset-4 hover:text-blue-600"
+          >
+            Explore the Tamak Series collection
+          </Link>
+        </div>
+      )}
+
       <CategoryClient slug={slug} products={products} />
 
       {/* Pagination */}
