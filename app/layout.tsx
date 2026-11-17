@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import DeeGlobalLiveChat from "./components/DeeGlobalLiveChat";
 import "./globals.css";
 import Header from "./components/Header";
 import MetaPixel from "./components/MetaPixel";
@@ -102,6 +103,7 @@ export default function RootLayout({
             gtag('config', 'G-2S4Q5JV5SP');
           `}
         </Script>
+        <DeeGlobalLiveChat />
       </body>
     </html>
   );

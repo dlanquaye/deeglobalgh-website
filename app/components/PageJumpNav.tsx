@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -58,7 +58,7 @@ export default function PageJumpNav() {
   return (
     <nav
       aria-label="Page navigation"
-      className="fixed bottom-20 right-4 z-40 flex flex-col gap-2"
+      className="fixed bottom-20 left-4 sm:left-auto sm:right-24 z-40 flex flex-col gap-2"
     >
       {canGoUp && (
         <button
