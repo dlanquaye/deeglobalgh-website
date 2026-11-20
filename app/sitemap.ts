@@ -97,6 +97,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // Verified public category landing pages.
+  const categoryPages: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}/category/textbooks`, lastModified: new Date() },
+    { url: `${SITE_URL}/category/exam-materials`, lastModified: new Date() },
+    { url: `${SITE_URL}/category/exam-materials/jhs`, lastModified: new Date() },
+  ];
   const seriesPages: MetadataRoute.Sitemap = PUBLIC_SERIES.map((series) => ({
     url: `${SITE_URL}/series/${series.slug}`,
     lastModified: new Date(),
@@ -145,6 +151,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    ...categoryPages,
     ...seriesPages,
     ...subjectPages,
     ...levelPages,
