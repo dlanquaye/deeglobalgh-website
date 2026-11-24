@@ -526,7 +526,7 @@ export async function POST(
                 "BRANCH",
 
               locationId:
-                "shop-kasoa",
+                "cmq4b407s0000g3jg31elgm80",
 
               quantity:
                 parsedStockQty,
