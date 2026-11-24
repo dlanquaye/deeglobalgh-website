@@ -31,6 +31,9 @@ model Order {
   paymentMethod    String?
   receiptToken     String?       @unique
   paymentToken     String?       @unique
+  salesChannel       String?
+  fulfillmentMethod  String?
+  marketingSource    String?
 
   inventoryMovements InventoryMovement[]
   events             OrderEvent[]
@@ -47,6 +50,7 @@ model OrderItem {
   id                 String       @id @default(cuid())
   orderId            String
   productId          String
+  fulfillmentLocationId String? // Optional supplying branch for website orders
   quantity           Int
   unitPrice          Float
   totalPrice         Float

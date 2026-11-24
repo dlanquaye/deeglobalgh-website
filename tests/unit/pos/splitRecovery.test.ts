@@ -20,6 +20,7 @@ const {
   preparePosPricingMock,
   resolvePosDiscountActorMock,
   fetchMock,
+  requireAdminMock,
 } = vi.hoisted(() => ({
   cookiesMock:
     vi.fn(),
@@ -38,8 +39,16 @@ const {
 
   fetchMock:
     vi.fn(),
+  requireAdminMock:
+    vi.fn(),
 }));
 
+vi.mock(
+  "@/app/lib/adminAuth",
+  () => ({
+    requireAdmin: requireAdminMock,
+  })
+);
 vi.mock(
   "next/headers",
   () => ({
@@ -608,6 +617,8 @@ describe(
   () => {
     beforeEach(() => {
       vi.clearAllMocks();
+
+      requireAdminMock.mockResolvedValue(session);
 
       process.env
         .PAYSTACK_POS_SECRET_KEY =

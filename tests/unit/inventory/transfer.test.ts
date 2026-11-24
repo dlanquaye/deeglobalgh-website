@@ -1,4 +1,4 @@
-﻿import {
+import {
   beforeEach,
   describe,
   expect,
@@ -107,7 +107,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity: 1,
 
@@ -168,7 +168,7 @@ describe("transferInventory", () => {
                 LocationType.BRANCH,
 
               locationId:
-                "branch-1",
+                "cmq4b407s0000g3jg31elgm80",
             },
         },
         update: {
@@ -184,7 +184,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           locationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity: 1,
         },
@@ -228,7 +228,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           createdByStaffId:
             "staff-1",
@@ -256,7 +256,7 @@ describe("transferInventory", () => {
           LocationType.BRANCH,
 
         toLocationId:
-          "branch-1",
+          "cmq4b407s0000g3jg31elgm80",
 
         sourceQuantityAfter:
           12,
@@ -312,7 +312,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity: 3,
 
@@ -370,7 +370,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity: 1,
 
@@ -417,7 +417,7 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity,
 
@@ -446,13 +446,13 @@ describe("transferInventory", () => {
             LocationType.BRANCH,
 
           fromLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           toLocationType:
             LocationType.BRANCH,
 
           toLocationId:
-            "branch-1",
+            "cmq4b407s0000g3jg31elgm80",
 
           quantity: 1,
 
@@ -524,7 +524,7 @@ describe("transferInventory", () => {
           LocationType.BRANCH,
 
         fromLocationId:
-          "branch-1",
+          "cmq4b407s0000g3jg31elgm80",
 
         toLocationType:
           LocationType.WAREHOUSE,

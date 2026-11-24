@@ -100,13 +100,15 @@ function createOrder(
       false,
 
     locationId:
-      "branch-1",
+      "cmq4b407s0000g3jg31elgm80",
 
     receiptToken:
       null,
 
     orderItems: [
       {
+        id: "order-item-1",
+        fulfillmentLocationId: null,
         productId:
           "product-1",
 
@@ -342,7 +344,7 @@ describe(
               "BRANCH",
 
             fromLocationId:
-              "branch-1",
+              "cmq4b407s0000g3jg31elgm80",
 
             createdByStaffId:
               "SYSTEM",
@@ -442,6 +444,310 @@ describe(
         ).toBeGreaterThan(
           20
         );
+      }
+    );
+
+    it(
+      "uses each saved item branch for a mixed-branch payment",
+      async () => {
+        const mainBranchId =
+          "cmq4b407s0000g3jg31elgm80";
+
+        const secondBranchId =
+          "second-branch-test";
+
+        const base = createOrder();
+
+        const order = {
+          ...base,
+          orderItems: [
+            {
+              ...base.orderItems[0],
+              fulfillmentLocationId: mainBranchId,
+            },
+            {
+              ...base.orderItems[0],
+              id: "order-item-2",
+              productId: "product-2",
+              quantity: 1,
+              fulfillmentLocationId: secondBranchId,
+              product: {
+                id: "product-2",
+                name: "Second Test Book",
+              },
+            },
+          ],
+        };
+
+        orderFindUniqueMock.mockResolvedValue(order);
+
+        const tx = createTransactionClient();
+
+        transactionMock.mockImplementation(
+          async (
+            callback: (client: typeof tx) => unknown
+          ) => callback(tx)
+        );
+
+        const result =
+          await finalizeWebsitePaystackPayment({
+            reference: "DG-TEST-1",
+            orderId: "DG-TEST-1",
+            amountPesewas: 5000,
+            currency: "GHS",
+            providerStatus: "success",
+          });
+
+        expect(result.orderFinalized).toBe(true);
+        expect(result.requiresAttention).toBe(false);
+
+        expect(
+          tx.stockMovement.create
+        ).toHaveBeenCalledTimes(2);
+
+        expect(
+          tx.stockMovement.create
+        ).toHaveBeenNthCalledWith(
+          1,
+          {
+            data: expect.objectContaining({
+              productId: "product-1",
+              fromLocationType: "BRANCH",
+              fromLocationId: mainBranchId,
+            }),
+          }
+        );
+
+        expect(
+          tx.stockMovement.create
+        ).toHaveBeenNthCalledWith(
+          2,
+          {
+            data: expect.objectContaining({
+              productId: "product-2",
+              fromLocationType: "BRANCH",
+              fromLocationId: secondBranchId,
+            }),
+          }
+        );
+
+        expect(
+          tx.inventory.findUnique
+        ).toHaveBeenNthCalledWith(
+          1,
+          {
+            where: {
+              productId_locationType_locationId: {
+                productId: "product-1",
+                locationType: "BRANCH",
+                locationId: mainBranchId,
+              },
+            },
+            select: {
+              quantity: true,
+            },
+          }
+        );
+
+        expect(
+          tx.inventory.findUnique
+        ).toHaveBeenNthCalledWith(
+          2,
+          {
+            where: {
+              productId_locationType_locationId: {
+                productId: "product-2",
+                locationType: "BRANCH",
+                locationId: secondBranchId,
+              },
+            },
+            select: {
+              quantity: true,
+            },
+          }
+        );
+
+        expect(
+          tx.product.update
+        ).toHaveBeenCalledTimes(1);
+
+        expect(
+          tx.product.update
+        ).toHaveBeenCalledWith({
+          where: {
+            id: "product-1",
+          },
+          data: {
+            stockQty: 8,
+          },
+        });
+
+        expect(
+          tx.inventoryMovement.create
+        ).toHaveBeenCalledTimes(2);
+
+        expect(
+          applyStockMovementMock
+        ).toHaveBeenCalledTimes(2);
+
+        expect(
+          tx.order.update
+        ).toHaveBeenCalledWith({
+          where: {
+            id: "order-db-1",
+          },
+          data: expect.objectContaining({
+            paymentStatus: PaymentStatus.PAID,
+            stockReduced: true,
+          }),
+        });
+      }
+    );
+
+    it(
+      "rejects incomplete item allocations before claiming stock",
+      async () => {
+        const base = createOrder();
+
+        const order = {
+          ...base,
+          orderItems: [
+            {
+              ...base.orderItems[0],
+              fulfillmentLocationId:
+                "cmq4b407s0000g3jg31elgm80",
+            },
+            {
+              ...base.orderItems[0],
+              id: "order-item-2",
+              productId: "product-2",
+              fulfillmentLocationId: null,
+            },
+          ],
+        };
+
+        orderFindUniqueMock.mockResolvedValue(order);
+
+        await expect(
+          finalizeWebsitePaystackPayment({
+            reference: "DG-TEST-1",
+            orderId: "DG-TEST-1",
+            amountPesewas: 5000,
+            currency: "GHS",
+            providerStatus: "success",
+          })
+        ).rejects.toThrow(
+          "incomplete item-level allocations"
+        );
+
+        expect(
+          transactionMock
+        ).not.toHaveBeenCalled();
+
+        expect(
+          applyStockMovementMock
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    it(
+      "finalises second-branch stock without changing the main-branch mirror",
+      async () => {
+        const secondBranchId = "second-branch-test";
+
+        orderFindUniqueMock.mockResolvedValue(
+          createOrder({
+            locationId: secondBranchId,
+          })
+        );
+
+        const tx = createTransactionClient();
+
+        transactionMock.mockImplementation(
+          async (
+            callback: (client: typeof tx) => unknown
+          ) => callback(tx)
+        );
+
+        const result =
+          await finalizeWebsitePaystackPayment({
+            reference: "DG-TEST-1",
+            orderId: "DG-TEST-1",
+            amountPesewas: 5000,
+            currency: "GHS",
+            providerStatus: "success",
+          });
+
+        expect(result).toEqual({
+          orderId: "DG-TEST-1",
+          paymentConfirmed: true,
+          orderFinalized: true,
+          alreadyFinalized: false,
+          requiresAttention: false,
+        });
+
+        expect(
+          tx.stockMovement.create
+        ).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            productId: "product-1",
+            type: "SALE",
+            quantity: 2,
+            fromLocationType: "BRANCH",
+            fromLocationId: secondBranchId,
+            createdByStaffId: "SYSTEM",
+          }),
+        });
+
+        expect(
+          applyStockMovementMock
+        ).toHaveBeenCalledWith(
+          tx,
+          "movement-1"
+        );
+
+        expect(
+          tx.inventory.findUnique
+        ).toHaveBeenCalledWith({
+          where: {
+            productId_locationType_locationId: {
+              productId: "product-1",
+              locationType: "BRANCH",
+              locationId: secondBranchId,
+            },
+          },
+          select: {
+            quantity: true,
+          },
+        });
+
+        expect(
+          tx.product.update
+        ).not.toHaveBeenCalled();
+
+        expect(
+          tx.inventoryMovement.create
+        ).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            productId: "product-1",
+            orderId: "order-db-1",
+            type: "SALE",
+            quantity: 2,
+          }),
+        });
+
+        expect(
+          tx.order.update
+        ).toHaveBeenCalledWith({
+          where: {
+            id: "order-db-1",
+          },
+          data: expect.objectContaining({
+            paymentStatus: PaymentStatus.PAID,
+            paymentMethod: "ONLINE_CARD",
+            stockReduced: true,
+          }),
+        });
       }
     );
 

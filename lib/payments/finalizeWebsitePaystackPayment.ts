@@ -9,6 +9,8 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { applyStockMovement } from "@/lib/stock";
+import { isMainBranchStockMirrorLocation } from "@/lib/inventory/mainBranchStockMirror";
+import { resolvePersistedWebsiteOrderLocations } from "@/lib/inventory/websitePersistedAllocation";
 import { getRequiredOrderAmountPesewas } from "@/lib/pos/orderMoney";
 
 type FinalizeWebsitePaystackPaymentInput = {
@@ -293,6 +295,26 @@ export async function finalizeWebsitePaystackPayment({
     };
   }
 
+  /*
+   * Historical website orders use Order.locationId.
+   * New website orders use each saved item location.
+   *
+   * Partially allocated orders must fail rather than
+   * silently deducting stock from the wrong branch.
+   *
+   * Resolution occurs before claiming stockReduced.
+   */
+  const resolvedLocations =
+    resolvePersistedWebsiteOrderLocations(
+      orderLocationId,
+      order.orderItems
+    );
+
+  const resolvedOrderItems =
+    order.orderItems.map((item, index) => ({
+      ...item,
+      locationId: resolvedLocations[index].locationId,
+    }));
   const receiptToken =
     order.receiptToken ??
     createReceiptToken();
@@ -395,7 +417,7 @@ export async function finalizeWebsitePaystackPayment({
          */
         for (
           const item of
-          order.orderItems
+          resolvedOrderItems
         ) {
           if (
             !Number.isInteger(
@@ -424,7 +446,7 @@ export async function finalizeWebsitePaystackPayment({
                   LocationType.BRANCH,
 
                 fromLocationId:
-                  orderLocationId,
+                  item.locationId,
 
                 createdByStaffId:
                   WEBSITE_SYSTEM_ACTOR,
@@ -459,7 +481,7 @@ export async function finalizeWebsitePaystackPayment({
                       LocationType.BRANCH,
 
                     locationId:
-                      orderLocationId,
+                      item.locationId,
                   },
               },
 
@@ -474,17 +496,29 @@ export async function finalizeWebsitePaystackPayment({
             );
           }
 
-          await tx.product.update({
-            where: {
-              id:
-                item.productId,
-            },
-
-            data: {
-              stockQty:
-                updatedInventory.quantity,
-            },
-          });
+          /*
+           * Product.stockQty is the compatibility
+           * mirror of DeeGlobalGH's main branch only.
+           *
+           * Sales supplied by other branches must
+           * not overwrite the main-branch balance.
+           */
+          if (
+            isMainBranchStockMirrorLocation(
+              LocationType.BRANCH,
+              item.locationId
+            )
+          ) {
+            await tx.product.update({
+              where: {
+                id: item.productId,
+              },
+              data: {
+                stockQty:
+                  updatedInventory.quantity,
+              },
+            });
+          }
 
           /*
            * Preserve the existing order-linked

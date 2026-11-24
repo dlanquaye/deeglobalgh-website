@@ -1,4 +1,4 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 
 import {
   LocationType,
@@ -8,6 +8,8 @@ import {
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { prepareSalesAttribution } from "@/lib/sales/salesAttribution";
+import { prepareAllocatedWebsiteOrderItems } from "@/lib/inventory/websiteOrderItemPersistence";
 
 function getDeliveryFeePesewas(
   location: string
@@ -226,18 +228,9 @@ export async function POST(
      * the real Branch record.
      */
     const branch =
-      await prisma.branch.findFirst({
+      await prisma.branch.findUnique({
         where: {
-          OR: [
-            {
-              name:
-                "Kasoa, New Market",
-            },
-            {
-              location:
-                "Kasoa",
-            },
-          ],
+          id: "cmq4b407s0000g3jg31elgm80",
         },
         select: {
           id: true,
@@ -440,6 +433,30 @@ export async function POST(
         }
       );
 
+    /*
+     * Persist a verified supplying location for
+     * every newly created website order item.
+     *
+     * Until reviewed SKU assignments and the
+     * textiles branch have been configured,
+     * all website items retain the established
+     * main-branch stock source.
+     *
+     * Client-submitted branch IDs are ignored.
+     */
+    const allocatedItems =
+      prepareAllocatedWebsiteOrderItems(
+        preparedItems,
+        preparedItems.map((item) => ({
+          productId: item.productId,
+          sku:
+            productById.get(item.productId)?.sku ??
+            item.productId,
+          quantity: item.quantity,
+          locationType: "BRANCH" as const,
+          locationId: branch.id,
+        }))
+      );
     const deliveryFeePesewas =
       getDeliveryFeePesewas(
         location
@@ -473,6 +490,10 @@ export async function POST(
      * Stock moves only after independently
      * confirmed successful payment.
      */
+    const attribution = prepareSalesAttribution({
+      entryPoint: "WEBSITE",
+    });
+
     const result =
       await prisma.$transaction(
         async (tx) => {
@@ -516,12 +537,16 @@ export async function POST(
 
                 stockReduced:
                   false,
+
+                salesChannel: attribution.salesChannel,
+                fulfillmentMethod: attribution.fulfillmentMethod,
+                marketingSource: attribution.marketingSource,
               },
             });
 
           for (
             const item of
-            preparedItems
+            allocatedItems
           ) {
             await tx.orderItem.create({
               data: {
@@ -539,6 +564,8 @@ export async function POST(
 
                 totalPrice:
                   item.totalPriceGhs,
+                    fulfillmentLocationId:
+                      item.fulfillmentLocationId,
               },
             });
           }

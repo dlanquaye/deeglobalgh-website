@@ -1,9 +1,12 @@
-﻿import {
+import {
   LocationType,
   MovementType,
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  isMainBranchStockMirrorLocation,
+} from "@/lib/inventory/mainBranchStockMirror";
 
 type TransferInventoryInput = {
   productId: string;
@@ -127,10 +130,26 @@ export async function transferInventory({
           },
         });
 
-      if (
-        toLocationType ===
-        LocationType.BRANCH
-      ) {
+      /*
+       * Product.stockQty is the compatibility mirror
+       * of DeeGlobalGH's established main branch only.
+       *
+       * Transfers involving other branches or warehouses
+       * must not overwrite that mirror.
+       */
+      const destinationIsMain =
+        isMainBranchStockMirrorLocation(
+          toLocationType,
+          toLocationId
+        );
+
+      const sourceIsMain =
+        isMainBranchStockMirrorLocation(
+          fromLocationType,
+          fromLocationId
+        );
+
+      if (destinationIsMain) {
         await tx.product.update({
           where: {
             id: productId,
@@ -140,30 +159,26 @@ export async function transferInventory({
               destinationInventory.quantity,
           },
         });
-      }
-
-      if (
-        fromLocationType ===
-          LocationType.BRANCH &&
-        toLocationType !==
-          LocationType.BRANCH
-      ) {
-        const remainingBranchInventory =
+      } else if (sourceIsMain) {
+        const remainingMainInventory =
           await tx.inventory.findUnique({
             where: {
-              productId_locationType_locationId:
-                {
-                  productId,
-                  locationType:
-                    fromLocationType,
-                  locationId:
-                    fromLocationId,
-                },
+              productId_locationType_locationId: {
+                productId,
+                locationType: LocationType.BRANCH,
+                locationId: fromLocationId,
+              },
             },
             select: {
               quantity: true,
             },
           });
+
+        if (!remainingMainInventory) {
+          throw new Error(
+            "Main branch inventory missing after transfer"
+          );
+        }
 
         await tx.product.update({
           where: {
@@ -171,12 +186,10 @@ export async function transferInventory({
           },
           data: {
             stockQty:
-              remainingBranchInventory
-                ?.quantity ?? 0,
+              remainingMainInventory.quantity,
           },
         });
       }
-
       const movement =
         await tx.stockMovement.create({
           data: {

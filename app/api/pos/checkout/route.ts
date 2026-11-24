@@ -30,6 +30,7 @@ import type {
 } from "@/lib/pos/discounts";
 
 import { applyStockMovement } from "@/lib/stock";
+import { isMainBranchStockMirrorLocation } from "@/lib/inventory/mainBranchStockMirror";
 import { sendOrderSMS } from "@/app/lib/hubtelSms";
 import { requireAdmin } from "@/app/lib/adminAuth";
 
@@ -743,6 +744,10 @@ export async function POST(
 
                 locationId:
                   branchId,
+
+                salesChannel: "WALK_IN",
+                fulfillmentMethod: "COUNTER",
+                marketingSource: null,
               },
             });
 
@@ -918,17 +923,29 @@ export async function POST(
               );
             }
 
-            await tx.product.update({
-              where: {
-                id:
-                  product.id,
-              },
-
-              data: {
-                stockQty:
-                  updatedInventory.quantity,
-              },
-            });
+            /*
+             * Product.stockQty remains the legacy
+             * compatibility mirror of the main branch.
+             *
+             * Other branches use their own authoritative
+             * Inventory balances and must not overwrite it.
+             */
+            if (
+              isMainBranchStockMirrorLocation(
+                LocationType.BRANCH,
+                branchId
+              )
+            ) {
+              await tx.product.update({
+                where: {
+                  id: product.id,
+                },
+                data: {
+                  stockQty:
+                    updatedInventory.quantity,
+                },
+              });
+            }
 
             await tx.orderItem.create({
               data: {
